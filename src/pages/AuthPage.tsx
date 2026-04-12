@@ -79,8 +79,8 @@ const AuthPage: React.FC = () => {
           >
             <Car className="w-8 h-8 text-accent-foreground" />
           </motion.div>
-          <h1 className="text-3xl font-bold text-primary-foreground">RideAI</h1>
-          <p className="text-primary-foreground/60 mt-1">Seu motorista particular com IA</p>
+          <h1 className="text-3xl font-bold text-primary-foreground">LocaliZZou</h1>
+          <p className="text-primary-foreground/60 mt-1">Seu transporte inteligente</p>
         </div>
 
         <Card className="glass border-border/30">

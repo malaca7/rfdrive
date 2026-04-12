@@ -20,7 +20,7 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             <div className="w-8 h-8 rounded-lg gradient-accent flex items-center justify-center">
               <Car className="w-4 h-4 text-accent-foreground" />
             </div>
-            <span className="font-bold text-lg">RideAI</span>
+            <span className="font-bold text-lg">LocaliZZou</span>
           </div>
           <div className="flex items-center gap-3">
             <div className="text-right hidden sm:block">
