@@ -17,45 +17,34 @@ serve(async (req) => {
     const body = await req.json();
     let textInput = body.text || "";
 
-    // If audio is provided, transcribe it first
+    // If audio is provided, transcribe it first using OpenAI Whisper
     if (body.audio && !textInput) {
-      const transcribeResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
+      if (!OPENAI_API_KEY) throw new Error("OPENAI_API_KEY is not configured");
+
+      // Decode base64 to binary
+      const binaryAudio = Uint8Array.from(atob(body.audio), (c) => c.charCodeAt(0));
+      const formData = new FormData();
+      formData.append("file", new Blob([binaryAudio], { type: "audio/webm" }), "audio.webm");
+      formData.append("model", "whisper-1");
+      formData.append("language", "pt");
+
+      const transcribeResponse = await fetch("https://api.openai.com/v1/audio/transcriptions", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
-          "Content-Type": "application/json",
+          Authorization: `Bearer ${OPENAI_API_KEY}`,
         },
-        body: JSON.stringify({
-          model: "google/gemini-3-flash-preview",
-          messages: [
-            {
-              role: "system",
-              content: "You are a transcription assistant. The user will send you audio in base64. Transcribe the audio content to text in Portuguese. Return ONLY the transcribed text, nothing else."
-            },
-            {
-              role: "user",
-              content: [
-                {
-                  type: "input_audio",
-                  input_audio: {
-                    data: body.audio,
-                    format: "webm"
-                  }
-                }
-              ]
-            }
-          ],
-        }),
+        body: formData,
       });
 
       if (!transcribeResponse.ok) {
         const errText = await transcribeResponse.text();
-        console.error("Transcription error:", transcribeResponse.status, errText);
+        console.error("Whisper error:", transcribeResponse.status, errText);
         throw new Error("Failed to transcribe audio");
       }
 
       const transcribeData = await transcribeResponse.json();
-      textInput = transcribeData.choices?.[0]?.message?.content || "";
+      textInput = transcribeData.text || "";
     }
 
     if (!textInput) {
