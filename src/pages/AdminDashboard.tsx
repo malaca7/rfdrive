@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
 import AppShell from '@/components/AppShell';
+import AdminPricing from '@/components/AdminPricing';
 import { motion } from 'framer-motion';
 import {
   MapPin, Navigation, Clock, CheckCircle, XCircle,
@@ -486,6 +487,9 @@ const AdminDashboard: React.FC = () => {
             <TabsTrigger value="usuarios" className="flex-1 gap-2">
               <Users className="w-4 h-4" /> Usuários ({stats.totalUsers})
             </TabsTrigger>
+            <TabsTrigger value="precificacao" className="flex-1 gap-2">
+              <DollarSign className="w-4 h-4" /> Preços
+            </TabsTrigger>
           </TabsList>
 
           {/* ═══════════════════════════════ CORRIDAS TAB ═══════════════════════════════ */}
@@ -810,6 +814,11 @@ const AdminDashboard: React.FC = () => {
                 })}
               </div>
             )}
+          </TabsContent>
+
+          {/* ═══════════════════════════════ PRECIFICAÇÃO TAB ═══════════════════════════════ */}
+          <TabsContent value="precificacao">
+            <AdminPricing />
           </TabsContent>
         </Tabs>
       </div>

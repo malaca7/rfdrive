@@ -13,6 +13,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import StarRating from '@/components/StarRating';
 import { calculateRoute } from '@/lib/route-ai';
+import { calcularPreco, salvarHistoricoPreco } from '@/lib/pricing-engine';
 
 interface RouteEstimate {
   distancia_km: number;
@@ -127,13 +128,33 @@ const RideRequestForm: React.FC = () => {
 
       let distancia_km: number | null = null;
       let valor_estimado: number | null = null;
+      let preco_regra_aplicada: string | null = null;
+      let preco_detalhes: Record<string, unknown> | null = null;
 
       if (routeResult) {
         distancia_km = routeResult.distancia_km;
         valor_estimado = routeResult.valor_estimado;
       }
 
-      const { error } = await supabase.from('corridas').insert({
+      // Motor dinâmico: tenta buscar preço por localidade/horário
+      try {
+        const precoDinamico = await calcularPreco(o, d);
+        if (precoDinamico) {
+          valor_estimado = precoDinamico.preco_final;
+          preco_regra_aplicada = precoDinamico.origem_regra;
+          preco_detalhes = {
+            preco_base: precoDinamico.preco_base,
+            ajuste: precoDinamico.ajuste_aplicado,
+            fallback: precoDinamico.fallback_usado,
+            origem_loc: precoDinamico.origem_localidade?.nome,
+            destino_loc: precoDinamico.destino_localidade?.nome,
+          };
+        }
+      } catch {
+        // fallback silencioso para preço da rota IA
+      }
+
+      const { data: corridaData, error } = await supabase.from('corridas').insert({
         cliente_id: user.id,
         origem_texto: o,
         destino_texto: d,
@@ -141,8 +162,23 @@ const RideRequestForm: React.FC = () => {
         canal_origem: 'app',
         distancia_km,
         valor_estimado,
-      });
+        preco_regra_aplicada,
+        preco_detalhes,
+      }).select('id').single();
       if (error) throw error;
+
+      // Salvar histórico de preço se motor dinâmico foi usado
+      if (preco_regra_aplicada && corridaData?.id) {
+        try {
+          const precoDinamico = await calcularPreco(o, d);
+          if (precoDinamico) {
+            await salvarHistoricoPreco(corridaData.id, precoDinamico);
+          }
+        } catch {
+          // non-critical
+        }
+      }
+
       toast({ title: 'Corrida solicitada!', description: 'Aguardando um motorista aceitar.' });
       setOrigem('');
       setDestino('');

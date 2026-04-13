@@ -69,6 +69,8 @@ export type Database = {
           whatsapp_message_id: string | null
           distancia_km: number | null
           valor_estimado: number | null
+          preco_regra_aplicada: string | null
+          preco_detalhes: Record<string, unknown> | null
           created_at: string
         }
         Insert: {
@@ -94,6 +96,8 @@ export type Database = {
           whatsapp_message_id?: string | null
           distancia_km?: number | null
           valor_estimado?: number | null
+          preco_regra_aplicada?: string | null
+          preco_detalhes?: Record<string, unknown> | null
           created_at?: string
         }
         Update: {
@@ -119,6 +123,8 @@ export type Database = {
           whatsapp_message_id?: string | null
           distancia_km?: number | null
           valor_estimado?: number | null
+          preco_regra_aplicada?: string | null
+          preco_detalhes?: Record<string, unknown> | null
           created_at?: string
         }
         Relationships: []
@@ -176,6 +182,159 @@ export type Database = {
           motorista_id?: string
           nota?: number
           comentario?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      localidades: {
+        Row: {
+          id: string
+          nome: string
+          tipo: "bairro" | "local" | "rua" | "ponto" | "cidade" | "zona"
+          parent_id: string | null
+          latitude: number | null
+          longitude: number | null
+          ativo: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          nome: string
+          tipo?: "bairro" | "local" | "rua" | "ponto" | "cidade" | "zona"
+          parent_id?: string | null
+          latitude?: number | null
+          longitude?: number | null
+          ativo?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          nome?: string
+          tipo?: "bairro" | "local" | "rua" | "ponto" | "cidade" | "zona"
+          parent_id?: string | null
+          latitude?: number | null
+          longitude?: number | null
+          ativo?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      precos_rotas: {
+        Row: {
+          id: string
+          origem_id: string
+          destino_id: string
+          preco_fixo: number | null
+          preco_minimo: number | null
+          prioridade: number
+          ativo: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          origem_id: string
+          destino_id: string
+          preco_fixo?: number | null
+          preco_minimo?: number | null
+          prioridade?: number
+          ativo?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          origem_id?: string
+          destino_id?: string
+          preco_fixo?: number | null
+          preco_minimo?: number | null
+          prioridade?: number
+          ativo?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      regras_horario: {
+        Row: {
+          id: string
+          nome: string
+          hora_inicio: string
+          hora_fim: string
+          tipo_ajuste: "percentual" | "fixo"
+          valor_ajuste: number
+          ativo: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          nome: string
+          hora_inicio: string
+          hora_fim: string
+          tipo_ajuste?: "percentual" | "fixo"
+          valor_ajuste?: number
+          ativo?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          nome?: string
+          hora_inicio?: string
+          hora_fim?: string
+          tipo_ajuste?: "percentual" | "fixo"
+          valor_ajuste?: number
+          ativo?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      historico_precos: {
+        Row: {
+          id: string
+          corrida_id: string | null
+          origem_localidade_id: string | null
+          destino_localidade_id: string | null
+          preco_rota_id: string | null
+          regra_horario_id: string | null
+          preco_base: number | null
+          ajuste_aplicado: string | null
+          preco_final: number
+          origem_regra: string | null
+          detalhes: Record<string, unknown> | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          corrida_id?: string | null
+          origem_localidade_id?: string | null
+          destino_localidade_id?: string | null
+          preco_rota_id?: string | null
+          regra_horario_id?: string | null
+          preco_base?: number | null
+          ajuste_aplicado?: string | null
+          preco_final: number
+          origem_regra?: string | null
+          detalhes?: Record<string, unknown> | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          corrida_id?: string | null
+          origem_localidade_id?: string | null
+          destino_localidade_id?: string | null
+          preco_rota_id?: string | null
+          regra_horario_id?: string | null
+          preco_base?: number | null
+          ajuste_aplicado?: string | null
+          preco_final?: number
+          origem_regra?: string | null
+          detalhes?: Record<string, unknown> | null
           created_at?: string
         }
         Relationships: []
