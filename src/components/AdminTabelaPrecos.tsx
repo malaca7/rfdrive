@@ -240,7 +240,10 @@ const AdminTabelaPrecos: React.FC = () => {
   };
 
   const handleEdit = () => {
-    if (!editingEntry?.id) return;
+    if (!editingEntry?.id) {
+      toast({ title: 'Erro: entrada sem ID', description: 'Não foi possível identificar a rota para edição. Recarregue a página.', variant: 'destructive' });
+      return;
+    }
     const valor = parseFloat(formValor.replace(',', '.'));
     if (!formOrigem.trim() || !formDestino.trim() || isNaN(valor) || valor <= 0) {
       toast({ title: 'Preencha todos os campos corretamente', variant: 'destructive' });

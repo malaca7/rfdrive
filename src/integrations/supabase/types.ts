@@ -342,6 +342,36 @@ export type Database = {
         }
         Relationships: []
       }
+      tabela_precos: {
+        Row: {
+          id: string
+          origem: string
+          destino: string
+          valor: number
+          regiao: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          origem: string
+          destino: string
+          valor: number
+          regiao?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          origem?: string
+          destino?: string
+          valor?: number
+          regiao?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
