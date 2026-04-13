@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
@@ -25,7 +26,7 @@ import {
   Users, Car, Shield, Loader2, MessageSquare, Phone,
   Search, Filter, Eye, AlertTriangle, History,
   Smartphone, Globe, DollarSign, User, Ban,
-  FileText, ChevronDown, ChevronRight
+  FileText, ChevronDown, ChevronRight, Pencil, Trash2, Save, X
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
@@ -39,6 +40,8 @@ type Solicitacao = {
   status: string;
   aprovado_admin: boolean;
   valor: number | null;
+  valor_estimado: number | null;
+  distancia_km: number | null;
   observacao_motorista: string | null;
   canal_origem: string;
   observacoes: string | null;
@@ -58,6 +61,17 @@ type Aprovacao = {
   created_at: string;
 };
 
+type UserRecord = {
+  id: string;
+  nome: string;
+  telefone: string;
+  senha: string;
+  tipo: string;
+  status: string;
+  ativo: boolean;
+  created_at: string;
+};
+
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
   nova: { label: 'Nova', color: 'bg-purple-500/20 text-purple-400 border-purple-500/30', icon: <FileText className="w-3 h-3" /> },
   aguardando_motorista: { label: 'Aguardando Motorista', color: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30', icon: <Clock className="w-3 h-3" /> },
@@ -68,18 +82,51 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.
   recusada: { label: 'Recusada', color: 'bg-red-500/20 text-red-400 border-red-500/30', icon: <XCircle className="w-3 h-3" /> },
 };
 
+const ALL_STATUSES = ['nova', 'aguardando_motorista', 'aceita', 'em_analise', 'aprovada', 'nao_realizada', 'recusada'] as const;
+
 const AdminDashboard: React.FC = () => {
   const { user: adminUser } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // ── Tab States ──
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [userSearchTerm, setUserSearchTerm] = useState('');
+  const [userTypeFilter, setUserTypeFilter] = useState<string>('all');
+
+  // ── Ride Dialogs ──
   const [selectedRide, setSelectedRide] = useState<Solicitacao | null>(null);
   const [showApprovalDialog, setShowApprovalDialog] = useState(false);
   const [approvalAction, setApprovalAction] = useState<string>('');
   const [approvalObs, setApprovalObs] = useState('');
   const [showDetailDialog, setShowDetailDialog] = useState(false);
   const [rideAprovacoes, setRideAprovacoes] = useState<Aprovacao[]>([]);
+  const [showEditRideDialog, setShowEditRideDialog] = useState(false);
+  const [editRideForm, setEditRideForm] = useState({
+    origem_texto: '',
+    destino_texto: '',
+    status: '',
+    valor: '',
+    valor_estimado: '',
+    distancia_km: '',
+    horario_estimado: '',
+    observacoes: '',
+    motorista_id: '' as string | null,
+  });
+
+  // ── User Dialogs ──
+  const [showEditUserDialog, setShowEditUserDialog] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<UserRecord | null>(null);
+  const [editUserForm, setEditUserForm] = useState({
+    nome: '',
+    telefone: '',
+    tipo: '',
+    status: '',
+    senha: '',
+  });
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<{ type: 'user' | 'ride'; id: string; label: string } | null>(null);
 
   // ── Fetch all rides with client and driver info ──
   const { data: rides, isLoading: loadingRides } = useQuery({
@@ -118,19 +165,21 @@ const AdminDashboard: React.FC = () => {
   });
 
   // ── Fetch all users ──
-  const { data: users } = useQuery({
+  const { data: users, isLoading: loadingUsers } = useQuery({
     queryKey: ['admin-users'],
     queryFn: async () => {
       const { data, error } = await supabase.from('users').select('*').order('created_at', { ascending: false });
       if (error) throw error;
-      return data;
+      return data as UserRecord[];
     },
   });
+
+  // ── Fetch motoristas for ride assignment ──
+  const motoristas = users?.filter(u => u.tipo === 'motorista' && u.status === 'ativo') || [];
 
   // ── Approval mutation ──
   const approvalMutation = useMutation({
     mutationFn: async ({ rideId, statusAdmin, observacao }: { rideId: string; statusAdmin: string; observacao: string }) => {
-      // Insert approval record
       const { error: apError } = await supabase.from('aprovacoes').insert({
         solicitacao_id: rideId,
         admin_id: adminUser!.id,
@@ -139,7 +188,6 @@ const AdminDashboard: React.FC = () => {
       });
       if (apError) throw apError;
 
-      // Update ride status
       const { error: rideError } = await supabase.from('corridas').update({
         status: statusAdmin,
         aprovado_admin: statusAdmin === 'aprovada',
@@ -158,7 +206,7 @@ const AdminDashboard: React.FC = () => {
     },
   });
 
-  // ── User mutation ──
+  // ── Update user mutation ──
   const updateUserMutation = useMutation({
     mutationFn: async ({ userId, updates }: { userId: string; updates: Record<string, unknown> }) => {
       const { error } = await supabase.from('users').update(updates).eq('id', userId);
@@ -166,7 +214,55 @@ const AdminDashboard: React.FC = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-rides'] });
       toast({ title: 'Usuário atualizado!' });
+      setShowEditUserDialog(false);
+      setSelectedUser(null);
+    },
+    onError: () => {
+      toast({ title: 'Erro ao atualizar usuário', variant: 'destructive' });
+    },
+  });
+
+  // ── Update ride mutation ──
+  const updateRideMutation = useMutation({
+    mutationFn: async ({ rideId, updates }: { rideId: string; updates: Record<string, unknown> }) => {
+      const { error } = await supabase.from('corridas').update(updates).eq('id', rideId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-rides'] });
+      toast({ title: 'Corrida atualizada!' });
+      setShowEditRideDialog(false);
+      setSelectedRide(null);
+    },
+    onError: () => {
+      toast({ title: 'Erro ao atualizar corrida', variant: 'destructive' });
+    },
+  });
+
+  // ── Delete mutation ──
+  const deleteMutation = useMutation({
+    mutationFn: async ({ type, id }: { type: 'user' | 'ride'; id: string }) => {
+      if (type === 'ride') {
+        await supabase.from('aprovacoes').delete().eq('solicitacao_id', id);
+        await supabase.from('avaliacoes').delete().eq('corrida_id', id);
+        const { error } = await supabase.from('corridas').delete().eq('id', id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from('users').delete().eq('id', id);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-rides'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+      toast({ title: 'Excluído com sucesso!' });
+      setShowDeleteConfirm(false);
+      setDeleteTarget(null);
+    },
+    onError: (err: any) => {
+      toast({ title: 'Erro ao excluir', description: err?.message || 'Pode haver registros vinculados.', variant: 'destructive' });
     },
   });
 
@@ -180,7 +276,6 @@ const AdminDashboard: React.FC = () => {
 
   const openDetailDialog = async (ride: Solicitacao) => {
     setSelectedRide(ride);
-    // Load approval history
     const { data } = await supabase
       .from('aprovacoes')
       .select('*')
@@ -188,6 +283,34 @@ const AdminDashboard: React.FC = () => {
       .order('created_at', { ascending: false });
     setRideAprovacoes(data || []);
     setShowDetailDialog(true);
+  };
+
+  const openEditRideDialog = (ride: Solicitacao) => {
+    setSelectedRide(ride);
+    setEditRideForm({
+      origem_texto: ride.origem_texto,
+      destino_texto: ride.destino_texto,
+      status: ride.status,
+      valor: ride.valor != null ? String(ride.valor) : '',
+      valor_estimado: ride.valor_estimado != null ? String(ride.valor_estimado) : '',
+      distancia_km: ride.distancia_km != null ? String(ride.distancia_km) : '',
+      horario_estimado: ride.horario_estimado || '',
+      observacoes: ride.observacoes || '',
+      motorista_id: ride.motorista_id,
+    });
+    setShowEditRideDialog(true);
+  };
+
+  const openEditUserDialog = (u: UserRecord) => {
+    setSelectedUser(u);
+    setEditUserForm({
+      nome: u.nome,
+      telefone: u.telefone,
+      tipo: u.tipo,
+      status: u.status,
+      senha: '',
+    });
+    setShowEditUserDialog(true);
   };
 
   const handleApproval = () => {
@@ -200,6 +323,43 @@ const AdminDashboard: React.FC = () => {
       statusAdmin: approvalAction,
       observacao: approvalObs.trim(),
     });
+  };
+
+  const handleSaveRide = () => {
+    if (!selectedRide) return;
+    const updates: Record<string, unknown> = {
+      origem_texto: editRideForm.origem_texto.trim(),
+      destino_texto: editRideForm.destino_texto.trim(),
+      status: editRideForm.status,
+      valor: editRideForm.valor ? parseFloat(editRideForm.valor) : null,
+      valor_estimado: editRideForm.valor_estimado ? parseFloat(editRideForm.valor_estimado) : null,
+      distancia_km: editRideForm.distancia_km ? parseFloat(editRideForm.distancia_km) : null,
+      horario_estimado: editRideForm.horario_estimado || null,
+      observacoes: editRideForm.observacoes || null,
+      motorista_id: editRideForm.motorista_id || null,
+      aprovado_admin: editRideForm.status === 'aprovada',
+    };
+    updateRideMutation.mutate({ rideId: selectedRide.id, updates });
+  };
+
+  const handleSaveUser = () => {
+    if (!selectedUser) return;
+    const updates: Record<string, unknown> = {
+      nome: editUserForm.nome.trim(),
+      telefone: editUserForm.telefone.trim(),
+      tipo: editUserForm.tipo,
+      status: editUserForm.status,
+      ativo: editUserForm.status === 'ativo',
+    };
+    if (editUserForm.senha.trim()) {
+      updates.senha = editUserForm.senha.trim();
+    }
+    updateUserMutation.mutate({ userId: selectedUser.id, updates });
+  };
+
+  const confirmDelete = (type: 'user' | 'ride', id: string, label: string) => {
+    setDeleteTarget({ type, id, label });
+    setShowDeleteConfirm(true);
   };
 
   // ── Filtering ──
@@ -215,6 +375,14 @@ const AdminDashboard: React.FC = () => {
     return matchStatus && matchSearch;
   });
 
+  const filteredUsers = users?.filter((u) => {
+    const matchType = userTypeFilter === 'all' || u.tipo === userTypeFilter;
+    const matchSearch = !userSearchTerm ||
+      u.nome?.toLowerCase().includes(userSearchTerm.toLowerCase()) ||
+      u.telefone?.includes(userSearchTerm);
+    return matchType && matchSearch;
+  });
+
   // ── Stats ──
   const stats = {
     total: rides?.length || 0,
@@ -227,6 +395,8 @@ const AdminDashboard: React.FC = () => {
     app: rides?.filter(r => r.canal_origem === 'app').length || 0,
     motoristas: users?.filter(u => u.tipo === 'motorista').length || 0,
     clientes: users?.filter(u => u.tipo === 'cliente').length || 0,
+    totalUsers: users?.length || 0,
+    banidos: users?.filter(u => u.status === 'banido').length || 0,
   };
 
   return (
@@ -244,7 +414,7 @@ const AdminDashboard: React.FC = () => {
         {/* Stats Grid */}
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 mb-6">
           {[
-            { label: 'Total', value: stats.total, icon: FileText, color: 'text-white' },
+            { label: 'Total Corridas', value: stats.total, icon: FileText, color: 'text-white' },
             { label: 'Novas', value: stats.novas, icon: AlertTriangle, color: 'text-purple-400' },
             { label: 'Ag. Motorista', value: stats.aguardando, icon: Clock, color: 'text-yellow-400' },
             { label: 'Em Análise', value: stats.emAnalise, icon: Eye, color: 'text-orange-400' },
@@ -301,8 +471,8 @@ const AdminDashboard: React.FC = () => {
                 <Users className="w-4 h-4 text-purple-400" />
               </div>
               <div>
-                <p className="text-lg font-bold">{stats.clientes}</p>
-                <p className="text-[10px] text-muted-foreground">Clientes</p>
+                <p className="text-lg font-bold">{stats.totalUsers}</p>
+                <p className="text-[10px] text-muted-foreground">Total Usuários</p>
               </div>
             </CardContent>
           </Card>
@@ -311,14 +481,14 @@ const AdminDashboard: React.FC = () => {
         <Tabs defaultValue="solicitacoes">
           <TabsList className="w-full mb-4">
             <TabsTrigger value="solicitacoes" className="flex-1 gap-2">
-              <Car className="w-4 h-4" /> Solicitações
+              <Car className="w-4 h-4" /> Corridas ({stats.total})
             </TabsTrigger>
             <TabsTrigger value="usuarios" className="flex-1 gap-2">
-              <Users className="w-4 h-4" /> Usuários
+              <Users className="w-4 h-4" /> Usuários ({stats.totalUsers})
             </TabsTrigger>
           </TabsList>
 
-          {/* ═══ SOLICITAÇÕES TAB ═══ */}
+          {/* ═══════════════════════════════ CORRIDAS TAB ═══════════════════════════════ */}
           <TabsContent value="solicitacoes">
             {/* Filters */}
             <div className="flex flex-col sm:flex-row gap-3 mb-4">
@@ -338,13 +508,9 @@ const AdminDashboard: React.FC = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos os Status</SelectItem>
-                  <SelectItem value="nova">Nova</SelectItem>
-                  <SelectItem value="aguardando_motorista">Aguardando Motorista</SelectItem>
-                  <SelectItem value="aceita">Aceita</SelectItem>
-                  <SelectItem value="em_analise">Em Análise</SelectItem>
-                  <SelectItem value="aprovada">Aprovada</SelectItem>
-                  <SelectItem value="nao_realizada">Não Realizada</SelectItem>
-                  <SelectItem value="recusada">Recusada</SelectItem>
+                  {ALL_STATUSES.map(s => (
+                    <SelectItem key={s} value={s}>{STATUS_CONFIG[s]?.label || s}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -363,14 +529,14 @@ const AdminDashboard: React.FC = () => {
                 {filteredRides.map((ride, i) => {
                   const cfg = STATUS_CONFIG[ride.status] || STATUS_CONFIG.nova;
                   const needsAction = ride.status === 'em_analise';
-                  const canValidate = ['aceita', 'em_analise', 'aguardando_motorista'].includes(ride.status);
+                  const canValidate = ['aceita', 'em_analise', 'aguardando_motorista', 'nova'].includes(ride.status);
 
                   return (
                     <motion.div key={ride.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.02 }}>
                       <Card className={needsAction ? 'border-orange-500/30 bg-orange-500/5' : ''}>
                         <CardContent className="py-4">
                           <div className="flex flex-col gap-3">
-                            {/* Top row: status, channel, date */}
+                            {/* Top row */}
                             <div className="flex items-center justify-between flex-wrap gap-2">
                               <div className="flex items-center gap-2">
                                 <Badge variant="outline" className={`text-xs gap-1 ${cfg.color}`}>
@@ -425,13 +591,24 @@ const AdminDashboard: React.FC = () => {
                               </div>
                             </div>
 
-                            {/* Value & observation */}
-                            {(ride.valor != null || ride.observacao_motorista) && (
-                              <div className="flex items-center gap-4 text-xs">
+                            {/* Value, distance & observation */}
+                            {(ride.valor != null || ride.valor_estimado != null || ride.distancia_km != null || ride.observacao_motorista) && (
+                              <div className="flex items-center gap-4 text-xs flex-wrap">
                                 {ride.valor != null && (
                                   <span className="flex items-center gap-1 text-green-400 font-semibold">
                                     <DollarSign className="w-3 h-3" />
                                     R$ {Number(ride.valor).toFixed(2)}
+                                  </span>
+                                )}
+                                {ride.valor_estimado != null && (
+                                  <span className="flex items-center gap-1 text-muted-foreground">
+                                    Est: R$ {Number(ride.valor_estimado).toFixed(2)}
+                                  </span>
+                                )}
+                                {ride.distancia_km != null && (
+                                  <span className="flex items-center gap-1 text-muted-foreground">
+                                    <Navigation className="w-3 h-3" />
+                                    {Number(ride.distancia_km).toFixed(1)} km
                                   </span>
                                 )}
                                 {ride.observacao_motorista && (
@@ -445,36 +622,31 @@ const AdminDashboard: React.FC = () => {
 
                             {/* Actions */}
                             <div className="flex items-center gap-2 flex-wrap">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="text-xs gap-1"
-                                onClick={() => openDetailDialog(ride)}
-                              >
+                              <Button size="sm" variant="outline" className="text-xs gap-1" onClick={() => openDetailDialog(ride)}>
                                 <Eye className="w-3 h-3" /> Detalhes
+                              </Button>
+                              <Button size="sm" variant="outline" className="text-xs gap-1" onClick={() => openEditRideDialog(ride)}>
+                                <Pencil className="w-3 h-3" /> Editar
                               </Button>
 
                               {canValidate && (
                                 <>
                                   <Button
-                                    size="sm"
-                                    variant="outline"
+                                    size="sm" variant="outline"
                                     className="text-xs gap-1 text-green-400 border-green-500/30 hover:bg-green-500/10"
                                     onClick={() => openApprovalDialog(ride, 'aprovada')}
                                   >
                                     <CheckCircle className="w-3 h-3" /> Aprovar
                                   </Button>
                                   <Button
-                                    size="sm"
-                                    variant="outline"
+                                    size="sm" variant="outline"
                                     className="text-xs gap-1 text-yellow-400 border-yellow-500/30 hover:bg-yellow-500/10"
                                     onClick={() => openApprovalDialog(ride, 'nao_realizada')}
                                   >
                                     <AlertTriangle className="w-3 h-3" /> Não Realizada
                                   </Button>
                                   <Button
-                                    size="sm"
-                                    variant="outline"
+                                    size="sm" variant="outline"
                                     className="text-xs gap-1 text-red-400 border-red-500/30 hover:bg-red-500/10"
                                     onClick={() => openApprovalDialog(ride, 'recusada')}
                                   >
@@ -482,6 +654,14 @@ const AdminDashboard: React.FC = () => {
                                   </Button>
                                 </>
                               )}
+
+                              <Button
+                                size="sm" variant="outline"
+                                className="text-xs gap-1 text-red-400 border-red-500/30 hover:bg-red-500/10 ml-auto"
+                                onClick={() => confirmDelete('ride', ride.id, `Corrida de ${ride.cliente?.nome || 'cliente'}`)}
+                              >
+                                <Trash2 className="w-3 h-3" /> Excluir
+                              </Button>
                             </div>
                           </div>
                         </CardContent>
@@ -493,79 +673,148 @@ const AdminDashboard: React.FC = () => {
             )}
           </TabsContent>
 
-          {/* ═══ USUÁRIOS TAB ═══ */}
+          {/* ═══════════════════════════════ USUÁRIOS TAB ═══════════════════════════════ */}
           <TabsContent value="usuarios">
-            <div className="mb-4">
-              <div className="relative">
+            {/* Filters */}
+            <div className="flex flex-col sm:flex-row gap-3 mb-4">
+              <div className="relative flex-1">
                 <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                 <Input
-                  placeholder="Buscar usuário..."
+                  value={userSearchTerm}
+                  onChange={(e) => setUserSearchTerm(e.target.value)}
+                  placeholder="Buscar por nome ou telefone..."
                   className="pl-9"
-                  onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
+              <Select value={userTypeFilter} onValueChange={setUserTypeFilter}>
+                <SelectTrigger className="w-full sm:w-48">
+                  <Filter className="w-4 h-4 mr-2" />
+                  <SelectValue placeholder="Filtrar por tipo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os Tipos</SelectItem>
+                  <SelectItem value="cliente">Clientes</SelectItem>
+                  <SelectItem value="motorista">Motoristas</SelectItem>
+                  <SelectItem value="admin">Admins</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
-            <div className="space-y-3">
-              {users?.filter(u => !searchTerm || u.nome?.toLowerCase().includes(searchTerm.toLowerCase()) || u.telefone?.includes(searchTerm)).map((u) => (
-                <Card key={u.id}>
-                  <CardContent className="py-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                          u.tipo === 'motorista' ? 'bg-accent/20' : u.tipo === 'admin' ? 'bg-purple-500/20' : 'bg-blue-500/20'
-                        }`}>
-                          {u.tipo === 'motorista' ? <Car className="w-5 h-5 text-accent" /> :
-                           u.tipo === 'admin' ? <Shield className="w-5 h-5 text-purple-400" /> :
-                           <User className="w-5 h-5 text-blue-400" />}
-                        </div>
-                        <div>
-                          <p className="font-medium">{u.nome || 'Sem nome'}</p>
-                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                            <Phone className="w-3 h-3" />
-                            {u.telefone}
-                          </div>
-                          <div className="flex gap-1 mt-1">
-                            <Badge variant="secondary" className="text-[10px] px-1.5">
-                              {u.tipo === 'motorista' ? '🚗 Motorista' : u.tipo === 'admin' ? '🛡️ Admin' : '👤 Cliente'}
-                            </Badge>
-                            <Badge
-                              variant={u.status === 'ativo' ? 'outline' : 'destructive'}
-                              className="text-[10px] px-1.5"
-                            >
-                              {u.status === 'ativo' ? '✅ Ativo' : '🚫 Banido'}
-                            </Badge>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex flex-col gap-1">
-                        <Button
-                          size="sm"
-                          variant={u.status === 'ativo' ? 'destructive' : 'default'}
-                          className="text-xs"
-                          onClick={() =>
-                            updateUserMutation.mutate({
-                              userId: u.id,
-                              updates: {
-                                status: u.status === 'ativo' ? 'banido' : 'ativo',
-                                ativo: u.status !== 'ativo',
-                              },
-                            })
-                          }
-                        >
-                          {u.status === 'ativo' ? <><Ban className="w-3 h-3 mr-1" /> Banir</> : <><CheckCircle className="w-3 h-3 mr-1" /> Ativar</>}
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+            {/* Summary badges */}
+            <div className="flex gap-2 mb-4 flex-wrap">
+              <Badge variant="outline" className="text-xs gap-1">
+                <Users className="w-3 h-3" /> {stats.totalUsers} total
+              </Badge>
+              <Badge variant="outline" className="text-xs gap-1 text-blue-400 border-blue-500/30">
+                <User className="w-3 h-3" /> {stats.clientes} clientes
+              </Badge>
+              <Badge variant="outline" className="text-xs gap-1 text-accent border-accent/30">
+                <Car className="w-3 h-3" /> {stats.motoristas} motoristas
+              </Badge>
+              {stats.banidos > 0 && (
+                <Badge variant="outline" className="text-xs gap-1 text-red-400 border-red-500/30">
+                  <Ban className="w-3 h-3" /> {stats.banidos} banidos
+                </Badge>
+              )}
             </div>
+
+            {loadingUsers ? (
+              <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin" /></div>
+            ) : !filteredUsers?.length ? (
+              <Card>
+                <CardContent className="py-12 text-center">
+                  <Users className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
+                  <p className="text-muted-foreground">Nenhum usuário encontrado</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-3">
+                {filteredUsers.map((u, i) => {
+                  const rideCount = rides?.filter(r => r.cliente_id === u.id || r.motorista_id === u.id).length || 0;
+                  return (
+                    <motion.div key={u.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.02 }}>
+                      <Card className={u.status === 'banido' ? 'border-red-500/30 bg-red-500/5' : ''}>
+                        <CardContent className="py-4">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex items-start gap-3 flex-1 min-w-0">
+                              <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
+                                u.tipo === 'motorista' ? 'bg-accent/20' : u.tipo === 'admin' ? 'bg-purple-500/20' : 'bg-blue-500/20'
+                              }`}>
+                                {u.tipo === 'motorista' ? <Car className="w-5 h-5 text-accent" /> :
+                                 u.tipo === 'admin' ? <Shield className="w-5 h-5 text-purple-400" /> :
+                                 <User className="w-5 h-5 text-blue-400" />}
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <p className="font-medium truncate">{u.nome || 'Sem nome'}</p>
+                                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                  <Phone className="w-3 h-3" />
+                                  {u.telefone}
+                                </div>
+                                <div className="flex gap-1 mt-1.5 flex-wrap">
+                                  <Badge variant="secondary" className="text-[10px] px-1.5">
+                                    {u.tipo === 'motorista' ? '🚗 Motorista' : u.tipo === 'admin' ? '🛡️ Admin' : '👤 Cliente'}
+                                  </Badge>
+                                  <Badge
+                                    variant={u.status === 'ativo' ? 'outline' : 'destructive'}
+                                    className="text-[10px] px-1.5"
+                                  >
+                                    {u.status === 'ativo' ? '✅ Ativo' : '🚫 Banido'}
+                                  </Badge>
+                                  <Badge variant="outline" className="text-[10px] px-1.5">
+                                    {rideCount} corrida{rideCount !== 1 ? 's' : ''}
+                                  </Badge>
+                                </div>
+                                <p className="text-[10px] text-muted-foreground mt-1">
+                                  Cadastro: {new Date(u.created_at).toLocaleDateString('pt-BR')}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex flex-col gap-1.5 shrink-0">
+                              <Button
+                                size="sm" variant="outline" className="text-xs gap-1"
+                                onClick={() => openEditUserDialog(u)}
+                              >
+                                <Pencil className="w-3 h-3" /> Editar
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant={u.status === 'ativo' ? 'destructive' : 'default'}
+                                className="text-xs gap-1"
+                                onClick={() =>
+                                  updateUserMutation.mutate({
+                                    userId: u.id,
+                                    updates: {
+                                      status: u.status === 'ativo' ? 'banido' : 'ativo',
+                                      ativo: u.status !== 'ativo',
+                                    },
+                                  })
+                                }
+                              >
+                                {u.status === 'ativo' ? <><Ban className="w-3 h-3" /> Banir</> : <><CheckCircle className="w-3 h-3" /> Ativar</>}
+                              </Button>
+                              {u.tipo !== 'admin' && (
+                                <Button
+                                  size="sm" variant="outline"
+                                  className="text-xs gap-1 text-red-400 border-red-500/30 hover:bg-red-500/10"
+                                  onClick={() => confirmDelete('user', u.id, u.nome)}
+                                >
+                                  <Trash2 className="w-3 h-3" /> Excluir
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </motion.div>
+                  );
+                })}
+              </div>
+            )}
           </TabsContent>
         </Tabs>
       </div>
 
-      {/* ═══ APPROVAL DIALOG ═══ */}
+      {/* ═══════════════════ APPROVAL DIALOG ═══════════════════ */}
       <Dialog open={showApprovalDialog} onOpenChange={setShowApprovalDialog}>
         <DialogContent>
           <DialogHeader>
@@ -646,7 +895,206 @@ const AdminDashboard: React.FC = () => {
         </DialogContent>
       </Dialog>
 
-      {/* ═══ DETAIL DIALOG ═══ */}
+      {/* ═══════════════════ EDIT RIDE DIALOG ═══════════════════ */}
+      <Dialog open={showEditRideDialog} onOpenChange={setShowEditRideDialog}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Pencil className="w-5 h-5 text-accent" />
+              Editar Corrida
+            </DialogTitle>
+            <DialogDescription>
+              Altere os dados da corrida diretamente.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2 max-h-[60vh] overflow-y-auto">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="sm:col-span-2">
+                <Label className="text-xs">Origem</Label>
+                <Input
+                  value={editRideForm.origem_texto}
+                  onChange={(e) => setEditRideForm(f => ({ ...f, origem_texto: e.target.value }))}
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <Label className="text-xs">Destino</Label>
+                <Input
+                  value={editRideForm.destino_texto}
+                  onChange={(e) => setEditRideForm(f => ({ ...f, destino_texto: e.target.value }))}
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Status</Label>
+                <Select value={editRideForm.status} onValueChange={(v) => setEditRideForm(f => ({ ...f, status: v }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {ALL_STATUSES.map(s => (
+                      <SelectItem key={s} value={s}>{STATUS_CONFIG[s]?.label || s}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs">Motorista</Label>
+                <Select
+                  value={editRideForm.motorista_id || '_none'}
+                  onValueChange={(v) => setEditRideForm(f => ({ ...f, motorista_id: v === '_none' ? null : v }))}
+                >
+                  <SelectTrigger><SelectValue placeholder="Sem motorista" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="_none">Sem motorista</SelectItem>
+                    {motoristas.map(m => (
+                      <SelectItem key={m.id} value={m.id}>{m.nome} ({m.telefone})</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs">Valor (R$)</Label>
+                <Input
+                  type="number" step="0.01" min="0"
+                  value={editRideForm.valor}
+                  onChange={(e) => setEditRideForm(f => ({ ...f, valor: e.target.value }))}
+                  placeholder="0.00"
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Valor Estimado (R$)</Label>
+                <Input
+                  type="number" step="0.01" min="0"
+                  value={editRideForm.valor_estimado}
+                  onChange={(e) => setEditRideForm(f => ({ ...f, valor_estimado: e.target.value }))}
+                  placeholder="0.00"
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Distância (km)</Label>
+                <Input
+                  type="number" step="0.1" min="0"
+                  value={editRideForm.distancia_km}
+                  onChange={(e) => setEditRideForm(f => ({ ...f, distancia_km: e.target.value }))}
+                  placeholder="0.0"
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Horário Estimado</Label>
+                <Input
+                  value={editRideForm.horario_estimado}
+                  onChange={(e) => setEditRideForm(f => ({ ...f, horario_estimado: e.target.value }))}
+                  placeholder="Ex: 14:30"
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <Label className="text-xs">Observações</Label>
+                <Textarea
+                  value={editRideForm.observacoes}
+                  onChange={(e) => setEditRideForm(f => ({ ...f, observacoes: e.target.value }))}
+                  rows={2}
+                  className="resize-none"
+                />
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowEditRideDialog(false)}>Cancelar</Button>
+            <Button
+              onClick={handleSaveRide}
+              disabled={updateRideMutation.isPending || !editRideForm.origem_texto.trim() || !editRideForm.destino_texto.trim()}
+              className="gap-1"
+            >
+              {updateRideMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+              <Save className="w-4 h-4" /> Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ═══════════════════ EDIT USER DIALOG ═══════════════════ */}
+      <Dialog open={showEditUserDialog} onOpenChange={setShowEditUserDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Pencil className="w-5 h-5 text-accent" />
+              Editar Usuário
+            </DialogTitle>
+            <DialogDescription>
+              Altere os dados do usuário. Deixe a senha em branco para manter a atual.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <div>
+              <Label className="text-xs">Nome</Label>
+              <Input
+                value={editUserForm.nome}
+                onChange={(e) => setEditUserForm(f => ({ ...f, nome: e.target.value }))}
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Telefone</Label>
+              <Input
+                value={editUserForm.telefone}
+                onChange={(e) => setEditUserForm(f => ({ ...f, telefone: e.target.value }))}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label className="text-xs">Tipo</Label>
+                <Select value={editUserForm.tipo} onValueChange={(v) => setEditUserForm(f => ({ ...f, tipo: v }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="cliente">👤 Cliente</SelectItem>
+                    <SelectItem value="motorista">🚗 Motorista</SelectItem>
+                    <SelectItem value="admin">🛡️ Admin</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs">Status</Label>
+                <Select value={editUserForm.status} onValueChange={(v) => setEditUserForm(f => ({ ...f, status: v }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ativo">✅ Ativo</SelectItem>
+                    <SelectItem value="banido">🚫 Banido</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div>
+              <Label className="text-xs">Nova Senha (opcional)</Label>
+              <Input
+                type="password"
+                value={editUserForm.senha}
+                onChange={(e) => setEditUserForm(f => ({ ...f, senha: e.target.value }))}
+                placeholder="Deixe em branco para manter"
+              />
+            </div>
+
+            {selectedUser && (
+              <div className="bg-muted/50 rounded-lg p-3 text-xs text-muted-foreground space-y-1">
+                <p>ID: <span className="font-mono text-[10px]">{selectedUser.id}</span></p>
+                <p>Cadastro: {new Date(selectedUser.created_at).toLocaleString('pt-BR')}</p>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowEditUserDialog(false)}>Cancelar</Button>
+            <Button
+              onClick={handleSaveUser}
+              disabled={updateUserMutation.isPending || !editUserForm.nome.trim() || !editUserForm.telefone.trim()}
+              className="gap-1"
+            >
+              {updateUserMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+              <Save className="w-4 h-4" /> Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ═══════════════════ DETAIL DIALOG ═══════════════════ */}
       <Dialog open={showDetailDialog} onOpenChange={setShowDetailDialog}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
@@ -733,15 +1181,32 @@ const AdminDashboard: React.FC = () => {
                       <span className="text-xs">{selectedRide.horario_estimado}</span>
                     </div>
                   )}
+                  {selectedRide.distancia_km != null && (
+                    <div className="flex items-center gap-2 ml-4">
+                      <Navigation className="w-3.5 h-3.5 text-muted-foreground" />
+                      <span className="text-xs">{Number(selectedRide.distancia_km).toFixed(1)} km</span>
+                    </div>
+                  )}
                 </div>
               </div>
 
-              {/* Value */}
-              {selectedRide.valor != null && (
+              {/* Values */}
+              {(selectedRide.valor != null || selectedRide.valor_estimado != null) && (
                 <div>
-                  <p className="text-xs text-muted-foreground mb-2 font-medium">VALOR</p>
-                  <div className="bg-muted/50 rounded-lg p-3">
-                    <p className="text-lg font-bold text-green-400">R$ {Number(selectedRide.valor).toFixed(2)}</p>
+                  <p className="text-xs text-muted-foreground mb-2 font-medium">VALORES</p>
+                  <div className="bg-muted/50 rounded-lg p-3 flex gap-6">
+                    {selectedRide.valor != null && (
+                      <div>
+                        <p className="text-[10px] text-muted-foreground">Valor Final</p>
+                        <p className="text-lg font-bold text-green-400">R$ {Number(selectedRide.valor).toFixed(2)}</p>
+                      </div>
+                    )}
+                    {selectedRide.valor_estimado != null && (
+                      <div>
+                        <p className="text-[10px] text-muted-foreground">Estimado</p>
+                        <p className="text-lg font-bold text-muted-foreground">R$ {Number(selectedRide.valor_estimado).toFixed(2)}</p>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -777,6 +1242,11 @@ const AdminDashboard: React.FC = () => {
                 </div>
               </div>
 
+              {/* ID */}
+              <div className="bg-muted/50 rounded-lg p-3 text-xs text-muted-foreground">
+                <p>ID: <span className="font-mono text-[10px]">{selectedRide.id}</span></p>
+              </div>
+
               {/* Approval history */}
               {rideAprovacoes.length > 0 && (
                 <div>
@@ -807,6 +1277,53 @@ const AdminDashboard: React.FC = () => {
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowDetailDialog(false)}>Fechar</Button>
+            {selectedRide && (
+              <Button className="gap-1" onClick={() => { setShowDetailDialog(false); openEditRideDialog(selectedRide); }}>
+                <Pencil className="w-4 h-4" /> Editar
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ═══════════════════ DELETE CONFIRMATION DIALOG ═══════════════════ */}
+      <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-400">
+              <Trash2 className="w-5 h-5" />
+              Confirmar Exclusão
+            </DialogTitle>
+            <DialogDescription>
+              Esta ação não pode ser desfeita.
+            </DialogDescription>
+          </DialogHeader>
+
+          {deleteTarget && (
+            <div className="py-2">
+              <p className="text-sm">
+                Tem certeza que deseja excluir {deleteTarget.type === 'user' ? 'o usuário' : 'a corrida'}{' '}
+                <strong>{deleteTarget.label}</strong>?
+              </p>
+              {deleteTarget.type === 'user' && (
+                <p className="text-xs text-muted-foreground mt-2">
+                  Corridas associadas a este usuário podem causar erros se não forem removidas antes.
+                </p>
+              )}
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDeleteConfirm(false)}>Cancelar</Button>
+            <Button
+              variant="destructive"
+              onClick={() => deleteTarget && deleteMutation.mutate({ type: deleteTarget.type, id: deleteTarget.id })}
+              disabled={deleteMutation.isPending}
+              className="gap-1"
+            >
+              {deleteMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+              <Trash2 className="w-4 h-4" /> Excluir
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
