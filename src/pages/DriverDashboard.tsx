@@ -425,14 +425,9 @@ const DriverDashboard: React.FC = () => {
                 <span className="text-xs text-muted-foreground">{ride.horario_estimado}</span>
               </div>
             )}
-            {(ride.distancia_km != null || ride.valor_estimado != null) && (
+            {ride.valor_estimado != null && (
               <div className="flex items-center gap-3 ml-4">
-                {ride.distancia_km != null && (
-                  <span className="text-xs font-semibold text-accent">{ride.distancia_km} km</span>
-                )}
-                {ride.valor_estimado != null && (
-                  <span className="text-xs font-semibold text-green-400">R$ {Number(ride.valor_estimado).toFixed(2)}</span>
-                )}
+                <span className="text-xs font-semibold text-green-400">R$ {Number(ride.valor_estimado).toFixed(2)}</span>
               </div>
             )}
             {ride.observacao_cliente && (

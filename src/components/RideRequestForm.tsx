@@ -370,15 +370,7 @@ const RideRequestForm: React.FC = () => {
                       </p>
                     </div>
                   </div>
-                  {activeRide.distancia_km != null && (
-                    <div className="flex items-center gap-2">
-                      <Route className="w-4 h-4 text-accent" />
-                      <div className="text-right">
-                        <p className="text-[10px] text-muted-foreground">Distância</p>
-                        <p className="text-base font-bold">{Number(activeRide.distancia_km).toFixed(1)} km</p>
-                      </div>
-                    </div>
-                  )}
+
                 </div>
               )}
             </div>

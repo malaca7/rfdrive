@@ -707,8 +707,8 @@ const AdminDashboard: React.FC = () => {
                               </div>
                             </div>
 
-                            {/* Value, distance & observation */}
-                            {(ride.valor != null || ride.valor_estimado != null || ride.distancia_km != null || ride.observacao_motorista) && (
+                            {/* Value & observation */}
+                            {(ride.valor != null || ride.valor_estimado != null || ride.observacao_motorista) && (
                               <div className="flex items-center gap-4 text-xs flex-wrap">
                                 {ride.valor != null && (
                                   <span className="flex items-center gap-1 text-green-400 font-semibold">
@@ -719,12 +719,6 @@ const AdminDashboard: React.FC = () => {
                                 {ride.valor_estimado != null && (
                                   <span className="flex items-center gap-1 text-muted-foreground">
                                     Est: R$ {Number(ride.valor_estimado).toFixed(2)}
-                                  </span>
-                                )}
-                                {ride.distancia_km != null && (
-                                  <span className="flex items-center gap-1 text-muted-foreground">
-                                    <Navigation className="w-3 h-3" />
-                                    {Number(ride.distancia_km).toFixed(1)} km
                                   </span>
                                 )}
                                 {ride.observacao_motorista && (
@@ -1453,12 +1447,6 @@ const AdminDashboard: React.FC = () => {
                     <div className="flex items-center gap-2 ml-4">
                       <Clock className="w-3.5 h-3.5 text-muted-foreground" />
                       <span className="text-xs">{selectedRide.horario_estimado}</span>
-                    </div>
-                  )}
-                  {selectedRide.distancia_km != null && (
-                    <div className="flex items-center gap-2 ml-4">
-                      <Navigation className="w-3.5 h-3.5 text-muted-foreground" />
-                      <span className="text-xs">{Number(selectedRide.distancia_km).toFixed(1)} km</span>
                     </div>
                   )}
                 </div>
