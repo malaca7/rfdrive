@@ -20,7 +20,13 @@ export interface LookupResult {
   match_exato: boolean;
 }
 
-const tabela: TabelaEntry[] = tabelaData as TabelaEntry[];
+const tabela: TabelaEntry[] = (tabelaData as unknown[]).filter(
+  (e): e is TabelaEntry =>
+    !!e && typeof e === 'object' &&
+    'origem' in e && 'destino' in e && 'valor' in e &&
+    typeof (e as TabelaEntry).origem === 'string' &&
+    typeof (e as TabelaEntry).destino === 'string'
+) as TabelaEntry[];
 
 // ── Normalize text for matching ──
 function normalize(s: string): string {
