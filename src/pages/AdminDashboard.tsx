@@ -321,11 +321,22 @@ const AdminDashboard: React.FC = () => {
   const deleteMutation = useMutation({
     mutationFn: async ({ type, id }: { type: 'user' | 'ride'; id: string }) => {
       if (type === 'ride') {
+        // Delete related records first (some may not exist — ignore their errors)
         await supabase.from('aprovacoes').delete().eq('solicitacao_id', id);
         await supabase.from('avaliacoes').delete().eq('corrida_id', id);
+        await supabase.from('historico_precos').delete().eq('corrida_id', id);
         const { error } = await supabase.from('corridas').delete().eq('id', id);
         if (error) throw error;
       } else {
+        // Delete user's rides first, then the user
+        const { data: userRides } = await supabase.from('corridas').select('id').eq('cliente_id', id);
+        if (userRides && userRides.length > 0) {
+          for (const ride of userRides) {
+            await supabase.from('aprovacoes').delete().eq('solicitacao_id', ride.id);
+            await supabase.from('avaliacoes').delete().eq('corrida_id', ride.id);
+            await supabase.from('historico_precos').delete().eq('corrida_id', ride.id);
+          }
+        }
         const { error } = await supabase.from('users').delete().eq('id', id);
         if (error) throw error;
       }
