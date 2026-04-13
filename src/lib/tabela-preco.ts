@@ -167,6 +167,16 @@ export function getOrigens(): string[] {
   return Array.from(origensMap.values()).sort();
 }
 
+// ── Get ALL unique locations (origins + destinations merged, for bidirectional autocomplete) ──
+export function getAllLocations(): string[] {
+  const set = new Set<string>();
+  for (const entry of tabela) {
+    set.add(entry.origem);
+    set.add(entry.destino);
+  }
+  return Array.from(set).sort((a, b) => a.localeCompare(b, 'pt-BR'));
+}
+
 // ── Get destinations for a given origin (for autocomplete) ──
 export function getDestinosPorOrigem(origem: string): string[] {
   const bestOrigem = findBestOrigin(origem);

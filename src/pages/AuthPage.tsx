@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { motion } from 'framer-motion';
-import { Car, Loader2, Phone } from 'lucide-react';
+import { Navigation, Loader2, Phone } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 const formatPhone = (value: string) => {
@@ -77,9 +77,9 @@ const AuthPage: React.FC = () => {
             transition={{ type: 'spring', stiffness: 200, delay: 0.1 }}
             className="inline-flex items-center justify-center w-16 h-16 rounded-2xl gradient-accent mb-4"
           >
-            <Car className="w-8 h-8 text-accent-foreground" />
+            <Navigation className="w-8 h-8 text-accent-foreground" />
           </motion.div>
-          <h1 className="text-3xl font-bold text-foreground">LocaliZZou</h1>
+          <h1 className="text-3xl font-bold text-foreground">RF Drive</h1>
           <p className="text-muted-foreground mt-1">Seu transporte inteligente</p>
         </div>
 

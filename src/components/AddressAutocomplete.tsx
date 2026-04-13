@@ -65,7 +65,7 @@ const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
         });
 
       const res = await fetch(url, {
-        headers: { 'User-Agent': 'LocaliZZou/1.0 (ride-app)' },
+        headers: { 'User-Agent': 'RFDrive/1.0 (ride-app)' },
       });
 
       if (!res.ok) return;

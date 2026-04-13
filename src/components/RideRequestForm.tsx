@@ -14,7 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 import StarRating from '@/components/StarRating';
 import { calculateRoute } from '@/lib/route-ai';
 import { calcularPreco, salvarHistoricoPreco } from '@/lib/pricing-engine';
-import { buscarPrecoTabela, getOrigens, getDestinosPorOrigem } from '@/lib/tabela-preco';
+import { buscarPrecoTabela, getAllLocations } from '@/lib/tabela-preco';
 
 interface RouteEstimate {
   distancia_km: number;
@@ -45,25 +45,20 @@ const RideRequestForm: React.FC = () => {
     return buscarPrecoTabela(origem, destino);
   }, [origem, destino]);
 
-  // ── Autocomplete: origens e destinos ──
-  const allOrigens = useMemo(() => getOrigens(), []);
+  // ── Autocomplete: all locations bidirectional ──
+  const allLocations = useMemo(() => getAllLocations(), []);
 
   const filteredOrigens = useMemo(() => {
-    if (!origem.trim()) return allOrigens;
+    if (!origem.trim()) return allLocations;
     const q = origem.toLowerCase();
-    return allOrigens.filter(o => o.toLowerCase().includes(q));
-  }, [origem, allOrigens]);
-
-  const destinosPorOrigem = useMemo(() => {
-    if (!origem.trim()) return [];
-    return getDestinosPorOrigem(origem);
-  }, [origem]);
+    return allLocations.filter(o => o.toLowerCase().includes(q));
+  }, [origem, allLocations]);
 
   const filteredDestinos = useMemo(() => {
-    if (!destino.trim()) return destinosPorOrigem;
+    if (!destino.trim()) return allLocations;
     const q = destino.toLowerCase();
-    return destinosPorOrigem.filter(d => d.toLowerCase().includes(q));
-  }, [destino, destinosPorOrigem]);
+    return allLocations.filter(d => d.toLowerCase().includes(q));
+  }, [destino, allLocations]);
 
   const { data: activeRide, refetch: refetchActiveRide } = useQuery({
     queryKey: ['active-ride', user?.id],
@@ -152,17 +147,20 @@ const RideRequestForm: React.FC = () => {
     setIsSending(true);
     setErrorMsg('');
     try {
-      // IA local: calcula distância e preço client-side
-      const routeResult = await calculateRoute(o, d);
-
       let distancia_km: number | null = null;
       let valor_estimado: number | null = null;
       let preco_regra_aplicada: string | null = null;
       let preco_detalhes: Record<string, unknown> | null = null;
 
-      if (routeResult) {
-        distancia_km = routeResult.distancia_km;
-        valor_estimado = routeResult.valor_estimado;
+      // IA local: calcula distância e preço client-side (non-blocking)
+      try {
+        const routeResult = await calculateRoute(o, d);
+        if (routeResult) {
+          distancia_km = routeResult.distancia_km;
+          valor_estimado = routeResult.valor_estimado;
+        }
+      } catch {
+        // route calc is optional
       }
 
       // 1) Tabela oficial RF: prioridade máxima
@@ -193,11 +191,13 @@ const RideRequestForm: React.FC = () => {
             };
           }
         } catch {
-          // fallback silencioso para preço da rota IA
+          // fallback silencioso
         }
       }
 
-      const { data: corridaData, error } = await supabase.from('corridas').insert({
+      // Insert: try full payload, fallback to minimal if columns missing
+      let corridaData: { id: string } | null = null;
+      const fullPayload = {
         cliente_id: user.id,
         origem_texto: o,
         destino_texto: d,
@@ -207,10 +207,27 @@ const RideRequestForm: React.FC = () => {
         valor_estimado,
         preco_regra_aplicada,
         preco_detalhes,
-      }).select('id').single();
-      if (error) throw error;
+      };
 
-      // Salvar histórico de preço se motor dinâmico foi usado
+      const { data: d1, error: e1 } = await supabase.from('corridas').insert(fullPayload).select('id').single();
+      if (e1) {
+        // Retry with minimal columns (DB may not have pricing columns yet)
+        const { data: d2, error: e2 } = await supabase.from('corridas').insert({
+          cliente_id: user.id,
+          origem_texto: o,
+          destino_texto: d,
+          status: 'aguardando_motorista',
+          canal_origem: 'app',
+          distancia_km,
+          valor_estimado,
+        }).select('id').single();
+        if (e2) throw e2;
+        corridaData = d2;
+      } else {
+        corridaData = d1;
+      }
+
+      // Salvar histórico de preço (non-critical)
       if (preco_regra_aplicada && corridaData?.id) {
         try {
           const precoDinamico = await calcularPreco(o, d);
@@ -227,7 +244,9 @@ const RideRequestForm: React.FC = () => {
       setDestino('');
       setErrorMsg('');
     } catch (_e) {
-      toast({ title: 'Erro ao solicitar corrida', variant: 'destructive' });
+      const msg = _e instanceof Error ? _e.message : 'Erro desconhecido';
+      setErrorMsg(msg);
+      toast({ title: 'Erro ao solicitar corrida', description: msg, variant: 'destructive' });
     } finally {
       setIsSending(false);
     }
@@ -515,7 +534,7 @@ const RideRequestForm: React.FC = () => {
         <CardContent className="pt-6 pb-5 space-y-5">
           <div className="text-center space-y-1">
             <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-accent/10 mx-auto">
-              <Car className="w-6 h-6 text-accent" />
+              <Navigation className="w-6 h-6 text-accent" />
             </div>
             <h2 className="text-xl font-bold">Solicitar Corrida</h2>
             <p className="text-xs text-muted-foreground">

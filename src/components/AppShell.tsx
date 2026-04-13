@@ -1,7 +1,7 @@
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { Car, LogOut, User, Shield, Truck } from 'lucide-react';
+import { Navigation, LogOut, User, Shield, Truck } from 'lucide-react';
 
 const SCREEN_CONFIG: Record<string, { label: string; shortLabel: string; icon: React.ReactNode; color: string }> = {
   cliente: {
@@ -35,9 +35,9 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         <div className="max-w-4xl mx-auto px-4 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg gradient-accent flex items-center justify-center">
-              <Car className="w-4 h-4 text-accent-foreground" />
+              <Navigation className="w-4 h-4 text-accent-foreground" />
             </div>
-            <span className="font-bold text-lg">LocaliZZou</span>
+            <span className="font-bold text-lg">RF Drive</span>
           </div>
           <div className="flex items-center gap-3">
             <div className="text-right hidden sm:block">

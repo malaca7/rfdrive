@@ -2,7 +2,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'com.localizzou.app',
-  appName: 'LocaliZZou',
+  appName: 'RF Drive',
   webDir: 'dist',
   server: {
     androidScheme: 'https',

@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">LocaliZZou</string>
-    <string name="title_activity_main">LocaliZZou</string>
+    <string name="app_name">RF Drive</string>
+    <string name="title_activity_main">RF Drive</string>
     <string name="package_name">com.localizzou.app</string>
     <string name="custom_url_scheme">com.localizzou.app</string>
 </resources>

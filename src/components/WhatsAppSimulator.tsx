@@ -18,7 +18,7 @@ interface Message {
 const INITIAL_MESSAGES: Message[] = [
   {
     id: 'welcome',
-    text: '👋 Olá! Sou o assistente da LocaliZZou.\n\nMe diga de onde você quer sair e para onde quer ir.\n\nExemplo: "Me pega na Praça Barão de Muribeca e me leva pro Shopping Costa Dourada"',
+    text: '👋 Olá! Sou o assistente da RF Drive.\n\nMe diga de onde você quer sair e para onde quer ir.\n\nExemplo: "Me pega na Praça Barão de Muribeca e me leva pro Shopping Costa Dourada"',
     sender: 'bot',
     timestamp: new Date(),
   },
@@ -131,7 +131,7 @@ const WhatsAppSimulator: React.FC = () => {
           <Bot className="w-5 h-5 text-white" />
         </div>
         <div className="flex-1">
-          <p className="text-white font-semibold text-sm">LocaliZZou</p>
+          <p className="text-white font-semibold text-sm">RF Drive</p>
           <p className="text-white/70 text-xs">Online</p>
         </div>
         <Phone className="w-4 h-4 text-white/70" />
