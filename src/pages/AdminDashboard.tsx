@@ -68,6 +68,7 @@ type UserRecord = {
   telefone: string;
   senha: string;
   tipo: string;
+  roles: string[];
   status: string;
   ativo: boolean;
   created_at: string;
@@ -123,6 +124,7 @@ const AdminDashboard: React.FC = () => {
     nome: '',
     telefone: '',
     tipo: '',
+    roles: [] as string[],
     status: '',
     senha: '',
   });
@@ -176,7 +178,9 @@ const AdminDashboard: React.FC = () => {
   });
 
   // ── Fetch motoristas for ride assignment ──
-  const motoristas = users?.filter(u => u.tipo === 'motorista' && u.status === 'ativo') || [];
+  const motoristas = users?.filter(u =>
+    (u.roles?.includes('motorista') || u.tipo === 'motorista') && u.status === 'ativo'
+  ) || [];
 
   // ── Approval mutation ──
   const approvalMutation = useMutation({
@@ -308,6 +312,7 @@ const AdminDashboard: React.FC = () => {
       nome: u.nome,
       telefone: u.telefone,
       tipo: u.tipo,
+      roles: u.roles && u.roles.length > 0 ? u.roles : [u.tipo || 'cliente'],
       status: u.status,
       senha: '',
     });
@@ -349,6 +354,7 @@ const AdminDashboard: React.FC = () => {
       nome: editUserForm.nome.trim(),
       telefone: editUserForm.telefone.trim(),
       tipo: editUserForm.tipo,
+      roles: editUserForm.roles,
       status: editUserForm.status,
       ativo: editUserForm.status === 'ativo',
     };
@@ -377,7 +383,7 @@ const AdminDashboard: React.FC = () => {
   });
 
   const filteredUsers = users?.filter((u) => {
-    const matchType = userTypeFilter === 'all' || u.tipo === userTypeFilter;
+    const matchType = userTypeFilter === 'all' || u.tipo === userTypeFilter || (u.roles && u.roles.includes(userTypeFilter));
     const matchSearch = !userSearchTerm ||
       u.nome?.toLowerCase().includes(userSearchTerm.toLowerCase()) ||
       u.telefone?.includes(userSearchTerm);
@@ -755,9 +761,19 @@ const AdminDashboard: React.FC = () => {
                                   {u.telefone}
                                 </div>
                                 <div className="flex gap-1 mt-1.5 flex-wrap">
-                                  <Badge variant="secondary" className="text-[10px] px-1.5">
-                                    {u.tipo === 'motorista' ? '🚗 Motorista' : u.tipo === 'admin' ? '🛡️ Admin' : '👤 Cliente'}
-                                  </Badge>
+                                  {(u.roles && u.roles.length > 0 ? u.roles : [u.tipo]).map(r => {
+                                    const rl: Record<string, string> = { cliente: '👤 Cliente', motorista: '🚗 Motorista', admin: '🛡️ Admin' };
+                                    const rc: Record<string, string> = {
+                                      cliente: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+                                      motorista: 'bg-green-500/20 text-green-400 border-green-500/30',
+                                      admin: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
+                                    };
+                                    return (
+                                      <Badge key={r} variant="outline" className={`text-[10px] px-1.5 ${rc[r] || ''}`}>
+                                        {rl[r] || r}
+                                      </Badge>
+                                    );
+                                  })}
                                   <Badge
                                     variant={u.status === 'ativo' ? 'outline' : 'destructive'}
                                     className="text-[10px] px-1.5"
@@ -1050,7 +1066,7 @@ const AdminDashboard: React.FC = () => {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label className="text-xs">Tipo</Label>
+                <Label className="text-xs">Tipo Principal</Label>
                 <Select value={editUserForm.tipo} onValueChange={(v) => setEditUserForm(f => ({ ...f, tipo: v }))}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -1059,6 +1075,33 @@ const AdminDashboard: React.FC = () => {
                     <SelectItem value="admin">🛡️ Admin</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+              <div>
+                <Label className="text-xs">Funções / Acessos</Label>
+                <div className="flex flex-col gap-2 mt-1.5">
+                  {(['cliente', 'motorista', 'admin'] as const).map((r) => {
+                    const checked = editUserForm.roles.includes(r);
+                    const labels: Record<string, string> = { cliente: '👤 Cliente', motorista: '🚗 Motorista', admin: '🛡️ Admin' };
+                    return (
+                      <label key={r} className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() => {
+                            setEditUserForm(f => {
+                              const next = checked ? f.roles.filter(x => x !== r) : [...f.roles, r];
+                              // Always keep at least 'cliente'
+                              if (next.length === 0) next.push('cliente');
+                              return { ...f, roles: next };
+                            });
+                          }}
+                          className="rounded border-muted-foreground/50 w-4 h-4 accent-accent"
+                        />
+                        <span className="text-sm">{labels[r]}</span>
+                      </label>
+                    );
+                  })}
+                </div>
               </div>
               <div>
                 <Label className="text-xs">Status</Label>

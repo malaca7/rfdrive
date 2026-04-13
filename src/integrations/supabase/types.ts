@@ -19,6 +19,7 @@ export type Database = {
           telefone: string
           senha: string
           tipo: "cliente" | "motorista" | "admin"
+          roles: string[]
           status: "ativo" | "banido"
           ativo: boolean
           created_at: string
@@ -29,6 +30,7 @@ export type Database = {
           telefone: string
           senha: string
           tipo?: "cliente" | "motorista" | "admin"
+          roles?: string[]
           status?: "ativo" | "banido"
           ativo?: boolean
           created_at?: string
@@ -39,6 +41,7 @@ export type Database = {
           telefone?: string
           senha?: string
           tipo?: "cliente" | "motorista" | "admin"
+          roles?: string[]
           status?: "ativo" | "banido"
           ativo?: boolean
           created_at?: string

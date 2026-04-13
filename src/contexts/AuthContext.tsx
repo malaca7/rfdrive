@@ -3,11 +3,14 @@ import { supabase } from '@/integrations/supabase/client';
 
 type AppRole = 'cliente' | 'motorista' | 'admin';
 
+type ScreenKey = 'cliente' | 'motorista' | 'admin';
+
 interface UserData {
   id: string;
   nome: string;
   telefone: string;
   tipo: AppRole;
+  roles: AppRole[];
   status: string;
 }
 
@@ -15,13 +18,19 @@ interface AuthContextType {
   user: UserData | null;
   profile: UserData | null;
   role: AppRole | null;
+  roles: AppRole[];
   loading: boolean;
+  hasRole: (r: AppRole) => boolean;
+  availableScreens: ScreenKey[];
+  activeScreen: ScreenKey;
+  setActiveScreen: (s: ScreenKey) => void;
   signUp: (telefone: string, password: string, nome: string) => Promise<void>;
   signIn: (telefone: string, password: string) => Promise<boolean>;
   signOut: () => Promise<void>;
 }
 
 const STORAGE_KEY = 'localizzou_user';
+const SCREEN_KEY = 'localizzou_screen';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -30,6 +39,39 @@ export const useAuth = () => {
   if (!ctx) throw new Error('useAuth must be used within AuthProvider');
   return ctx;
 };
+
+// Derive effective roles from DB roles + tipo fallback
+function deriveRoles(tipo: string, dbRoles?: string[] | null): AppRole[] {
+  const validRoles = new Set<AppRole>();
+
+  // Always add 'cliente' as base
+  validRoles.add('cliente');
+
+  // Add roles from DB array
+  if (dbRoles && dbRoles.length > 0) {
+    for (const r of dbRoles) {
+      if (r === 'cliente' || r === 'motorista' || r === 'admin') {
+        validRoles.add(r);
+      }
+    }
+  }
+
+  // Fallback: if no DB roles, derive from tipo
+  if (!dbRoles || dbRoles.length === 0) {
+    if (tipo === 'motorista') validRoles.add('motorista');
+    if (tipo === 'admin') validRoles.add('admin');
+  }
+
+  return Array.from(validRoles);
+}
+
+// Determine which screens a user can access
+function getAvailableScreens(roles: AppRole[]): ScreenKey[] {
+  const screens: ScreenKey[] = ['cliente'];
+  if (roles.includes('motorista')) screens.push('motorista');
+  if (roles.includes('admin')) screens.push('admin');
+  return screens;
+}
 
 function loadCachedUser(): UserData | null {
   try {
@@ -40,10 +82,41 @@ function loadCachedUser(): UserData | null {
   }
 }
 
+function loadCachedScreen(): ScreenKey {
+  try {
+    const saved = localStorage.getItem(SCREEN_KEY);
+    if (saved === 'cliente' || saved === 'motorista' || saved === 'admin') return saved;
+  } catch (_e) { /* ignore */ }
+  return 'cliente';
+}
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<UserData | null>(loadCachedUser);
   const [role, setRole] = useState<AppRole | null>(() => loadCachedUser()?.tipo ?? null);
+  const [activeScreen, setActiveScreenState] = useState<ScreenKey>(loadCachedScreen);
   const [loading, setLoading] = useState(false);
+
+  const roles = user ? deriveRoles(user.tipo, user.roles) : [];
+  const availableScreens = getAvailableScreens(roles);
+
+  const hasRole = (r: AppRole) => roles.includes(r);
+
+  const setActiveScreen = (s: ScreenKey) => {
+    if (availableScreens.includes(s)) {
+      setActiveScreenState(s);
+      localStorage.setItem(SCREEN_KEY, s);
+    }
+  };
+
+  // Ensure activeScreen is valid for current user
+  useEffect(() => {
+    if (user && !availableScreens.includes(activeScreen)) {
+      const defaultScreen = availableScreens.includes('admin') ? 'admin' :
+        availableScreens.includes('motorista') ? 'motorista' : 'cliente';
+      setActiveScreenState(defaultScreen);
+      localStorage.setItem(SCREEN_KEY, defaultScreen);
+    }
+  }, [user, availableScreens, activeScreen]);
 
   useEffect(() => {
     if (user) {
@@ -65,13 +138,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       const { data, error } = await supabase
         .from('users')
-        .insert({ telefone, senha: password, nome, tipo: 'cliente' as const, status: 'ativo' as const })
+        .insert({ telefone, senha: password, nome, tipo: 'cliente' as const, status: 'ativo' as const, roles: ['cliente'] })
         .select()
         .single();
       if (error) throw new Error(error.message);
 
-      setUser(data as UserData);
+      const userData = data as any;
+      setUser({
+        ...userData,
+        roles: deriveRoles(userData.tipo, userData.roles),
+      } as UserData);
       setRole('cliente');
+      setActiveScreen('cliente');
     } finally {
       setLoading(false);
     }
@@ -90,8 +168,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (data.status === 'banido') return false;
 
-      setUser(data as UserData);
-      setRole(data.tipo as AppRole);
+      const userData = data as any;
+      const derivedRoles = deriveRoles(userData.tipo, userData.roles);
+      setUser({
+        ...userData,
+        roles: derivedRoles,
+      } as UserData);
+      setRole(userData.tipo as AppRole);
+
+      // Set default screen to highest privilege
+      const defaultScreen = derivedRoles.includes('admin') ? 'admin' :
+        derivedRoles.includes('motorista') ? 'motorista' : 'cliente';
+      setActiveScreen(defaultScreen);
+
       return true;
     } finally {
       setLoading(false);
@@ -101,11 +190,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signOut = async () => {
     setUser(null);
     setRole(null);
+    setActiveScreenState('cliente');
     localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(SCREEN_KEY);
   };
 
   return (
-    <AuthContext.Provider value={{ user, profile: user, role, loading, signUp, signIn, signOut }}>
+    <AuthContext.Provider value={{
+      user, profile: user, role, roles, loading,
+      hasRole, availableScreens, activeScreen, setActiveScreen,
+      signUp, signIn, signOut,
+    }}>
       {children}
     </AuthContext.Provider>
   );

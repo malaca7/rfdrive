@@ -13,7 +13,7 @@ import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
 const AppRoutes = () => {
-  const { user, role, loading } = useAuth();
+  const { user, activeScreen, loading } = useAuth();
 
   if (loading) {
     return (
@@ -33,10 +33,10 @@ const AppRoutes = () => {
 
   return (
     <Routes>
-      {role === 'admin' && <Route path="/" element={<AdminDashboard />} />}
-      {role === 'motorista' && <Route path="/" element={<DriverDashboard />} />}
-      {role === 'cliente' && <Route path="/" element={<ClientDashboard />} />}
-      {!role && <Route path="/" element={<ClientDashboard />} />}
+      {activeScreen === 'admin' && <Route path="/" element={<AdminDashboard />} />}
+      {activeScreen === 'motorista' && <Route path="/" element={<DriverDashboard />} />}
+      {activeScreen === 'cliente' && <Route path="/" element={<ClientDashboard />} />}
+      {!activeScreen && <Route path="/" element={<ClientDashboard />} />}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
