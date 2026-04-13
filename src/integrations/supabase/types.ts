@@ -22,6 +22,10 @@ export type Database = {
           roles: string[]
           status: "ativo" | "banido"
           ativo: boolean
+          veiculo_marca: string | null
+          veiculo_modelo: string | null
+          veiculo_cor: string | null
+          veiculo_placa: string | null
           created_at: string
         }
         Insert: {
@@ -33,6 +37,10 @@ export type Database = {
           roles?: string[]
           status?: "ativo" | "banido"
           ativo?: boolean
+          veiculo_marca?: string | null
+          veiculo_modelo?: string | null
+          veiculo_cor?: string | null
+          veiculo_placa?: string | null
           created_at?: string
         }
         Update: {
@@ -44,6 +52,10 @@ export type Database = {
           roles?: string[]
           status?: "ativo" | "banido"
           ativo?: boolean
+          veiculo_marca?: string | null
+          veiculo_modelo?: string | null
+          veiculo_cor?: string | null
+          veiculo_placa?: string | null
           created_at?: string
         }
         Relationships: []

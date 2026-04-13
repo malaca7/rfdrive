@@ -63,65 +63,66 @@ const AuthPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen gradient-hero flex items-center justify-center p-4">
+    <div className="h-[100dvh] w-full gradient-hero flex flex-col items-center justify-center px-[6%]">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="w-full max-w-md"
+        className="w-full max-w-[min(100%,420px)]"
       >
-        <div className="text-center mb-8">
+        <div className="text-center mb-[8%]">
           <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ type: 'spring', stiffness: 200, delay: 0.1 }}
-            className="inline-flex items-center justify-center w-16 h-16 rounded-2xl gradient-accent mb-4"
+            className="inline-flex items-center justify-center w-[18%] max-w-[72px] aspect-square rounded-2xl gradient-accent mb-[3%] shadow-lg shadow-accent/30"
           >
-            <Navigation className="w-8 h-8 text-accent-foreground" />
+            <Navigation className="w-[45%] h-[45%] text-accent-foreground" />
           </motion.div>
-          <h1 className="text-3xl font-bold text-foreground">RF Drive</h1>
-          <p className="text-muted-foreground mt-1">Seu transporte inteligente</p>
+          <h1 className="text-[clamp(1.75rem,6vw,2.5rem)] font-extrabold text-foreground tracking-tight">RF Drive</h1>
+          <p className="text-muted-foreground text-[clamp(0.8rem,2.5vw,0.95rem)] mt-1">Seu transporte inteligente</p>
         </div>
 
-        <Card className="glass border-border/30">
-          <CardHeader className="text-center">
-            <CardTitle>{isLogin ? 'Entrar' : 'Criar Conta'}</CardTitle>
-            <CardDescription>
+        <Card className="glass border-border/30 rounded-3xl overflow-hidden">
+          <CardHeader className="text-center pb-2">
+            <CardTitle className="text-[clamp(1.1rem,3.5vw,1.3rem)]">{isLogin ? 'Entrar' : 'Criar Conta'}</CardTitle>
+            <CardDescription className="text-[clamp(0.7rem,2.2vw,0.8rem)]">
               {isLogin ? 'Acesse sua conta para solicitar corridas' : 'Cadastre-se para começar'}
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-[6%] pb-[6%]">
             <form onSubmit={handleSubmit} className="space-y-4">
               {!isLogin && (
-                <div className="space-y-2">
-                  <Label htmlFor="nome">Nome</Label>
+                <div className="space-y-1.5">
+                  <Label htmlFor="nome" className="text-xs font-semibold">Nome</Label>
                   <Input
                     id="nome"
                     value={nome}
                     onChange={(e) => setNome(e.target.value)}
                     placeholder="Seu nome completo"
                     required={!isLogin}
+                    className="h-12 rounded-xl text-sm"
                   />
                 </div>
               )}
-              <div className="space-y-2">
-                <Label htmlFor="telefone">Telefone</Label>
+              <div className="space-y-1.5">
+                <Label htmlFor="telefone" className="text-xs font-semibold">Telefone</Label>
                 <div className="relative">
-                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input
                     id="telefone"
                     type="tel"
                     value={telefone}
                     onChange={handlePhoneChange}
                     placeholder="(11) 99999-9999"
-                    className="pl-9"
+                    className="pl-10 h-12 rounded-xl text-sm"
                     required
                     maxLength={16}
                   />
                 </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="password">Senha</Label>
+              <div className="space-y-1.5">
+                <Label htmlFor="password" className="text-xs font-semibold">Senha</Label>
                 <Input
                   id="password"
                   type="password"
@@ -130,22 +131,23 @@ const AuthPage: React.FC = () => {
                   placeholder="••••••••"
                   required
                   minLength={6}
+                  className="h-12 rounded-xl text-sm"
                 />
               </div>
               <Button
                 type="submit"
-                className="w-full gradient-accent text-accent-foreground font-semibold hover:opacity-90 transition-opacity"
+                className="w-full h-12 rounded-xl gradient-accent text-accent-foreground font-bold text-sm hover:opacity-90 transition-opacity shadow-lg shadow-accent/20"
                 disabled={loading}
               >
                 {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
                 {isLogin ? 'Entrar' : 'Criar Conta'}
               </Button>
             </form>
-            <div className="mt-4 text-center">
+            <div className="mt-5 text-center">
               <button
                 type="button"
                 onClick={() => setIsLogin(!isLogin)}
-                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                className="text-[clamp(0.75rem,2.2vw,0.85rem)] text-muted-foreground hover:text-foreground transition-colors"
               >
                 {isLogin ? 'Não tem conta? Cadastre-se' : 'Já tem conta? Faça login'}
               </button>

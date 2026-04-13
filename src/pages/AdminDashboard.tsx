@@ -499,18 +499,18 @@ const AdminDashboard: React.FC = () => {
 
   return (
     <AppShell>
-      <div className="px-4 py-6 max-w-5xl mx-auto">
+      <div className="w-full px-[3%] py-[3%] max-w-5xl mx-auto">
         {/* Header */}
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold flex items-center gap-2">
+        <div className="mb-[3%]">
+          <h1 className="text-[clamp(1.3rem,4vw,1.75rem)] font-extrabold flex items-center gap-2">
             <Shield className="w-6 h-6 text-accent" />
             Painel Administrativo
           </h1>
-          <p className="text-muted-foreground text-sm mt-1">Controle completo de solicitações, motoristas e clientes</p>
+          <p className="text-muted-foreground text-[clamp(0.7rem,2vw,0.85rem)] mt-1">Controle completo de solicitações, motoristas e clientes</p>
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 mb-6">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-[2%] mb-[3%]">
           {[
             { label: 'Total Corridas', value: stats.total, icon: FileText, color: 'text-white' },
             { label: 'Novas', value: stats.novas, icon: AlertTriangle, color: 'text-purple-400' },
@@ -519,17 +519,17 @@ const AdminDashboard: React.FC = () => {
             { label: 'Aprovadas', value: stats.aprovadas, icon: CheckCircle, color: 'text-green-400' },
           ].map((s) => (
             <Card key={s.label}>
-              <CardContent className="py-3 text-center">
+              <CardContent className="py-[12%] text-center">
                 <s.icon className={`w-4 h-4 ${s.color} mx-auto mb-1`} />
-                <p className={`text-xl font-bold ${s.color}`}>{s.value}</p>
-                <p className="text-[10px] text-muted-foreground">{s.label}</p>
+                <p className={`text-[clamp(1.1rem,3.5vw,1.5rem)] font-extrabold ${s.color}`}>{s.value}</p>
+                <p className="text-[clamp(0.55rem,1.8vw,0.7rem)] text-muted-foreground font-medium">{s.label}</p>
               </CardContent>
             </Card>
           ))}
         </div>
 
         {/* Channel stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-[2%] mb-[3%]">
           <Card>
             <CardContent className="py-3 flex items-center gap-3">
               <div className="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center shrink-0">
@@ -577,15 +577,15 @@ const AdminDashboard: React.FC = () => {
         </div>
 
         <Tabs defaultValue="solicitacoes">
-          <TabsList className="w-full mb-4">
-            <TabsTrigger value="solicitacoes" className="flex-1 gap-2">
-              <Car className="w-4 h-4" /> Corridas ({stats.total})
+          <TabsList className="w-full mb-[3%] h-12 p-1 bg-muted/50 rounded-2xl">
+            <TabsTrigger value="solicitacoes" className="flex-1 gap-1.5 rounded-xl h-full text-xs font-semibold data-[state=active]:shadow-md">
+              <Car className="w-3.5 h-3.5" /> Corridas ({stats.total})
             </TabsTrigger>
-            <TabsTrigger value="usuarios" className="flex-1 gap-2">
-              <Users className="w-4 h-4" /> Usuários ({stats.totalUsers})
+            <TabsTrigger value="usuarios" className="flex-1 gap-1.5 rounded-xl h-full text-xs font-semibold data-[state=active]:shadow-md">
+              <Users className="w-3.5 h-3.5" /> Usuários ({stats.totalUsers})
             </TabsTrigger>
-            <TabsTrigger value="precificacao" className="flex-1 gap-2">
-              <DollarSign className="w-4 h-4" /> Preços
+            <TabsTrigger value="precificacao" className="flex-1 gap-1.5 rounded-xl h-full text-xs font-semibold data-[state=active]:shadow-md">
+              <DollarSign className="w-3.5 h-3.5" /> Preços
             </TabsTrigger>
           </TabsList>
 

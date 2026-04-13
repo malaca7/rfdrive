@@ -1,102 +1,106 @@
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { Button } from '@/components/ui/button';
-import { Navigation, LogOut, User, Shield, Truck } from 'lucide-react';
+import { Navigation, LogOut, User, Shield, Truck, ChevronDown } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
-const SCREEN_CONFIG: Record<string, { label: string; shortLabel: string; icon: React.ReactNode; color: string }> = {
+const SCREEN_CONFIG: Record<string, { label: string; icon: React.ReactNode; activeClass: string; dotColor: string }> = {
   cliente: {
     label: 'Cliente',
-    shortLabel: 'Cliente',
-    icon: <User className="w-3.5 h-3.5" />,
-    color: 'bg-blue-500/20 text-blue-400 border-blue-500/40',
+    icon: <User className="w-5 h-5" />,
+    activeClass: 'text-blue-400',
+    dotColor: 'bg-blue-400',
   },
   motorista: {
     label: 'Motorista',
-    shortLabel: 'Motorista',
-    icon: <Truck className="w-3.5 h-3.5" />,
-    color: 'bg-green-500/20 text-green-400 border-green-500/40',
+    icon: <Truck className="w-5 h-5" />,
+    activeClass: 'text-green-400',
+    dotColor: 'bg-green-400',
   },
   admin: {
     label: 'Admin',
-    shortLabel: 'Admin',
-    icon: <Shield className="w-3.5 h-3.5" />,
-    color: 'bg-purple-500/20 text-purple-400 border-purple-500/40',
+    icon: <Shield className="w-5 h-5" />,
+    activeClass: 'text-purple-400',
+    dotColor: 'bg-purple-400',
   },
 };
 
 const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { profile, roles, user, signOut, availableScreens, activeScreen, setActiveScreen } = useAuth();
+  const { profile, signOut, availableScreens, activeScreen, setActiveScreen } = useAuth();
 
   const showNav = availableScreens.length > 1;
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-50 glass border-b">
-        <div className="max-w-4xl mx-auto px-4 h-14 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg gradient-accent flex items-center justify-center">
-              <Navigation className="w-4 h-4 text-accent-foreground" />
+    <div className="h-[100dvh] w-full flex flex-col bg-background overflow-hidden">
+      {/* ── Top Bar ── */}
+      <header className="shrink-0 z-50 glass border-b border-border/40 safe-top">
+        <div className="w-full px-[4%] h-14 flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl gradient-accent flex items-center justify-center shadow-lg shadow-accent/20">
+              <Navigation className="w-[18px] h-[18px] text-accent-foreground" />
             </div>
-            <span className="font-bold text-lg">RF Drive</span>
+            <div>
+              <span className="font-extrabold text-lg tracking-tight">RF Drive</span>
+            </div>
           </div>
-          <div className="flex items-center gap-3">
-            <div className="text-right hidden sm:block">
-              <p className="text-sm font-medium">{profile?.nome}</p>
-              {user?.id && (
-                <p className="text-[10px] text-muted-foreground font-mono truncate max-w-[120px]" title={user.id}>
-                  ID: {user.id}
-                </p>
+          <div className="flex items-center gap-2">
+            <div className="text-right mr-1">
+              <p className="text-sm font-semibold truncate max-w-[120px]">{profile?.nome || ''}</p>
+              {activeScreen && (
+                <p className="text-[10px] text-muted-foreground capitalize">{activeScreen}</p>
               )}
-              <div className="flex items-center gap-1 justify-end">
-                {roles.map(r => {
-                  const cfg = SCREEN_CONFIG[r];
-                  return cfg ? (
-                    <span key={r} className={`text-[9px] px-1.5 py-0.5 rounded-full border ${cfg.color}`}>
-                      {cfg.shortLabel}
-                    </span>
-                  ) : null;
-                })}
-              </div>
             </div>
-            <Button variant="ghost" size="icon" onClick={signOut}>
-              <LogOut className="w-4 h-4" />
-            </Button>
+            <button
+              onClick={signOut}
+              className="w-9 h-9 rounded-xl flex items-center justify-center text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-all"
+            >
+              <LogOut className="w-[18px] h-[18px]" />
+            </button>
           </div>
         </div>
-
-        {/* Navigation bar for multi-role users */}
-        {showNav && (
-          <div className="border-t border-border/50 bg-background/80">
-            <div className="max-w-4xl mx-auto px-4">
-              <nav className="flex gap-1 py-1.5">
-                {availableScreens.map(screen => {
-                  const cfg = SCREEN_CONFIG[screen];
-                  if (!cfg) return null;
-                  const isActive = screen === activeScreen;
-                  return (
-                    <button
-                      key={screen}
-                      onClick={() => setActiveScreen(screen)}
-                      className={`
-                        flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium
-                        transition-all duration-200 border
-                        ${isActive
-                          ? `${cfg.color} shadow-sm`
-                          : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50'
-                        }
-                      `}
-                    >
-                      {cfg.icon}
-                      {cfg.label}
-                    </button>
-                  );
-                })}
-              </nav>
-            </div>
-          </div>
-        )}
       </header>
-      <main>{children}</main>
+
+      {/* ── Main Content ── */}
+      <main className="flex-1 overflow-y-auto overflow-x-hidden overscroll-contain">
+        {children}
+      </main>
+
+      {/* ── Bottom Navigation (mobile-first, multi-role) ── */}
+      {showNav && (
+        <nav className="shrink-0 z-50 glass border-t border-border/40 safe-bottom">
+          <div className="w-full px-[4%] flex items-stretch justify-around h-16">
+            {availableScreens.map(screen => {
+              const cfg = SCREEN_CONFIG[screen];
+              if (!cfg) return null;
+              const isActive = screen === activeScreen;
+              return (
+                <button
+                  key={screen}
+                  onClick={() => setActiveScreen(screen)}
+                  className={`
+                    relative flex flex-col items-center justify-center gap-0.5 flex-1
+                    transition-all duration-200
+                    ${isActive ? cfg.activeClass : 'text-muted-foreground'}
+                  `}
+                >
+                  {isActive && (
+                    <motion.div
+                      layoutId="nav-indicator"
+                      className={`absolute top-0 left-[25%] right-[25%] h-[3px] rounded-b-full ${cfg.dotColor}`}
+                      transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                    />
+                  )}
+                  <span className={`transition-transform duration-200 ${isActive ? 'scale-110' : 'scale-100'}`}>
+                    {cfg.icon}
+                  </span>
+                  <span className={`text-[10px] font-semibold ${isActive ? '' : 'opacity-60'}`}>
+                    {cfg.label}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </nav>
+      )}
     </div>
   );
 };

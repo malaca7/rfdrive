@@ -613,45 +613,45 @@ const DriverDashboard: React.FC = () => {
 
   return (
     <AppShell>
-      <div className="px-4 py-6 max-w-lg mx-auto">
+      <div className="w-full px-[4%] py-[3%] max-w-2xl mx-auto">
         {/* Header */}
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold">
+        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-[4%]">
+          <h1 className="text-[clamp(1.5rem,5vw,2rem)] font-extrabold leading-tight">
             Olá, <span className="text-gradient">{profile?.nome || 'Motorista'}</span>
           </h1>
-          <p className="text-muted-foreground text-sm mt-1">
+          <p className="text-muted-foreground text-[clamp(0.75rem,2.5vw,0.875rem)] mt-1">
             {activeCount > 0
               ? `${activeCount} corrida${activeCount > 1 ? 's' : ''} em andamento`
               : 'Pronto para dirigir'}
           </p>
-        </div>
+        </motion.div>
 
         {/* Stats */}
-        <div className="grid grid-cols-3 gap-3 mb-6">
-          <Card>
-            <CardContent className="py-3 text-center">
-              <p className="text-2xl font-bold text-accent">{pendingCount}</p>
-              <p className="text-xs text-muted-foreground">Disponíveis</p>
+        <div className="grid grid-cols-3 gap-[3%] mb-[4%]">
+          <Card className="border-accent/20">
+            <CardContent className="py-[12%] text-center">
+              <p className="text-[clamp(1.25rem,4vw,1.75rem)] font-extrabold text-accent">{pendingCount}</p>
+              <p className="text-[clamp(0.6rem,2vw,0.7rem)] text-muted-foreground font-medium">Disponíveis</p>
+            </CardContent>
+          </Card>
+          <Card className="border-green-500/20">
+            <CardContent className="py-[12%] text-center">
+              <p className="text-[clamp(1.25rem,4vw,1.75rem)] font-extrabold text-green-400">{activeCount}</p>
+              <p className="text-[clamp(0.6rem,2vw,0.7rem)] text-muted-foreground font-medium">Em andamento</p>
             </CardContent>
           </Card>
           <Card>
-            <CardContent className="py-3 text-center">
-              <p className="text-2xl font-bold text-green-400">{activeCount}</p>
-              <p className="text-xs text-muted-foreground">Em andamento</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="py-3 text-center">
-              <p className="text-2xl font-bold">{completedRides?.length || 0}</p>
-              <p className="text-xs text-muted-foreground">Concluídas</p>
+            <CardContent className="py-[12%] text-center">
+              <p className="text-[clamp(1.25rem,4vw,1.75rem)] font-extrabold">{completedRides?.length || 0}</p>
+              <p className="text-[clamp(0.6rem,2vw,0.7rem)] text-muted-foreground font-medium">Concluídas</p>
             </CardContent>
           </Card>
         </div>
 
         {/* Rating */}
         {avgRating && (
-          <Card className="mb-6 border-yellow-500/20 bg-yellow-500/5">
-            <CardContent className="py-3 flex items-center justify-between">
+          <Card className="mb-[4%] border-yellow-500/20 bg-yellow-500/5">
+            <CardContent className="py-3 flex items-center justify-between px-[4%]">
               <div className="flex items-center gap-2">
                 <Star className="w-5 h-5 fill-yellow-400 text-yellow-400" />
                 <span className="font-bold text-lg text-yellow-400">{avgRating.avg}</span>
@@ -663,26 +663,26 @@ const DriverDashboard: React.FC = () => {
         )}
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="w-full mb-4">
-            <TabsTrigger value="disponiveis" className="flex-1 gap-1.5 text-xs">
+          <TabsList className="w-full mb-[4%] h-12 p-1 bg-muted/50 rounded-2xl">
+            <TabsTrigger value="disponiveis" className="flex-1 gap-1.5 text-xs rounded-xl h-full font-semibold data-[state=active]:shadow-md">
               <Car className="w-3.5 h-3.5" />
               Disponíveis
               {pendingCount > 0 && (
-                <Badge variant="default" className="ml-1 gradient-accent text-accent-foreground text-[10px] px-1.5 py-0 h-4">
+                <span className="ml-1 inline-flex items-center justify-center w-5 h-5 rounded-full gradient-accent text-accent-foreground text-[10px] font-bold">
                   {pendingCount}
-                </Badge>
+                </span>
               )}
             </TabsTrigger>
-            <TabsTrigger value="ativas" className="flex-1 gap-1.5 text-xs">
+            <TabsTrigger value="ativas" className="flex-1 gap-1.5 text-xs rounded-xl h-full font-semibold data-[state=active]:shadow-md">
               <Navigation className="w-3.5 h-3.5" />
               Ativas
               {activeCount > 0 && (
-                <Badge variant="default" className="ml-1 bg-green-600 text-white text-[10px] px-1.5 py-0 h-4">
+                <span className="ml-1 inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-600 text-white text-[10px] font-bold">
                   {activeCount}
-                </Badge>
+                </span>
               )}
             </TabsTrigger>
-            <TabsTrigger value="historico" className="flex-1 gap-1.5 text-xs">
+            <TabsTrigger value="historico" className="flex-1 gap-1.5 text-xs rounded-xl h-full font-semibold data-[state=active]:shadow-md">
               <History className="w-3.5 h-3.5" />
               Histórico
             </TabsTrigger>

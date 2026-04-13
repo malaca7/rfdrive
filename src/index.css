@@ -93,6 +93,14 @@
   }
   body {
     @apply bg-background text-foreground font-sans antialiased;
+    -webkit-tap-highlight-color: transparent;
+    overscroll-behavior: none;
+  }
+  html, body, #root {
+    @apply h-full w-full m-0 p-0;
+  }
+  #root {
+    @apply flex flex-col;
   }
 }
 
@@ -112,5 +120,14 @@
   .text-gradient {
     @apply bg-clip-text text-transparent;
     background-image: var(--gradient-accent);
+  }
+  .safe-top {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .scroll-smooth {
+    -webkit-overflow-scrolling: touch;
   }
 }
