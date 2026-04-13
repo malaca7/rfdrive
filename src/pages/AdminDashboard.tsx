@@ -70,11 +70,50 @@ type UserRecord = {
   telefone: string;
   senha: string;
   tipo: string;
-  roles: string[];
+  roles?: string[] | null;
   status: string;
   ativo: boolean;
   created_at: string;
+  veiculo_marca?: string | null;
+  veiculo_modelo?: string | null;
+  veiculo_cor?: string | null;
+  veiculo_placa?: string | null;
 };
+
+// ── Vehicle options ──
+const VEHICLE_BRANDS = [
+  'Chevrolet', 'Fiat', 'Ford', 'Honda', 'Hyundai', 'Jeep', 'Nissan',
+  'Peugeot', 'Renault', 'Toyota', 'Volkswagen', 'Citroën', 'Mitsubishi',
+  'Kia', 'Caoa Chery', 'BYD', 'GWM', 'RAM', 'Suzuki', 'Outro',
+];
+
+const VEHICLE_MODELS: Record<string, string[]> = {
+  Chevrolet: ['Onix', 'Onix Plus', 'Tracker', 'S10', 'Spin', 'Montana', 'Equinox', 'Cruze', 'Joy', 'Prisma', 'Cobalt', 'Outro'],
+  Fiat: ['Argo', 'Mobi', 'Pulse', 'Fastback', 'Strada', 'Toro', 'Cronos', 'Uno', 'Palio', 'Siena', 'Grand Siena', 'Outro'],
+  Ford: ['Ka', 'Ka Sedan', 'EcoSport', 'Ranger', 'Territory', 'Bronco Sport', 'Maverick', 'Fiesta', 'Focus', 'Outro'],
+  Honda: ['Civic', 'City', 'HR-V', 'ZR-V', 'CR-V', 'Fit', 'WR-V', 'Accord', 'Outro'],
+  Hyundai: ['HB20', 'HB20S', 'Creta', 'Tucson', 'Santa Fe', 'HB20X', 'i30', 'Azera', 'Outro'],
+  Jeep: ['Renegade', 'Compass', 'Commander', 'Cherokee', 'Wrangler', 'Outro'],
+  Nissan: ['Kicks', 'Versa', 'Sentra', 'Frontier', 'March', 'Outro'],
+  Peugeot: ['208', '2008', '3008', '308', 'Partner', 'Outro'],
+  Renault: ['Kwid', 'Sandero', 'Logan', 'Duster', 'Captur', 'Oroch', 'Stepway', 'Outro'],
+  Toyota: ['Corolla', 'Corolla Cross', 'Yaris', 'Hilux', 'SW4', 'RAV4', 'Etios', 'Outro'],
+  Volkswagen: ['Gol', 'Voyage', 'Polo', 'Virtus', 'T-Cross', 'Nivus', 'Taos', 'Saveiro', 'Amarok', 'Fox', 'Outro'],
+  'Citroën': ['C3', 'C4 Cactus', 'Aircross', 'Outro'],
+  Mitsubishi: ['L200', 'Outlander', 'Eclipse Cross', 'ASX', 'Pajero', 'Outro'],
+  Kia: ['Sportage', 'Seltos', 'Cerato', 'Stonic', 'Outro'],
+  'Caoa Chery': ['Tiggo 5X', 'Tiggo 7', 'Tiggo 8', 'Arrizo 6', 'Outro'],
+  BYD: ['Dolphin', 'Song Plus', 'Yuan Plus', 'Seal', 'Tan', 'Outro'],
+  GWM: ['Haval H6', 'Haval Jolion', 'Ora 03', 'Outro'],
+  RAM: ['Rampage', '1500', '2500', '3500', 'Outro'],
+  Suzuki: ['Jimny', 'Vitara', 'Swift', 'S-Cross', 'Outro'],
+  Outro: ['Outro'],
+};
+
+const VEHICLE_COLORS = [
+  'Branco', 'Prata', 'Preto', 'Cinza', 'Vermelho', 'Azul',
+  'Marrom', 'Bege', 'Verde', 'Amarelo', 'Laranja', 'Dourado', 'Vinho',
+];
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
   nova: { label: 'Nova', color: 'bg-purple-500/20 text-purple-400 border-purple-500/30', icon: <FileText className="w-3 h-3" /> },
@@ -135,6 +174,10 @@ const AdminDashboard: React.FC = () => {
     roles: [] as string[],
     status: '',
     senha: '',
+    veiculo_marca: '',
+    veiculo_modelo: '',
+    veiculo_cor: '',
+    veiculo_placa: '',
   });
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<{ type: 'user' | 'ride'; id: string; label: string } | null>(null);
@@ -219,20 +262,32 @@ const AdminDashboard: React.FC = () => {
     },
   });
 
+  // ── Resilient update: strip missing columns on 42703 and retry ──
+  const resilientUpdate = async (table: string, updates: Record<string, unknown>, eqCol: string, eqVal: string) => {
+    let current = { ...updates };
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const { error } = await supabase.from(table).update(current).eq(eqCol, eqVal);
+      if (!error) return;
+      // Handle missing column errors (code 42703 or schema cache errors)
+      const msg = error.message || '';
+      const isMissingCol = error.code === '42703' || msg.includes('schema cache') || msg.includes('Could not find');
+      if (isMissingCol) {
+        // Try multiple patterns: column "X", 'X' column of 'table'
+        const match = msg.match(/column\s+"?(\w+)"?/i) || msg.match(/the\s+'(\w+)'\s+column/i);
+        const badCol = match?.[1];
+        if (badCol && badCol in current) {
+          delete current[badCol];
+          continue;
+        }
+      }
+      throw error;
+    }
+  };
+
   // ── Update user mutation ──
   const updateUserMutation = useMutation({
     mutationFn: async ({ userId, updates }: { userId: string; updates: Record<string, unknown> }) => {
-      const { error } = await supabase.from('users').update(updates).eq('id', userId);
-      if (error) {
-        // If roles column doesn't exist yet, retry without it
-        if (error.message?.includes('roles') || error.code === '42703') {
-          const { roles, ...updatesWithoutRoles } = updates;
-          const { error: retryError } = await supabase.from('users').update(updatesWithoutRoles).eq('id', userId);
-          if (retryError) throw retryError;
-          return;
-        }
-        throw error;
-      }
+      await resilientUpdate('users', updates, 'id', userId);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-users'] });
@@ -249,8 +304,7 @@ const AdminDashboard: React.FC = () => {
   // ── Update ride mutation ──
   const updateRideMutation = useMutation({
     mutationFn: async ({ rideId, updates }: { rideId: string; updates: Record<string, unknown> }) => {
-      const { error } = await supabase.from('corridas').update(updates).eq('id', rideId);
-      if (error) throw error;
+      await resilientUpdate('corridas', updates, 'id', rideId);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-rides'] });
@@ -325,22 +379,28 @@ const AdminDashboard: React.FC = () => {
 
   const openEditUserDialog = (u: UserRecord) => {
     setSelectedUser(u);
+    const derivedRoles = u.roles && u.roles.length > 0 ? u.roles : (
+      u.tipo === 'admin' ? ['cliente', 'admin'] :
+      u.tipo === 'motorista' ? ['motorista'] :
+      ['cliente']
+    );
     setEditUserForm({
       nome: u.nome,
       telefone: u.telefone,
       tipo: u.tipo,
-      roles: u.roles && u.roles.length > 0 ? u.roles : [u.tipo || 'cliente'],
+      roles: derivedRoles,
       status: u.status,
       senha: '',
+      veiculo_marca: u.veiculo_marca || '',
+      veiculo_modelo: u.veiculo_modelo || '',
+      veiculo_cor: u.veiculo_cor || '',
+      veiculo_placa: u.veiculo_placa || '',
     });
     setShowEditUserDialog(true);
   };
 
   const handleApproval = () => {
-    if (!selectedRide || !approvalObs.trim()) {
-      toast({ title: 'Observação obrigatória', description: 'Adicione uma observação para registrar a ação.', variant: 'destructive' });
-      return;
-    }
+    if (!selectedRide) return;
     approvalMutation.mutate({
       rideId: selectedRide.id,
       statusAdmin: approvalAction,
@@ -371,13 +431,16 @@ const AdminDashboard: React.FC = () => {
       nome: editUserForm.nome.trim(),
       telefone: editUserForm.telefone.trim(),
       tipo: editUserForm.tipo,
-      roles: editUserForm.roles,
       status: editUserForm.status,
       ativo: editUserForm.status === 'ativo',
     };
     if (editUserForm.senha.trim()) {
       updates.senha = editUserForm.senha.trim();
     }
+    if (editUserForm.veiculo_marca.trim()) updates.veiculo_marca = editUserForm.veiculo_marca.trim();
+    if (editUserForm.veiculo_modelo.trim()) updates.veiculo_modelo = editUserForm.veiculo_modelo.trim();
+    if (editUserForm.veiculo_cor.trim()) updates.veiculo_cor = editUserForm.veiculo_cor.trim();
+    if (editUserForm.veiculo_placa.trim()) updates.veiculo_placa = editUserForm.veiculo_placa.trim();
     updateUserMutation.mutate({ userId: selectedUser.id, updates });
   };
 
@@ -921,7 +984,7 @@ const AdminDashboard: React.FC = () => {
               <div>
                 <label className="text-sm font-medium mb-1.5 flex items-center gap-1.5">
                   <MessageSquare className="w-4 h-4" />
-                  Observação (obrigatória)
+                  Observação (opcional)
                 </label>
                 <Textarea
                   value={approvalObs}
@@ -938,7 +1001,7 @@ const AdminDashboard: React.FC = () => {
             <Button variant="outline" onClick={() => setShowApprovalDialog(false)}>Cancelar</Button>
             <Button
               onClick={handleApproval}
-              disabled={approvalMutation.isPending || !approvalObs.trim()}
+              disabled={approvalMutation.isPending}
               className={
                 approvalAction === 'aprovada' ? 'bg-green-600 hover:bg-green-700 text-white' :
                 approvalAction === 'recusada' ? 'bg-red-600 hover:bg-red-700 text-white' :
@@ -1182,6 +1245,46 @@ const AdminDashboard: React.FC = () => {
                 placeholder="Deixe em branco para manter"
               />
             </div>
+
+            {/* Vehicle fields - shown for motorista */}
+            {editUserForm.roles.includes('motorista') && (
+              <div className="space-y-2 border border-border rounded-lg p-3">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Veículo do Motorista</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <Label className="text-xs">Marca</Label>
+                    <Select value={editUserForm.veiculo_marca} onValueChange={(v) => setEditUserForm(f => ({ ...f, veiculo_marca: v, veiculo_modelo: '' }))}>
+                      <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                      <SelectContent>
+                        {VEHICLE_BRANDS.map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label className="text-xs">Modelo</Label>
+                    <Select value={editUserForm.veiculo_modelo} onValueChange={(v) => setEditUserForm(f => ({ ...f, veiculo_modelo: v }))}>
+                      <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                      <SelectContent>
+                        {(VEHICLE_MODELS[editUserForm.veiculo_marca] || []).map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label className="text-xs">Cor</Label>
+                    <Select value={editUserForm.veiculo_cor} onValueChange={(v) => setEditUserForm(f => ({ ...f, veiculo_cor: v }))}>
+                      <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                      <SelectContent>
+                        {VEHICLE_COLORS.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label className="text-xs">Placa</Label>
+                    <Input value={editUserForm.veiculo_placa} onChange={(e) => setEditUserForm(f => ({ ...f, veiculo_placa: e.target.value.toUpperCase() }))} placeholder="Ex: ABC-1D23" maxLength={8} />
+                  </div>
+                </div>
+              </div>
+            )}
 
             {selectedUser && (
               <div className="bg-muted/50 rounded-lg p-3 text-xs text-muted-foreground space-y-1">

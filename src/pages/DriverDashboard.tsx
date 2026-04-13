@@ -27,6 +27,7 @@ import {
 import StarRating from '@/components/StarRating';
 import { useToast } from '@/hooks/use-toast';
 import { buscarPrecoTabela } from '@/lib/tabela-preco';
+import { usePrecoTabela, useAllLocations } from '@/hooks/usePrecoTabela';
 
 type Corrida = {
   id: string;
@@ -47,6 +48,7 @@ type Corrida = {
   edicao_aprovada: boolean | null;
   concluida_at: string | null;
   created_at: string;
+  observacao_cliente: string | null;
   cliente?: { nome: string; telefone: string } | null;
 };
 
@@ -61,19 +63,34 @@ const DriverDashboard: React.FC = () => {
   const [showConcluirDialog, setShowConcluirDialog] = useState(false);
   const [editOrigem, setEditOrigem] = useState('');
   const [editDestino, setEditDestino] = useState('');
+  const [showEditOrigemSugg, setShowEditOrigemSugg] = useState(false);
+  const [showEditDestinoSugg, setShowEditDestinoSugg] = useState(false);
   const [valor, setValor] = useState('');
   const [observacao, setObservacao] = useState('');
 
-  // ── Tabela de preço: lookup para edição e conclusão ──
-  const precoTabelaEdit = useMemo(() => {
-    if (!editOrigem.trim() || !editDestino.trim()) return null;
-    return buscarPrecoTabela(editOrigem, editDestino);
-  }, [editOrigem, editDestino]);
+  // ── Autocomplete locations (reativo) ──
+  const allLocations = useAllLocations();
+  const filteredEditOrigens = useMemo(() => {
+    if (!editOrigem.trim()) return allLocations;
+    const q = editOrigem.toLowerCase();
+    return allLocations.filter(o => o.toLowerCase().includes(q));
+  }, [editOrigem, allLocations]);
+  const filteredEditDestinos = useMemo(() => {
+    if (!editDestino.trim()) return allLocations;
+    const q = editDestino.toLowerCase();
+    return allLocations.filter(d => d.toLowerCase().includes(q));
+  }, [editDestino, allLocations]);
 
-  const precoTabelaConcluir = useMemo(() => {
-    if (!selectedRide) return null;
-    return buscarPrecoTabela(selectedRide.origem_texto, selectedRide.destino_texto);
-  }, [selectedRide]);
+  // ── Tabela de preço: lookup para edição e conclusão (reativo) ──
+  const precoTabelaEdit = usePrecoTabela(editOrigem, editDestino);
+
+  const concluirOrigem = selectedRide
+    ? ((selectedRide.edicao_aprovada && selectedRide.origem_editada) ? selectedRide.origem_editada : selectedRide.origem_texto)
+    : '';
+  const concluirDestino = selectedRide
+    ? ((selectedRide.edicao_aprovada && selectedRide.destino_editado) ? selectedRide.destino_editado : selectedRide.destino_texto)
+    : '';
+  const precoTabelaConcluir = usePrecoTabela(concluirOrigem, concluirDestino);
 
   // ── Queries ──
   const { data: pendingRides, isLoading: loadingPending } = useQuery({
@@ -202,14 +219,20 @@ const DriverDashboard: React.FC = () => {
 
   const editAddressMutation = useMutation({
     mutationFn: async ({ rideId, origem, destino }: { rideId: string; origem: string; destino: string }) => {
+      const tabelaResult = buscarPrecoTabela(origem, destino);
+      const updates: Record<string, unknown> = {
+        origem_editada: origem,
+        destino_editado: destino,
+        edicao_pendente: true,
+        edicao_aprovada: null,
+      };
+      if (tabelaResult) {
+        updates.valor_estimado = tabelaResult.valor;
+        updates.valor = tabelaResult.valor;
+      }
       const { error } = await supabase
         .from('corridas')
-        .update({
-          origem_editada: origem,
-          destino_editado: destino,
-          edicao_pendente: true,
-          edicao_aprovada: null,
-        })
+        .update(updates)
         .eq('id', rideId);
       if (error) throw error;
     },
@@ -260,12 +283,15 @@ const DriverDashboard: React.FC = () => {
 
   const openConcluirDialog = (ride: Corrida) => {
     setSelectedRide(ride);
-    // Pre-fill with table price if available, else existing value
-    const tabelaResult = buscarPrecoTabela(ride.origem_texto, ride.destino_texto);
+    // Use edited addresses if approved, else original
+    const origemFinal = (ride.edicao_aprovada && ride.origem_editada) ? ride.origem_editada : ride.origem_texto;
+    const destinoFinal = (ride.edicao_aprovada && ride.destino_editado) ? ride.destino_editado : ride.destino_texto;
+    // Set price from table (read-only)
+    const tabelaResult = buscarPrecoTabela(origemFinal, destinoFinal);
     if (tabelaResult) {
       setValor(tabelaResult.valor.toFixed(2));
     } else {
-      setValor(ride.valor?.toString() || '');
+      setValor(ride.valor_estimado?.toString() || ride.valor?.toString() || '');
     }
     setObservacao(ride.observacao_motorista || '');
     setShowConcluirDialog(true);
@@ -273,12 +299,16 @@ const DriverDashboard: React.FC = () => {
 
   const handleConcluir = () => {
     if (!selectedRide) return;
-    const valorNum = valor ? parseFloat(valor.replace(',', '.')) : null;
-    if (valor && (isNaN(valorNum!) || valorNum! < 0)) {
+    // Use table price — driver cannot edit
+    const origemFinal = (selectedRide.edicao_aprovada && selectedRide.origem_editada) ? selectedRide.origem_editada : selectedRide.origem_texto;
+    const destinoFinal = (selectedRide.edicao_aprovada && selectedRide.destino_editado) ? selectedRide.destino_editado : selectedRide.destino_texto;
+    const tabelaResult = buscarPrecoTabela(origemFinal, destinoFinal);
+    const valorFinal = tabelaResult ? tabelaResult.valor : (valor ? parseFloat(valor.replace(',', '.')) : null);
+    if (valorFinal !== null && (isNaN(valorFinal) || valorFinal < 0)) {
       toast({ title: 'Valor inválido', variant: 'destructive' });
       return;
     }
-    completeMutation.mutate({ rideId: selectedRide.id, valorFinal: valorNum, obs: observacao });
+    completeMutation.mutate({ rideId: selectedRide.id, valorFinal, obs: observacao });
   };
 
   const handleEditSubmit = () => {
@@ -333,6 +363,12 @@ const DriverDashboard: React.FC = () => {
                 )}
               </div>
             )}
+            {ride.observacao_cliente && (
+              <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-2.5 mt-1">
+                <p className="text-[10px] text-blue-400 font-medium mb-0.5">Observação do cliente:</p>
+                <p className="text-xs text-muted-foreground">{ride.observacao_cliente}</p>
+              </div>
+            )}
           </div>
 
           <Button
@@ -376,6 +412,19 @@ const DriverDashboard: React.FC = () => {
             <Badge className="bg-green-500/20 text-green-400 border-green-500/30">Em andamento</Badge>
           </div>
 
+          {/* WhatsApp button */}
+          {ride.cliente?.telefone && (
+            <a
+              href={`https://wa.me/55${ride.cliente.telefone.replace(/\D/g, '')}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-2 w-full py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white font-semibold text-sm transition-colors"
+            >
+              <MessageSquare className="w-4 h-4" />
+              WhatsApp do Cliente
+            </a>
+          )}
+
           <Separator />
 
           {/* Route info */}
@@ -400,7 +449,25 @@ const DriverDashboard: React.FC = () => {
                 <span className="text-xs text-muted-foreground">{ride.horario_estimado}</span>
               </div>
             )}
+            {(ride.distancia_km != null || ride.valor_estimado != null) && (
+              <div className="flex items-center gap-3 bg-muted/50 rounded-lg px-3 py-2">
+                {ride.distancia_km != null && (
+                  <span className="text-xs font-semibold text-accent">{Number(ride.distancia_km).toFixed(1)} km</span>
+                )}
+                {ride.valor_estimado != null && (
+                  <span className="text-xs font-semibold text-green-400">R$ {Number(ride.valor_estimado).toFixed(2)}</span>
+                )}
+              </div>
+            )}
           </div>
+
+          {/* Client observation */}
+          {ride.observacao_cliente && (
+            <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3">
+              <p className="text-[10px] text-blue-400 font-medium mb-0.5">Observação do cliente:</p>
+              <p className="text-xs text-muted-foreground">{ride.observacao_cliente}</p>
+            </div>
+          )}
 
           {/* Edit status */}
           {hasEditPending && (
@@ -630,19 +697,51 @@ const DriverDashboard: React.FC = () => {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
-            <div>
+            <div className="relative">
               <label className="text-sm font-medium mb-1.5 block">Nova Origem</label>
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-green-500 shrink-0" />
-                <Input value={editOrigem} onChange={(e) => setEditOrigem(e.target.value)} placeholder="Endereço de origem" />
+                <Input
+                  value={editOrigem}
+                  onChange={(e) => { setEditOrigem(e.target.value); setShowEditOrigemSugg(true); }}
+                  onFocus={() => setShowEditOrigemSugg(true)}
+                  onBlur={() => setTimeout(() => setShowEditOrigemSugg(false), 200)}
+                  placeholder="Endereço de origem"
+                />
               </div>
+              {showEditOrigemSugg && filteredEditOrigens.length > 0 && (
+                <div className="absolute z-50 w-full mt-1 bg-background border border-border rounded-lg shadow-lg max-h-40 overflow-y-auto">
+                  {filteredEditOrigens.slice(0, 12).map(o => (
+                    <button key={o} type="button" className="w-full text-left px-3 py-2 text-sm hover:bg-accent/10 transition-colors"
+                      onMouseDown={e => e.preventDefault()} onClick={() => { setEditOrigem(o); setShowEditOrigemSugg(false); }}>
+                      {o}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
-            <div>
+            <div className="relative">
               <label className="text-sm font-medium mb-1.5 block">Novo Destino</label>
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-accent shrink-0" />
-                <Input value={editDestino} onChange={(e) => setEditDestino(e.target.value)} placeholder="Endereço de destino" />
+                <Input
+                  value={editDestino}
+                  onChange={(e) => { setEditDestino(e.target.value); setShowEditDestinoSugg(true); }}
+                  onFocus={() => setShowEditDestinoSugg(true)}
+                  onBlur={() => setTimeout(() => setShowEditDestinoSugg(false), 200)}
+                  placeholder="Endereço de destino"
+                />
               </div>
+              {showEditDestinoSugg && filteredEditDestinos.length > 0 && (
+                <div className="absolute z-50 w-full mt-1 bg-background border border-border rounded-lg shadow-lg max-h-40 overflow-y-auto">
+                  {filteredEditDestinos.slice(0, 12).map(d => (
+                    <button key={d} type="button" className="w-full text-left px-3 py-2 text-sm hover:bg-accent/10 transition-colors"
+                      onMouseDown={e => e.preventDefault()} onClick={() => { setEditDestino(d); setShowEditDestinoSugg(false); }}>
+                      {d}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
             {precoTabelaEdit && (
               <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-3">
@@ -704,43 +803,34 @@ const DriverDashboard: React.FC = () => {
                 </p>
               </div>
 
-              {/* Value */}
+              {/* Value - from table (read-only) */}
               <div>
                 <label className="text-sm font-medium mb-1.5 flex items-center gap-1.5">
                   <DollarSign className="w-4 h-4 text-green-400" />
                   Valor da Corrida (R$)
                 </label>
-                <Input
-                  type="text"
-                  inputMode="decimal"
-                  value={valor}
-                  onChange={(e) => setValor(e.target.value)}
-                  placeholder="Ex: 25,00"
-                  className="text-lg font-semibold"
-                />
-                {precoTabelaConcluir && (
-                  <div className="mt-2 bg-green-500/10 border border-green-500/20 rounded-lg p-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <TableProperties className="w-4 h-4 text-green-400" />
-                        <div>
-                          <p className="text-[10px] text-muted-foreground">Preço tabelado</p>
-                          <p className="text-lg font-bold text-green-400">R$ {precoTabelaConcluir.valor.toFixed(2)}</p>
-                        </div>
+                {precoTabelaConcluir ? (
+                  <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-3">
+                    <div className="flex items-center gap-2">
+                      <TableProperties className="w-4 h-4 text-green-400" />
+                      <div>
+                        <p className="text-[10px] text-muted-foreground">Preço definido pela tabela</p>
+                        <p className="text-xl font-bold text-green-400">R$ {precoTabelaConcluir.valor.toFixed(2)}</p>
                       </div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="text-xs text-green-400 hover:text-green-300"
-                        onClick={() => setValor(precoTabelaConcluir.valor.toFixed(2))}
-                      >
-                        Usar este valor
-                      </Button>
                     </div>
                     <p className="text-[10px] text-muted-foreground mt-1 truncate">
                       {precoTabelaConcluir.origem_tabela} → {precoTabelaConcluir.destino_tabela}
                     </p>
+                  </div>
+                ) : (
+                  <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3">
+                    <div className="flex items-center gap-2">
+                      <AlertTriangle className="w-4 h-4 text-yellow-400" />
+                      <p className="text-sm text-yellow-400">Rota sem preço definido na tabela</p>
+                    </div>
+                    {valor && (
+                      <p className="text-lg font-bold mt-1">R$ {parseFloat(valor.replace(',', '.')).toFixed(2)}</p>
+                    )}
                   </div>
                 )}
               </div>

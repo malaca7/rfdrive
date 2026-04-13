@@ -4,17 +4,19 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   MapPin, Navigation, Loader2, Check, CheckCircle, Clock,
-  Edit3, X, DollarSign, Route, Car, Star, Send, TableProperties,
+  Edit3, X, DollarSign, Route, Car, Star, Send, TableProperties, MessageSquare, Phone,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import StarRating from '@/components/StarRating';
 import { calculateRoute } from '@/lib/route-ai';
 import { calcularPreco, salvarHistoricoPreco } from '@/lib/pricing-engine';
-import { buscarPrecoTabela, getAllLocations } from '@/lib/tabela-preco';
+import { buscarPrecoTabela } from '@/lib/tabela-preco';
+import { usePrecoTabela, useAllLocations } from '@/hooks/usePrecoTabela';
 
 interface RouteEstimate {
   distancia_km: number;
@@ -35,18 +37,16 @@ const RideRequestForm: React.FC = () => {
   const [isSendingRating, setIsSendingRating] = useState(false);
   const [ratingSubmitted, setRatingSubmitted] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [observacaoCliente, setObservacaoCliente] = useState('');
   const destinoRef = useRef<HTMLInputElement>(null);
   const [showOrigemSuggestions, setShowOrigemSuggestions] = useState(false);
   const [showDestinoSuggestions, setShowDestinoSuggestions] = useState(false);
 
-  // ── Tabela de preço: lookup em tempo real ──
-  const precoTabela = useMemo(() => {
-    if (!origem.trim() || !destino.trim()) return null;
-    return buscarPrecoTabela(origem, destino);
-  }, [origem, destino]);
+  // ── Tabela de preço: lookup em tempo real (reativo) ──
+  const precoTabela = usePrecoTabela(origem, destino);
 
-  // ── Autocomplete: all locations bidirectional ──
-  const allLocations = useMemo(() => getAllLocations(), []);
+  // ── Autocomplete: all locations bidirectional (reativo) ──
+  const allLocations = useAllLocations();
 
   const filteredOrigens = useMemo(() => {
     if (!origem.trim()) return allLocations;
@@ -75,6 +75,21 @@ const RideRequestForm: React.FC = () => {
     },
     enabled: !!user,
     refetchInterval: 3000,
+  });
+
+  // ── Fetch motorista info when ride is accepted ──
+  const { data: motoristaInfo } = useQuery({
+    queryKey: ['motorista-info', activeRide?.motorista_id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('users')
+        .select('nome, telefone, veiculo_marca, veiculo_modelo, veiculo_cor, veiculo_placa')
+        .eq('id', activeRide!.motorista_id!)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!activeRide?.motorista_id && activeRide?.status === 'aceita',
   });
 
   const { data: lastCompletedRide } = useQuery({
@@ -197,6 +212,7 @@ const RideRequestForm: React.FC = () => {
 
       // Insert: try full payload, fallback to minimal if columns missing
       let corridaData: { id: string } | null = null;
+      const obsCliente = observacaoCliente.trim() || null;
       const fullPayload = {
         cliente_id: user.id,
         origem_texto: o,
@@ -207,6 +223,7 @@ const RideRequestForm: React.FC = () => {
         valor_estimado,
         preco_regra_aplicada,
         preco_detalhes,
+        observacao_cliente: obsCliente,
       };
 
       const { data: d1, error: e1 } = await supabase.from('corridas').insert(fullPayload).select('id').single();
@@ -242,6 +259,7 @@ const RideRequestForm: React.FC = () => {
       toast({ title: 'Corrida solicitada!', description: 'Aguardando um motorista aceitar.' });
       setOrigem('');
       setDestino('');
+      setObservacaoCliente('');
       setErrorMsg('');
     } catch (_e) {
       const msg = _e instanceof Error ? _e.message : 'Erro desconhecido';
@@ -361,6 +379,50 @@ const RideRequestForm: React.FC = () => {
                 </div>
               )}
             </div>
+            {/* ── Motorista info when ride is accepted ── */}
+            {activeRide.status === 'aceita' && motoristaInfo && (
+              <div className="bg-accent/5 border border-accent/20 rounded-lg p-4 space-y-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-full bg-accent/20 flex items-center justify-center">
+                    <Car className="w-6 h-6 text-accent" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-semibold">{motoristaInfo.nome}</p>
+                    <p className="text-xs text-muted-foreground flex items-center gap-1">
+                      <Phone className="w-3 h-3" />
+                      {motoristaInfo.telefone}
+                    </p>
+                  </div>
+                </div>
+                {(motoristaInfo.veiculo_marca || motoristaInfo.veiculo_modelo || motoristaInfo.veiculo_cor || motoristaInfo.veiculo_placa) && (
+                  <div className="bg-muted/50 rounded-lg p-3 space-y-1.5">
+                    <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide">Veículo</p>
+                    {(motoristaInfo.veiculo_marca || motoristaInfo.veiculo_modelo) && (
+                      <p className="text-sm font-medium">
+                        {[motoristaInfo.veiculo_marca, motoristaInfo.veiculo_modelo].filter(Boolean).join(' ')}
+                      </p>
+                    )}
+                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                      {motoristaInfo.veiculo_cor && (
+                        <span>Cor: <strong className="text-foreground">{motoristaInfo.veiculo_cor}</strong></span>
+                      )}
+                      {motoristaInfo.veiculo_placa && (
+                        <span>Placa: <strong className="text-foreground font-mono">{motoristaInfo.veiculo_placa}</strong></span>
+                      )}
+                    </div>
+                  </div>
+                )}
+                <a
+                  href={`https://wa.me/55${motoristaInfo.telefone.replace(/\D/g, '')}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2 w-full py-2.5 rounded-lg bg-green-600 hover:bg-green-700 text-white font-semibold text-sm transition-colors"
+                >
+                  <MessageSquare className="w-4 h-4" />
+                  Falar com Motorista via WhatsApp
+                </a>
+              </div>
+            )}
             {hasEditPending && (
               <Card className="border-yellow-500/30 bg-yellow-500/10">
                 <CardContent className="py-4 space-y-3">
@@ -605,6 +667,21 @@ const RideRequestForm: React.FC = () => {
                 ))}
               </div>
             )}
+          </div>
+
+          {/* Observation */}
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium flex items-center gap-2">
+              <MessageSquare className="w-3.5 h-3.5 text-muted-foreground" />
+              Observação <span className="text-xs text-muted-foreground font-normal">(opcional)</span>
+            </label>
+            <Textarea
+              value={observacaoCliente}
+              onChange={(e) => setObservacaoCliente(e.target.value)}
+              placeholder="Ponto de referência, número da casa, instruções..."
+              className="resize-none text-sm min-h-[60px]"
+              rows={2}
+            />
           </div>
 
           {/* ── Price preview from table ── */}

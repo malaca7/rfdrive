@@ -4,8 +4,10 @@
 // ══════════════════════════════════════════════════════════
 
 import tabelaData from '@/data/TabelaRF.json';
+import { supabase } from '@/integrations/supabase/client';
 
 export interface TabelaEntry {
+  id?: string;
   origem: string;
   destino: string;
   valor: number;
@@ -20,13 +22,44 @@ export interface LookupResult {
   match_exato: boolean;
 }
 
-const tabela: TabelaEntry[] = (tabelaData as unknown[]).filter(
-  (e): e is TabelaEntry =>
-    !!e && typeof e === 'object' &&
-    'origem' in e && 'destino' in e && 'valor' in e &&
-    typeof (e as TabelaEntry).origem === 'string' &&
-    typeof (e as TabelaEntry).destino === 'string'
-) as TabelaEntry[];
+// ── Persistence: load from localStorage if available, else from static JSON ──
+const STORAGE_KEY = 'rf_drive_tabela_precos';
+
+function loadTabela(): TabelaEntry[] {
+  let raw: TabelaEntry[] = [];
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      if (Array.isArray(parsed) && parsed.length > 0) raw = parsed;
+    }
+  } catch { /* ignore parse errors */ }
+  if (raw.length === 0) {
+    raw = (tabelaData as unknown[]).filter(
+      (e): e is TabelaEntry =>
+        !!e && typeof e === 'object' &&
+        'origem' in e && 'destino' in e && 'valor' in e &&
+        typeof (e as TabelaEntry).origem === 'string' &&
+        typeof (e as TabelaEntry).destino === 'string'
+    ) as TabelaEntry[];
+  }
+  // Dedup: keep first occurrence per origem+destino
+  const seen = new Set<string>();
+  return raw.filter(e => {
+    const key = `${e.origem.toLowerCase()}|${e.destino.toLowerCase()}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function persistTabela() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(tabela));
+  } catch { /* quota exceeded, etc */ }
+}
+
+const tabela: TabelaEntry[] = loadTabela();
 
 // ── Normalize text for matching ──
 function normalize(s: string): string {
@@ -124,9 +157,7 @@ function findBestDestino(input: string, origemNorm: string): { nome: string; sco
 // ══════════════════════════════════════════════════════════
 // MAIN LOOKUP FUNCTION
 // ══════════════════════════════════════════════════════════
-export function buscarPrecoTabela(origem: string, destino: string): LookupResult | null {
-  if (!origem.trim() || !destino.trim()) return null;
-
+function lookupDirect(origem: string, destino: string): LookupResult | null {
   // Try exact match first
   const exactKey = `${normalize(origem)}|${normalize(destino)}`;
   const exactEntry = exactMap.get(exactKey);
@@ -160,6 +191,17 @@ export function buscarPrecoTabela(origem: string, destino: string): LookupResult
     regiao: entry.regiao,
     match_exato: bestOrigem.score >= 1000 && bestDestino.score >= 1000,
   };
+}
+
+export function buscarPrecoTabela(origem: string, destino: string): LookupResult | null {
+  if (!origem.trim() || !destino.trim()) return null;
+
+  // Try origem → destino
+  const direct = lookupDirect(origem, destino);
+  if (direct) return direct;
+
+  // Fallback: try destino → origem (bidirectional)
+  return lookupDirect(destino, origem);
 }
 
 // ── Get all unique origins (for autocomplete) ──
@@ -217,6 +259,7 @@ function rebuildMaps() {
     destinosMap.get(on)!.add(entry.destino);
   }
   _version++;
+  persistTabela();
 }
 
 export function getTabela(): TabelaEntry[] {
@@ -286,4 +329,161 @@ export function importTabela(entries: TabelaEntry[], replace = false): { added: 
 
 export function exportTabela(): string {
   return JSON.stringify(tabela, null, 2);
+}
+
+// ══════════════════════════════════════════════════════════
+// SUPABASE OPERATIONS (for admin CRUD + cross-user sync)
+// ══════════════════════════════════════════════════════════
+
+export { normalize as normalizeText };
+
+export async function fetchTabelaFromSupabase(): Promise<TabelaEntry[]> {
+  const { data, error } = await supabase
+    .from('tabela_precos')
+    .select('*')
+    .order('origem')
+    .order('destino');
+  if (error) {
+    console.warn('tabela_precos fetch error, using local cache:', error.message);
+    return tabela.map(e => ({ ...e }));
+  }
+  // Dedup: keep first occurrence per origem+destino (ordered by origem,destino)
+  const seen = new Set<string>();
+  return (data || []).reduce<TabelaEntry[]>((acc, r) => {
+    const key = `${r.origem.toLowerCase()}|${r.destino.toLowerCase()}`;
+    if (!seen.has(key)) {
+      seen.add(key);
+      acc.push({ id: r.id, origem: r.origem, destino: r.destino, valor: Number(r.valor), regiao: r.regiao });
+    }
+    return acc;
+  }, []);
+}
+
+export async function syncCacheFromSupabase(): Promise<void> {
+  try {
+    const { data, error } = await supabase
+      .from('tabela_precos')
+      .select('origem, destino, valor, regiao');
+    if (error || !data || data.length === 0) return;
+    tabela.length = 0;
+    const seen = new Set<string>();
+    for (const r of data) {
+      const key = `${r.origem.toLowerCase()}|${r.destino.toLowerCase()}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      tabela.push({ origem: r.origem, destino: r.destino, valor: Number(r.valor), regiao: r.regiao });
+    }
+    rebuildMaps();
+  } catch { /* keep local cache */ }
+}
+
+export async function seedSupabase(): Promise<{ added: number }> {
+  const { count, error: countErr } = await supabase
+    .from('tabela_precos')
+    .select('*', { count: 'exact', head: true });
+  if (countErr) throw countErr;
+  if (count && count > 0) return { added: 0 };
+
+  const source = (tabelaData as unknown[]).filter(
+    (e): e is TabelaEntry =>
+      !!e && typeof e === 'object' && 'origem' in e && 'destino' in e && 'valor' in e &&
+      typeof (e as any).origem === 'string' && typeof (e as any).destino === 'string'
+  ) as TabelaEntry[];
+
+  // Dedup: keep first occurrence per origem+destino
+  const seen = new Set<string>();
+  const deduped = source.filter(e => {
+    const key = `${e.origem.trim().toLowerCase()}|${e.destino.trim().toLowerCase()}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+
+  const BATCH = 500;
+  let added = 0;
+  for (let i = 0; i < deduped.length; i += BATCH) {
+    const batch = deduped.slice(i, i + BATCH).map(e => ({
+      origem: e.origem, destino: e.destino, valor: e.valor, regiao: e.regiao || 'Cabo',
+    }));
+    const { data, error } = await supabase.from('tabela_precos')
+      .upsert(batch, { onConflict: 'origem,destino' })
+      .select('id');
+    if (!error && data) added += data.length;
+  }
+  return { added };
+}
+
+/**
+ * Remove entries duplicadas na tabela Supabase (mant\u00e9m o mais recente de cada origem+destino).
+ * Chamado automaticamente ao sincronizar.
+ */
+export async function cleanupDuplicatesSupabase(): Promise<number> {
+  const { data, error } = await supabase.rpc('cleanup_tabela_precos_duplicates');
+  if (error) {
+    // Fallback: do it client-side
+    const { data: all } = await supabase.from('tabela_precos').select('id, origem, destino, updated_at').order('updated_at', { ascending: false });
+    if (!all || all.length === 0) return 0;
+    const seen = new Map<string, string>();
+    const toDelete: string[] = [];
+    for (const row of all) {
+      const key = `${row.origem.toLowerCase()}|${row.destino.toLowerCase()}`;
+      if (seen.has(key)) {
+        toDelete.push(row.id);
+      } else {
+        seen.set(key, row.id);
+      }
+    }
+    if (toDelete.length > 0) {
+      await supabase.from('tabela_precos').delete().in('id', toDelete);
+    }
+    return toDelete.length;
+  }
+  return typeof data === 'number' ? data : 0;
+}
+
+export async function addEntrySupabase(entry: { origem: string; destino: string; valor: number; regiao: string }): Promise<void> {
+  const { error } = await supabase.from('tabela_precos').insert(entry);
+  if (error) throw error;
+}
+
+export async function updateEntrySupabase(id: string, updates: Partial<TabelaEntry>): Promise<void> {
+  const { origem, destino, valor, regiao } = updates;
+  const payload: Record<string, unknown> = { updated_at: new Date().toISOString() };
+  if (origem !== undefined) payload.origem = origem;
+  if (destino !== undefined) payload.destino = destino;
+  if (valor !== undefined) payload.valor = valor;
+  if (regiao !== undefined) payload.regiao = regiao;
+  const { error } = await supabase.from('tabela_precos').update(payload).eq('id', id);
+  if (error) throw error;
+}
+
+export async function deleteEntrySupabase(id: string): Promise<void> {
+  const { error } = await supabase.from('tabela_precos').delete().eq('id', id);
+  if (error) throw error;
+}
+
+export async function deleteBulkSupabase(ids: string[]): Promise<number> {
+  const { error } = await supabase.from('tabela_precos').delete().in('id', ids);
+  if (error) throw error;
+  return ids.length;
+}
+
+export async function importTabelaSupabase(entries: TabelaEntry[], replace: boolean): Promise<{ added: number; skipped: number }> {
+  if (replace) {
+    await supabase.from('tabela_precos').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+  }
+  const valid = entries.filter(e => e.origem && e.destino && e.valor != null);
+  const BATCH = 500;
+  let added = 0;
+  for (let i = 0; i < valid.length; i += BATCH) {
+    const batch = valid.slice(i, i + BATCH).map(e => ({
+      origem: e.origem, destino: e.destino, valor: e.valor, regiao: e.regiao || 'Cabo',
+    }));
+    const { data, error } = await supabase
+      .from('tabela_precos')
+      .upsert(batch, { onConflict: 'origem,destino' })
+      .select('id');
+    if (!error && data) added += data.length;
+  }
+  return { added, skipped: entries.length - added };
 }

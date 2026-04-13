@@ -190,7 +190,7 @@ const LocalidadesTab: React.FC<{
       setShowDialog(false);
       resetForm();
     },
-    onError: () => toast({ title: 'Erro ao salvar', variant: 'destructive' }),
+    onError: (e: any) => toast({ title: 'Erro ao salvar localidade', description: e?.message || 'Erro desconhecido', variant: 'destructive' }),
   });
 
   const toggleAtivoMutation = useMutation({
@@ -720,15 +720,24 @@ const HorariosTab: React.FC<{
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      const payload = {
+      // Ensure HH:MM:SS format for PostgreSQL TIME columns
+      const fmtTime = (t: string) => {
+        const parts = t.split(':');
+        if (parts.length === 2) return `${parts[0]}:${parts[1]}:00`;
+        return t; // already HH:MM:SS
+      };
+      const payload: Record<string, unknown> = {
         nome: form.nome.trim(),
-        hora_inicio: form.hora_inicio,
-        hora_fim: form.hora_fim,
+        hora_inicio: fmtTime(form.hora_inicio),
+        hora_fim: fmtTime(form.hora_fim),
         tipo_ajuste: form.tipo_ajuste,
         valor_ajuste: parseFloat(form.valor_ajuste) || 0,
+        ativo: true,
       };
       if (editingId) {
-        const { error } = await supabase.from('regras_horario').update({ ...payload, updated_at: new Date().toISOString() }).eq('id', editingId);
+        delete payload.ativo;
+        payload.updated_at = new Date().toISOString();
+        const { error } = await supabase.from('regras_horario').update(payload).eq('id', editingId);
         if (error) throw error;
       } else {
         const { error } = await supabase.from('regras_horario').insert(payload);
@@ -741,7 +750,7 @@ const HorariosTab: React.FC<{
       setShowDialog(false);
       resetForm();
     },
-    onError: () => toast({ title: 'Erro ao salvar', variant: 'destructive' }),
+    onError: (e: any) => toast({ title: 'Erro ao salvar regra', description: e?.message || 'Erro desconhecido', variant: 'destructive' }),
   });
 
   const toggleAtivoMutation = useMutation({

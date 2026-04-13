@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useRef } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -17,10 +17,11 @@ import {
   BarChart3, MapPin, Route, DollarSign, AlertTriangle, CheckCircle,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  getTabela, getOrigens, getTabelaStats, getTabelaVersion,
-  addEntry, updateEntry, deleteEntry, deleteBulk,
-  importTabela, exportTabela,
+  fetchTabelaFromSupabase, seedSupabase, syncCacheFromSupabase,
+  addEntrySupabase, updateEntrySupabase, deleteEntrySupabase,
+  deleteBulkSupabase, importTabelaSupabase, normalizeText,
   type TabelaEntry,
 } from '@/lib/tabela-preco';
 
@@ -31,11 +32,30 @@ type SortDir = 'asc' | 'desc';
 
 const AdminTabelaPrecos: React.FC = () => {
   const { toast } = useToast();
+  const qc = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Force re-render when table mutates
-  const [, setRenderKey] = useState(0);
-  const rerender = useCallback(() => setRenderKey(k => k + 1), []);
+  // ── Data from Supabase ──
+  const { data: tabela = [], isLoading: loadingTabela } = useQuery({
+    queryKey: ['tabela-precos'],
+    queryFn: fetchTabelaFromSupabase,
+  });
+
+  // ── Auto-seed if Supabase table is empty ──
+  const [seeding, setSeeding] = useState(false);
+  useEffect(() => {
+    if (!loadingTabela && tabela.length === 0 && !seeding) {
+      setSeeding(true);
+      seedSupabase().then(({ added }) => {
+        if (added > 0) {
+          toast({ title: `${added.toLocaleString('pt-BR')} rotas importadas da tabela padr\u00e3o` });
+          qc.invalidateQueries({ queryKey: ['tabela-precos'] });
+          syncCacheFromSupabase();
+        }
+        setSeeding(false);
+      }).catch(() => setSeeding(false));
+    }
+  }, [loadingTabela, tabela.length]);
 
   // ── Filters ──
   const [search, setSearch] = useState('');
@@ -67,6 +87,7 @@ const AdminTabelaPrecos: React.FC = () => {
   const [formValor, setFormValor] = useState('');
   const [formRegiao, setFormRegiao] = useState('Cabo');
   const [editingEntry, setEditingEntry] = useState<TabelaEntry | null>(null);
+  const [editingOrigKey, setEditingOrigKey] = useState<{ origem: string; destino: string } | null>(null);
   const [deletingEntry, setDeletingEntry] = useState<TabelaEntry | null>(null);
 
   // ── Import state ──
@@ -75,12 +96,17 @@ const AdminTabelaPrecos: React.FC = () => {
   const [importFileName, setImportFileName] = useState('');
 
   // ── Data ──
-  const tabela = getTabela();
-  const origens = useMemo(() => getOrigens(), [getTabelaVersion()]);
-  const regioes = useMemo(() => [...new Set(tabela.map(e => e.regiao))].sort(), [getTabelaVersion()]);
-  const stats = useMemo(() => getTabelaStats(), [getTabelaVersion()]);
+  const origens = useMemo(() => [...new Set(tabela.map(e => e.origem))].sort((a, b) => a.localeCompare(b, 'pt-BR')), [tabela]);
+  const regioes = useMemo(() => [...new Set(tabela.map(e => e.regiao))].sort(), [tabela]);
+  const stats = useMemo(() => ({
+    totalRotas: tabela.length,
+    totalOrigens: new Set(tabela.map(e => e.origem)).size,
+    totalDestinos: new Set(tabela.map(e => e.destino)).size,
+    precoMin: tabela.length ? Math.min(...tabela.map(e => e.valor)) : 0,
+    precoMax: tabela.length ? Math.max(...tabela.map(e => e.valor)) : 0,
+  }), [tabela]);
 
-  // ── Filtering ──
+  // ── Filtering (normalized for accent-insensitive search) ──
   const filtered = useMemo(() => {
     let data = tabela;
     if (filterOrigem !== '_all') {
@@ -90,15 +116,15 @@ const AdminTabelaPrecos: React.FC = () => {
       data = data.filter(e => e.regiao === filterRegiao);
     }
     if (search.trim()) {
-      const q = search.toLowerCase();
+      const q = normalizeText(search);
       data = data.filter(e =>
-        e.origem.toLowerCase().includes(q) ||
-        e.destino.toLowerCase().includes(q) ||
-        e.valor.toString().includes(q)
+        normalizeText(e.origem).includes(q) ||
+        normalizeText(e.destino).includes(q) ||
+        e.valor.toString().includes(search.trim())
       );
     }
     return data;
-  }, [tabela, filterOrigem, filterRegiao, search, getTabelaVersion()]);
+  }, [tabela, filterOrigem, filterRegiao, search]);
 
   // ── Sorting ──
   const sorted = useMemo(() => {
@@ -119,7 +145,7 @@ const AdminTabelaPrecos: React.FC = () => {
   const totalPages = Math.ceil(sorted.length / pageSize);
   const pageData = useMemo(() => sorted.slice(page * pageSize, (page + 1) * pageSize), [sorted, page, pageSize]);
 
-  const entryKey = (e: TabelaEntry) => `${e.origem}||${e.destino}`;
+  const entryKey = (e: TabelaEntry) => e.id || `${e.origem}||${e.destino}`;
 
   // ── Selection helpers ──
   const allPageSelected = pageData.length > 0 && pageData.every(e => selected.has(entryKey(e)));
@@ -152,6 +178,46 @@ const AdminTabelaPrecos: React.FC = () => {
     return sortDir === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />;
   };
 
+  // ── Mutations ──
+  const onMutationSuccess = (msg: string) => {
+    toast({ title: msg });
+    qc.invalidateQueries({ queryKey: ['tabela-precos'] });
+    syncCacheFromSupabase();
+  };
+
+  const addMutation = useMutation({
+    mutationFn: addEntrySupabase,
+    onSuccess: () => { onMutationSuccess('Rota adicionada!'); setShowAddDialog(false); resetForm(); },
+    onError: (e: any) => toast({ title: 'Erro ao adicionar', description: e?.message?.includes('duplicate') ? 'Essa combina\u00e7\u00e3o j\u00e1 existe.' : e?.message, variant: 'destructive' }),
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, updates }: { id: string; updates: Partial<TabelaEntry> }) => updateEntrySupabase(id, updates),
+    onSuccess: () => { onMutationSuccess('Rota atualizada!'); setShowEditDialog(false); resetForm(); },
+    onError: (e: any) => toast({ title: 'Erro ao atualizar', description: e?.message, variant: 'destructive' }),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: deleteEntrySupabase,
+    onSuccess: () => { onMutationSuccess('Rota removida!'); setShowDeleteDialog(false); setDeletingEntry(null); },
+    onError: (e: any) => toast({ title: 'Erro ao excluir', description: e?.message, variant: 'destructive' }),
+  });
+
+  const bulkDeleteMutation = useMutation({
+    mutationFn: deleteBulkSupabase,
+    onSuccess: (_, ids) => { onMutationSuccess(`${ids.length} rota(s) removida(s)`); setSelected(new Set()); setShowBulkDeleteDialog(false); },
+    onError: (e: any) => toast({ title: 'Erro ao excluir', description: e?.message, variant: 'destructive' }),
+  });
+
+  const importMutation = useMutation({
+    mutationFn: ({ entries, replace }: { entries: TabelaEntry[]; replace: boolean }) => importTabelaSupabase(entries, replace),
+    onSuccess: (result) => {
+      onMutationSuccess(`Importa\u00e7\u00e3o: ${result.added} adicionadas, ${result.skipped} ignoradas`);
+      setShowImportDialog(false); setImportData(null); setImportFileName(''); setPage(0);
+    },
+    onError: (e: any) => toast({ title: 'Erro na importa\u00e7\u00e3o', description: e?.message, variant: 'destructive' }),
+  });
+
   // ── Add entry ──
   const handleAdd = () => {
     const valor = parseFloat(formValor.replace(',', '.'));
@@ -159,20 +225,13 @@ const AdminTabelaPrecos: React.FC = () => {
       toast({ title: 'Preencha todos os campos corretamente', variant: 'destructive' });
       return;
     }
-    const ok = addEntry({ origem: formOrigem.trim(), destino: formDestino.trim(), valor, regiao: formRegiao.trim() || 'Cabo' });
-    if (!ok) {
-      toast({ title: 'Rota já existe', description: 'Essa combinação origem→destino já está na tabela.', variant: 'destructive' });
-      return;
-    }
-    toast({ title: 'Rota adicionada!' });
-    setShowAddDialog(false);
-    resetForm();
-    rerender();
+    addMutation.mutate({ origem: formOrigem.trim(), destino: formDestino.trim(), valor, regiao: formRegiao.trim() || 'Cabo' });
   };
 
   // ── Edit entry ──
   const openEdit = (e: TabelaEntry) => {
     setEditingEntry(e);
+    setEditingOrigKey({ origem: e.origem, destino: e.destino });
     setFormOrigem(e.origem);
     setFormDestino(e.destino);
     setFormValor(e.valor.toFixed(2));
@@ -181,57 +240,40 @@ const AdminTabelaPrecos: React.FC = () => {
   };
 
   const handleEdit = () => {
-    if (!editingEntry) return;
+    if (!editingEntry?.id) return;
     const valor = parseFloat(formValor.replace(',', '.'));
     if (!formOrigem.trim() || !formDestino.trim() || isNaN(valor) || valor <= 0) {
       toast({ title: 'Preencha todos os campos corretamente', variant: 'destructive' });
       return;
     }
-    const ok = updateEntry(editingEntry.origem, editingEntry.destino, {
-      origem: formOrigem.trim(),
-      destino: formDestino.trim(),
-      valor,
-      regiao: formRegiao.trim() || 'Cabo',
+    updateMutation.mutate({
+      id: editingEntry.id,
+      updates: { origem: formOrigem.trim(), destino: formDestino.trim(), valor, regiao: formRegiao.trim() || 'Cabo' },
     });
-    if (!ok) {
-      toast({ title: 'Erro ao atualizar', variant: 'destructive' });
-      return;
-    }
-    toast({ title: 'Rota atualizada!' });
-    setShowEditDialog(false);
-    resetForm();
-    rerender();
   };
 
   // ── Delete single ──
   const openDelete = (e: TabelaEntry) => { setDeletingEntry(e); setShowDeleteDialog(true); };
 
   const handleDelete = () => {
-    if (!deletingEntry) return;
-    deleteEntry(deletingEntry.origem, deletingEntry.destino);
-    toast({ title: 'Rota removida' });
-    setShowDeleteDialog(false);
-    setDeletingEntry(null);
-    selected.delete(entryKey(deletingEntry));
-    rerender();
+    if (!deletingEntry?.id) return;
+    deleteMutation.mutate(deletingEntry.id);
   };
 
   // ── Bulk delete ──
   const handleBulkDelete = () => {
-    const entries = [...selected].map(k => {
-      const [origem, destino] = k.split('||');
-      return { origem, destino };
-    });
-    const removed = deleteBulk(entries);
-    toast({ title: `${removed} rota(s) removida(s)` });
-    setSelected(new Set());
-    setShowBulkDeleteDialog(false);
-    rerender();
+    const ids: string[] = [];
+    for (const key of selected) {
+      const entry = tabela.find(e => entryKey(e) === key);
+      if (entry?.id) ids.push(entry.id);
+    }
+    if (ids.length === 0) return;
+    bulkDeleteMutation.mutate(ids);
   };
 
   // ── Export ──
   const handleExport = () => {
-    const json = exportTabela();
+    const json = JSON.stringify(tabela.map(({ id, ...rest }) => rest), null, 2);
     const blob = new Blob([json], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -268,13 +310,7 @@ const AdminTabelaPrecos: React.FC = () => {
 
   const handleImport = () => {
     if (!importData) return;
-    const result = importTabela(importData, importMode === 'replace');
-    toast({ title: `Importação concluída`, description: `${result.added} adicionadas, ${result.skipped} ignoradas` });
-    setShowImportDialog(false);
-    setImportData(null);
-    setImportFileName('');
-    setPage(0);
-    rerender();
+    importMutation.mutate({ entries: importData, replace: importMode === 'replace' });
   };
 
   const resetForm = () => {
@@ -283,11 +319,24 @@ const AdminTabelaPrecos: React.FC = () => {
     setFormValor('');
     setFormRegiao('Cabo');
     setEditingEntry(null);
+    setEditingOrigKey(null);
   };
 
   // ══════════════════════════════════════════════════════════
   // RENDER
   // ══════════════════════════════════════════════════════════
+
+  if (loadingTabela || seeding) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 gap-3">
+        <Loader2 className="w-8 h-8 animate-spin text-accent" />
+        <p className="text-muted-foreground text-sm">
+          {seeding ? 'Importando tabela de preços para o Supabase...' : 'Carregando tabela de preços...'}
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
       {/* ── Stats cards ── */}
