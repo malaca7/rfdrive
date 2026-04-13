@@ -207,13 +207,13 @@ export function buscarPrecoTabela(origem: string, destino: string): LookupResult
   const reverse = lookupDirect(destino, origem);
   if (reverse) return reverse;
 
-  // Fallback: estimate via hub central (valor mais alto + 1/3 do mais baixo)
+  // Fallback: estimate via hub central (valor mais alto + 1/8 do mais baixo)
   const trecho1 = lookupDirect(origem, HUB_CENTRAL) || lookupDirect(HUB_CENTRAL, origem);
   const trecho2 = lookupDirect(HUB_CENTRAL, destino) || lookupDirect(destino, HUB_CENTRAL);
   if (trecho1 && trecho2) {
     const maior = Math.max(trecho1.valor, trecho2.valor);
     const menor = Math.min(trecho1.valor, trecho2.valor);
-    const estimado = Math.round((maior + menor / 3) * 100) / 100;
+    const estimado = Math.round((maior + menor / 8) * 100) / 100;
     return {
       valor: estimado,
       origem_tabela: origem.trim(),
