@@ -22,7 +22,7 @@ import { motion } from 'framer-motion';
 import {
   MapPin, Navigation, Clock, CheckCircle, Car, Loader2,
   Edit3, DollarSign, MessageSquare, User, Phone, AlertTriangle,
-  ChevronRight, X, Check, History, Star, TableProperties,
+  ChevronRight, X, Check, History, Star, TableProperties, Ban, RotateCcw,
 } from 'lucide-react';
 import StarRating from '@/components/StarRating';
 import { useToast } from '@/hooks/use-toast';
@@ -67,6 +67,8 @@ const DriverDashboard: React.FC = () => {
   const [showEditDestinoSugg, setShowEditDestinoSugg] = useState(false);
   const [valor, setValor] = useState('');
   const [observacao, setObservacao] = useState('');
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [motivoCancelamento, setMotivoCancelamento] = useState('');
 
   // ── Autocomplete locations (reativo) ──
   const allLocations = useAllLocations();
@@ -214,6 +216,49 @@ const DriverDashboard: React.FC = () => {
     },
     onError: () => {
       toast({ title: 'Erro ao aceitar corrida', description: 'Outro motorista pode ter aceitado primeiro.', variant: 'destructive' });
+    },
+  });
+
+  // ── Cancelar corrida (definitivo, com motivo) ──
+  const cancelMutation = useMutation({
+    mutationFn: async ({ rideId, motivo }: { rideId: string; motivo: string }) => {
+      const { error } = await supabase
+        .from('corridas')
+        .update({
+          status: 'nao_realizada' as const,
+          observacao_motorista: motivo || null,
+        })
+        .eq('id', rideId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({ title: 'Corrida cancelada', description: 'O motivo foi registrado.' });
+      setShowCancelDialog(false);
+      setSelectedRide(null);
+      setMotivoCancelamento('');
+      queryClient.invalidateQueries({ queryKey: ['my-active-rides'] });
+    },
+    onError: () => {
+      toast({ title: 'Erro ao cancelar corrida', variant: 'destructive' });
+    },
+  });
+
+  // ── Devolver corrida ("Não Pegar" — volta para disponíveis) ──
+  const releaseMutation = useMutation({
+    mutationFn: async (rideId: string) => {
+      const { error } = await supabase
+        .from('corridas')
+        .update({ status: 'aguardando_motorista' as const, motorista_id: null })
+        .eq('id', rideId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({ title: 'Corrida devolvida', description: 'A corrida voltou para solicitações disponíveis.' });
+      queryClient.invalidateQueries({ queryKey: ['pending-rides'] });
+      queryClient.invalidateQueries({ queryKey: ['my-active-rides'] });
+    },
+    onError: () => {
+      toast({ title: 'Erro ao devolver corrida', variant: 'destructive' });
     },
   });
 
@@ -502,6 +547,27 @@ const DriverDashboard: React.FC = () => {
             >
               <CheckCircle className="w-3.5 h-3.5" />
               Concluir Corrida
+            </Button>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5 border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/10"
+              onClick={() => releaseMutation.mutate(ride.id)}
+              disabled={releaseMutation.isPending}
+            >
+              {releaseMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RotateCcw className="w-3.5 h-3.5" />}
+              Não Pegar
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5 border-red-500/30 text-red-400 hover:bg-red-500/10"
+              onClick={() => { setSelectedRide(ride); setMotivoCancelamento(''); setShowCancelDialog(true); }}
+            >
+              <Ban className="w-3.5 h-3.5" />
+              Cancelar Corrida
             </Button>
           </div>
         </CardContent>
@@ -862,6 +928,44 @@ const DriverDashboard: React.FC = () => {
             >
               {completeMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Check className="w-4 h-4 mr-2" />}
               Confirmar Conclusão
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {/* ── Cancel Ride Dialog ── */}
+      <Dialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-400">
+              <Ban className="w-5 h-5" />
+              Cancelar Corrida
+            </DialogTitle>
+            <DialogDescription>
+              Informe o motivo do cancelamento. Esta ação não pode ser desfeita.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-2">
+            <label className="text-sm font-medium mb-1.5 block">Motivo do cancelamento</label>
+            <Textarea
+              value={motivoCancelamento}
+              onChange={(e) => setMotivoCancelamento(e.target.value)}
+              placeholder="Ex: Passageiro não estava no local, problema no veículo..."
+              className="resize-none"
+              rows={3}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCancelDialog(false)}>Voltar</Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                if (!selectedRide) return;
+                cancelMutation.mutate({ rideId: selectedRide.id, motivo: motivoCancelamento.trim() });
+              }}
+              disabled={cancelMutation.isPending || !motivoCancelamento.trim()}
+            >
+              {cancelMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Ban className="w-4 h-4 mr-2" />}
+              Confirmar Cancelamento
             </Button>
           </DialogFooter>
         </DialogContent>

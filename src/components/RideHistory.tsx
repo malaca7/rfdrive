@@ -7,15 +7,9 @@ import { Badge } from '@/components/ui/badge';
 import { MapPin, Navigation, Clock, Car, DollarSign, MessageSquare, Route } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-const statusConfig: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
-  nova: { label: 'Nova', variant: 'secondary' },
-  aguardando_motorista: { label: 'Ag. Motorista', variant: 'secondary' },
-  aceita: { label: 'Aceita', variant: 'default' },
-  em_analise: { label: 'Em Análise', variant: 'outline' },
-  aprovada: { label: 'Aprovada', variant: 'outline' },
-  nao_realizada: { label: 'Não Realizada', variant: 'destructive' },
-  recusada: { label: 'Recusada', variant: 'destructive' },
-};
+/** Cliente vê apenas "Concluída" ou "Não Concluída" */
+const isConcluida = (status: string) =>
+  status === 'em_analise' || status === 'aprovada';
 
 const RideHistory: React.FC = () => {
   const { user } = useAuth();
@@ -58,7 +52,7 @@ const RideHistory: React.FC = () => {
   return (
     <div className="space-y-3">
       {rides.map((ride, i) => {
-        const cfg = statusConfig[ride.status] || statusConfig.pendente;
+        const concluida = isConcluida(ride.status);
         return (
           <motion.div
             key={ride.id}
@@ -74,7 +68,9 @@ const RideHistory: React.FC = () => {
                       day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit',
                     })}
                   </div>
-                  <Badge variant={cfg.variant}>{cfg.label}</Badge>
+                  <Badge variant={concluida ? 'outline' : 'destructive'}>
+                    {concluida ? 'Concluída' : 'Não Concluída'}
+                  </Badge>
                 </div>
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
