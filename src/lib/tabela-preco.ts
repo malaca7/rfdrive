@@ -207,13 +207,15 @@ export function buscarPrecoTabela(origem: string, destino: string): LookupResult
   const reverse = lookupDirect(destino, origem);
   if (reverse) return reverse;
 
-  // Fallback: estimate via hub central (média dos trechos passando pelo Centro do Cabo)
+  // Fallback: estimate via hub central (valor mais alto + 1/3 do mais baixo)
   const trecho1 = lookupDirect(origem, HUB_CENTRAL) || lookupDirect(HUB_CENTRAL, origem);
   const trecho2 = lookupDirect(HUB_CENTRAL, destino) || lookupDirect(destino, HUB_CENTRAL);
   if (trecho1 && trecho2) {
-    const media = Math.round(((trecho1.valor + trecho2.valor) / 2) * 100) / 100;
+    const maior = Math.max(trecho1.valor, trecho2.valor);
+    const menor = Math.min(trecho1.valor, trecho2.valor);
+    const estimado = Math.round((maior + menor / 3) * 100) / 100;
     return {
-      valor: media,
+      valor: estimado,
       origem_tabela: origem.trim(),
       destino_tabela: destino.trim(),
       regiao: trecho1.regiao || trecho2.regiao,
