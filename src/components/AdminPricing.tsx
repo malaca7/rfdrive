@@ -74,13 +74,14 @@ const AdminPricing: React.FC = () => {
     },
   });
 
-  const { data: regrasHorario = [], isLoading: loadingRegras } = useQuery({
+  const { data: regrasHorario = [], isLoading: loadingRegras, error: regrasError } = useQuery({
     queryKey: ['pricing-regras'],
     queryFn: async () => {
       const { data, error } = await supabase.from('regras_horario').select('*').order('hora_inicio');
       if (error) throw error;
       return data as RegraHorarioRow[];
     },
+    retry: 1,
   });
 
   const refreshAll = () => {
@@ -115,7 +116,14 @@ const AdminPricing: React.FC = () => {
           <PrecosTab precos={precosRotas} localidades={localidades} loading={loadingPrecos} onRefresh={refreshAll} />
         </TabsContent>
         <TabsContent value="horarios">
-          <HorariosTab regras={regrasHorario} loading={loadingRegras} onRefresh={refreshAll} />
+          {regrasError ? (
+            <div className="p-6 text-center space-y-2">
+              <p className="text-destructive font-semibold">Erro ao carregar regras de horário</p>
+              <p className="text-xs text-muted-foreground">Execute a migration <code>20260413170000_fix_all_schema_cache.sql</code> no SQL Editor do Supabase</p>
+            </div>
+          ) : (
+            <HorariosTab regras={regrasHorario} loading={loadingRegras} onRefresh={refreshAll} />
+          )}
         </TabsContent>
         <TabsContent value="simulador">
           <SimuladorTab localidades={localidades} />

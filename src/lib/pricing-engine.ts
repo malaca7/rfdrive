@@ -93,15 +93,15 @@ async function loadData() {
     return { localidades: localidadesCache, precos: precosRotasCache, regras: regrasHorarioCache };
   }
 
-  const [locRes, precRes, regRes] = await Promise.all([
+  const [locRes, precRes, regRes] = await Promise.allSettled([
     supabase.from('localidades').select('*').eq('ativo', true),
     supabase.from('precos_rotas').select('*').eq('ativo', true),
     supabase.from('regras_horario').select('*').eq('ativo', true),
   ]);
 
-  localidadesCache = (locRes.data || []) as Localidade[];
-  precosRotasCache = (precRes.data || []) as PrecoRota[];
-  regrasHorarioCache = (regRes.data || []) as RegraHorario[];
+  localidadesCache = (locRes.status === 'fulfilled' && locRes.value.data ? locRes.value.data : []) as Localidade[];
+  precosRotasCache = (precRes.status === 'fulfilled' && precRes.value.data ? precRes.value.data : []) as PrecoRota[];
+  regrasHorarioCache = (regRes.status === 'fulfilled' && regRes.value.data ? regRes.value.data : []) as RegraHorario[];
   cacheTimestamp = Date.now();
 
   return { localidades: localidadesCache, precos: precosRotasCache, regras: regrasHorarioCache };
