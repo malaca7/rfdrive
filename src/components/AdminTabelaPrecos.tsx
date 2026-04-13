@@ -21,7 +21,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   fetchTabelaFromSupabase, seedSupabase, syncCacheFromSupabase,
   addEntrySupabase, updateEntrySupabase, deleteEntrySupabase,
-  deleteBulkSupabase, importTabelaSupabase, normalizeText,
+  deleteBulkSupabase, importTabelaSupabase, normalizeText, findEntryId,
   type TabelaEntry,
 } from '@/lib/tabela-preco';
 
@@ -239,9 +239,14 @@ const AdminTabelaPrecos: React.FC = () => {
     setShowEditDialog(true);
   };
 
-  const handleEdit = () => {
-    if (!editingEntry?.id) {
-      toast({ title: 'Erro: entrada sem ID', description: 'Não foi possível identificar a rota para edição. Recarregue a página.', variant: 'destructive' });
+  const handleEdit = async () => {
+    let entryId = editingEntry?.id;
+    // If no ID, look it up from Supabase by original origem+destino
+    if (!entryId && editingOrigKey) {
+      entryId = await findEntryId(editingOrigKey.origem, editingOrigKey.destino) || undefined;
+    }
+    if (!entryId) {
+      toast({ title: 'Erro: entrada sem ID', description: 'Não foi possível identificar a rota. Tente recarregar a página.', variant: 'destructive' });
       return;
     }
     const valor = parseFloat(formValor.replace(',', '.'));
@@ -250,7 +255,7 @@ const AdminTabelaPrecos: React.FC = () => {
       return;
     }
     updateMutation.mutate({
-      id: editingEntry.id,
+      id: entryId,
       updates: { origem: formOrigem.trim(), destino: formDestino.trim(), valor, regiao: formRegiao.trim() || 'Cabo' },
     });
   };

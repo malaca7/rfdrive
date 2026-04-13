@@ -480,6 +480,17 @@ export async function updateEntrySupabase(id: string, updates: Partial<TabelaEnt
   if (error) throw error;
 }
 
+export async function findEntryId(origem: string, destino: string): Promise<string | null> {
+  const { data } = await supabase
+    .from('tabela_precos')
+    .select('id')
+    .ilike('origem', origem)
+    .ilike('destino', destino)
+    .limit(1)
+    .maybeSingle();
+  return data?.id || null;
+}
+
 export async function deleteEntrySupabase(id: string): Promise<void> {
   const { error } = await supabase.from('tabela_precos').delete().eq('id', id);
   if (error) throw error;
