@@ -20,6 +20,7 @@ export interface LookupResult {
   destino_tabela: string;
   regiao: string;
   match_exato: boolean;
+  estimado?: boolean;
 }
 
 // ── Persistence: load from localStorage if available, else from static JSON ──
@@ -193,6 +194,8 @@ function lookupDirect(origem: string, destino: string): LookupResult | null {
   };
 }
 
+const HUB_CENTRAL = 'Centro do Cabo';
+
 export function buscarPrecoTabela(origem: string, destino: string): LookupResult | null {
   if (!origem.trim() || !destino.trim()) return null;
 
@@ -201,7 +204,25 @@ export function buscarPrecoTabela(origem: string, destino: string): LookupResult
   if (direct) return direct;
 
   // Fallback: try destino → origem (bidirectional)
-  return lookupDirect(destino, origem);
+  const reverse = lookupDirect(destino, origem);
+  if (reverse) return reverse;
+
+  // Fallback: estimate via hub central (média dos trechos passando pelo Centro do Cabo)
+  const trecho1 = lookupDirect(origem, HUB_CENTRAL) || lookupDirect(HUB_CENTRAL, origem);
+  const trecho2 = lookupDirect(HUB_CENTRAL, destino) || lookupDirect(destino, HUB_CENTRAL);
+  if (trecho1 && trecho2) {
+    const media = Math.round(((trecho1.valor + trecho2.valor) / 2) * 100) / 100;
+    return {
+      valor: media,
+      origem_tabela: origem.trim(),
+      destino_tabela: destino.trim(),
+      regiao: trecho1.regiao || trecho2.regiao,
+      match_exato: false,
+      estimado: true,
+    };
+  }
+
+  return null;
 }
 
 // ── Get all unique origins (for autocomplete) ──

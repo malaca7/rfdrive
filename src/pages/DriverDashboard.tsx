@@ -744,18 +744,20 @@ const DriverDashboard: React.FC = () => {
               )}
             </div>
             {precoTabelaEdit && (
-              <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-3">
+              <div className={`${precoTabelaEdit.estimado ? 'bg-amber-500/10 border-amber-500/20' : 'bg-green-500/10 border-green-500/20'} border rounded-lg p-3`}>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <TableProperties className="w-4 h-4 text-green-400" />
+                    <TableProperties className={`w-4 h-4 ${precoTabelaEdit.estimado ? 'text-amber-400' : 'text-green-400'}`} />
                     <div>
-                      <p className="text-[10px] text-muted-foreground">Preço tabelado</p>
-                      <p className="text-lg font-bold text-green-400">R$ {precoTabelaEdit.valor.toFixed(2)}</p>
+                      <p className="text-[10px] text-muted-foreground">{precoTabelaEdit.estimado ? 'Preço estimado' : 'Preço tabelado'}</p>
+                      <p className={`text-lg font-bold ${precoTabelaEdit.estimado ? 'text-amber-400' : 'text-green-400'}`}>R$ {precoTabelaEdit.valor.toFixed(2)}</p>
                     </div>
                   </div>
-                  <p className="text-[10px] text-muted-foreground text-right max-w-[150px] truncate">
-                    {precoTabelaEdit.origem_tabela} → {precoTabelaEdit.destino_tabela}
-                  </p>
+                  <div className="text-right">
+                    <p className="text-[10px] text-muted-foreground max-w-[150px] truncate">
+                      {precoTabelaEdit.estimado ? 'Média via Centro do Cabo' : `${precoTabelaEdit.origem_tabela} → ${precoTabelaEdit.destino_tabela}`}
+                    </p>
+                  </div>
                 </div>
               </div>
             )}
@@ -810,12 +812,12 @@ const DriverDashboard: React.FC = () => {
                   Valor da Corrida (R$)
                 </label>
                 {precoTabelaConcluir ? (
-                  <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-3">
+                  <div className={`${precoTabelaConcluir.estimado ? 'bg-amber-500/10 border-amber-500/20' : 'bg-green-500/10 border-green-500/20'} border rounded-lg p-3`}>
                     <div className="flex items-center gap-2">
-                      <TableProperties className="w-4 h-4 text-green-400" />
+                      <TableProperties className={`w-4 h-4 ${precoTabelaConcluir.estimado ? 'text-amber-400' : 'text-green-400'}`} />
                       <div>
-                        <p className="text-[10px] text-muted-foreground">Preço definido pela tabela</p>
-                        <p className="text-xl font-bold text-green-400">R$ {precoTabelaConcluir.valor.toFixed(2)}</p>
+                        <p className="text-[10px] text-muted-foreground">{precoTabelaConcluir.estimado ? 'Preço estimado (média via Centro do Cabo)' : 'Preço definido pela tabela'}</p>
+                        <p className={`text-xl font-bold ${precoTabelaConcluir.estimado ? 'text-amber-400' : 'text-green-400'}`}>R$ {precoTabelaConcluir.valor.toFixed(2)}</p>
                       </div>
                     </div>
                     <p className="text-[10px] text-muted-foreground mt-1 truncate">

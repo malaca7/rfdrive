@@ -691,19 +691,19 @@ const RideRequestForm: React.FC = () => {
                 initial={{ opacity: 0, y: -8 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -8 }}
-                className="bg-green-500/10 border border-green-500/20 rounded-lg p-4"
+                className={`${precoTabela.estimado ? 'bg-amber-500/10 border-amber-500/20' : 'bg-green-500/10 border-green-500/20'} border rounded-lg p-4`}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <TableProperties className="w-4 h-4 text-green-400" />
+                    <TableProperties className={`w-4 h-4 ${precoTabela.estimado ? 'text-amber-400' : 'text-green-400'}`} />
                     <div>
-                      <p className="text-[10px] text-muted-foreground">Preço tabelado</p>
-                      <p className="text-xl font-bold text-green-400">R$ {precoTabela.valor.toFixed(2)}</p>
+                      <p className="text-[10px] text-muted-foreground">{precoTabela.estimado ? 'Preço estimado' : 'Preço tabelado'}</p>
+                      <p className={`text-xl font-bold ${precoTabela.estimado ? 'text-amber-400' : 'text-green-400'}`}>R$ {precoTabela.valor.toFixed(2)}</p>
                     </div>
                   </div>
                   <div className="text-right">
                     <p className="text-[10px] text-muted-foreground">
-                      {precoTabela.match_exato ? 'Correspondência exata' : 'Melhor correspondência'}
+                      {precoTabela.estimado ? 'Média via Centro do Cabo' : precoTabela.match_exato ? 'Correspondência exata' : 'Melhor correspondência'}
                     </p>
                     <p className="text-[10px] text-muted-foreground truncate max-w-[160px]">
                       {precoTabela.origem_tabela} → {precoTabela.destino_tabela}
