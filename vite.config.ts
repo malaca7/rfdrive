@@ -5,7 +5,7 @@ import { componentTagger } from "lovable-tagger";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
-  base: '/ride-ai/',
+  base: process.env.CAPACITOR === 'true' ? '/' : '/ride-ai/',
   server: {
     host: "::",
     port: 8080,
@@ -19,5 +19,8 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
     dedupe: ["react", "react-dom", "react/jsx-runtime", "react/jsx-dev-runtime", "@tanstack/react-query", "@tanstack/query-core"],
+  },
+  build: {
+    target: 'es2020',
   },
 }));

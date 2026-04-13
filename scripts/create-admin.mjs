@@ -1,68 +1,53 @@
 import { createClient } from '@supabase/supabase-js';
 
-const url = 'https://gyhtosjmwhznkahtirqs.supabase.co';
-const key = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5aHRvc2ptd2h6bmthaHRpcnFzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYwMDc1ODksImV4cCI6MjA5MTU4MzU4OX0.RfQrqeDPHbkpNtUkv-6yy80J61M7HVN1HxwlmjMag6s';
+const url = process.env.VITE_SUPABASE_URL || 'https://kjdfjbwhwbrepakatovz.supabase.co';
+const key = process.env.VITE_SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_CAF3wv_GsLSxfFi5b09PIA_hGKP_HVg';
 
 const supabase = createClient(url, key);
 
-const telefone = '81996138924';
-const email = `55${telefone}@rideai.local`;
-const password = 'admin123'; // temporary, change after first login
+const telefone = '(81) 99613-8924';
+const senha = 'admin123';
 const nome = 'Admin';
 
 async function main() {
-  console.log(`Criando conta: ${telefone} -> ${email}`);
+  console.log(`Criando admin: ${telefone}`);
 
-  // 1. Sign up
-  const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-    email,
-    password,
-    options: { data: { nome, telefone } },
-  });
+  // Check if already exists
+  const { data: existing } = await supabase
+    .from('users')
+    .select('id')
+    .eq('telefone', telefone)
+    .maybeSingle();
 
-  if (signUpError) {
-    if (signUpError.message.includes('already registered')) {
-      console.log('Conta já existe, fazendo login...');
-      const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({ email, password });
-      if (loginError) {
-        console.error('Erro no login:', loginError.message);
-        console.log('\nSe a senha é diferente, rode este SQL no Supabase Dashboard > SQL Editor:');
-        console.log(`INSERT INTO public.user_roles (user_id, role) SELECT id, 'admin' FROM auth.users WHERE email = '${email}' ON CONFLICT (user_id, role) DO NOTHING;`);
-        return;
-      }
-      console.log('User ID:', loginData.user?.id);
-    } else {
-      console.error('Erro no signup:', signUpError.message);
+  if (existing) {
+    // Update to admin
+    const { error } = await supabase
+      .from('users')
+      .update({ tipo: 'admin' })
+      .eq('id', existing.id);
+    if (error) {
+      console.error('Erro ao atualizar:', error.message);
       return;
     }
+    console.log('Usuário existente promovido a admin!');
   } else {
-    console.log('Conta criada! User ID:', signUpData.user?.id);
-  }
-
-  // 2. Get user id
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) { console.error('Não conseguiu obter usuário'); return; }
-
-  console.log(`User ID: ${user.id}`);
-
-  // 3. Insert admin role
-  const { error: roleError } = await supabase.from('user_roles').insert({ user_id: user.id, role: 'admin' });
-  if (roleError) {
-    if (roleError.message.includes('duplicate') || roleError.message.includes('unique')) {
-      console.log('Role admin já existe para este user.');
-    } else {
-      console.error('Erro ao inserir role (esperado - precisa de SQL admin):', roleError.message);
-      console.log('\nRode este SQL no Supabase Dashboard > SQL Editor:');
-      console.log(`INSERT INTO public.user_roles (user_id, role) VALUES ('${user.id}', 'admin') ON CONFLICT (user_id, role) DO NOTHING;`);
+    // Create new admin
+    const { data, error } = await supabase
+      .from('users')
+      .insert({ telefone, senha, nome, tipo: 'admin', status: 'ativo' })
+      .select()
+      .single();
+    if (error) {
+      console.error('Erro ao criar admin:', error.message);
+      return;
     }
-  } else {
-    console.log('Role admin adicionada com sucesso!');
+    console.log('Admin criado! ID:', data.id);
   }
 
   console.log('\n--- Resumo ---');
   console.log(`Telefone: ${telefone}`);
-  console.log(`Senha: ${password}`);
-  console.log('Role: admin');
+  console.log(`Senha: ${senha}`);
+  console.log('Tipo: admin');
 }
 
 main();

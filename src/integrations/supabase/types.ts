@@ -7,100 +7,176 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
   public: {
     Tables: {
-      corridas: {
+      users: {
         Row: {
-          aprovado_admin: boolean
-          cliente_id: string
-          created_at: string
-          destino_texto: string
-          horario_estimado: string | null
-          id: string
-          motorista_id: string | null
-          origem_texto: string
-          status: Database["public"]["Enums"]["ride_status"]
-          updated_at: string
-        }
-        Insert: {
-          aprovado_admin?: boolean
-          cliente_id: string
-          created_at?: string
-          destino_texto: string
-          horario_estimado?: string | null
-          id?: string
-          motorista_id?: string | null
-          origem_texto: string
-          status?: Database["public"]["Enums"]["ride_status"]
-          updated_at?: string
-        }
-        Update: {
-          aprovado_admin?: boolean
-          cliente_id?: string
-          created_at?: string
-          destino_texto?: string
-          horario_estimado?: string | null
-          id?: string
-          motorista_id?: string | null
-          origem_texto?: string
-          status?: Database["public"]["Enums"]["ride_status"]
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      profiles: {
-        Row: {
-          created_at: string
-          email: string
           id: string
           nome: string
           telefone: string
-          status: Database["public"]["Enums"]["user_status"]
-          updated_at: string
-          user_id: string
+          senha: string
+          tipo: "cliente" | "motorista" | "admin"
+          status: "ativo" | "banido"
+          ativo: boolean
+          created_at: string
         }
         Insert: {
-          created_at?: string
-          email?: string
           id?: string
-          nome?: string
-          telefone?: string
-          status?: Database["public"]["Enums"]["user_status"]
-          updated_at?: string
-          user_id: string
+          nome: string
+          telefone: string
+          senha: string
+          tipo?: "cliente" | "motorista" | "admin"
+          status?: "ativo" | "banido"
+          ativo?: boolean
+          created_at?: string
         }
         Update: {
-          created_at?: string
-          email?: string
           id?: string
           nome?: string
           telefone?: string
-          status?: Database["public"]["Enums"]["user_status"]
-          updated_at?: string
-          user_id?: string
+          senha?: string
+          tipo?: "cliente" | "motorista" | "admin"
+          status?: "ativo" | "banido"
+          ativo?: boolean
+          created_at?: string
         }
         Relationships: []
       }
-      user_roles: {
+      corridas: {
         Row: {
           id: string
-          role: Database["public"]["Enums"]["app_role"]
-          user_id: string
+          cliente_id: string
+          motorista_id: string | null
+          origem_texto: string
+          destino_texto: string
+          horario_estimado: string | null
+          status: "nova" | "aguardando_motorista" | "aceita" | "em_analise" | "aprovada" | "nao_realizada" | "recusada"
+          aprovado_admin: boolean
+          valor: number | null
+          observacao_motorista: string | null
+          origem_editada: string | null
+          destino_editado: string | null
+          edicao_pendente: boolean
+          edicao_aprovada: boolean | null
+          concluida_at: string | null
+          canal_origem: "whatsapp" | "app"
+          origem_audio_url: string | null
+          observacoes: string | null
+          confianca_ia: number | null
+          whatsapp_message_id: string | null
+          distancia_km: number | null
+          valor_estimado: number | null
+          created_at: string
         }
         Insert: {
           id?: string
-          role: Database["public"]["Enums"]["app_role"]
-          user_id: string
+          cliente_id: string
+          motorista_id?: string | null
+          origem_texto: string
+          destino_texto: string
+          horario_estimado?: string | null
+          status?: "nova" | "aguardando_motorista" | "aceita" | "em_analise" | "aprovada" | "nao_realizada" | "recusada"
+          aprovado_admin?: boolean
+          valor?: number | null
+          observacao_motorista?: string | null
+          origem_editada?: string | null
+          destino_editado?: string | null
+          edicao_pendente?: boolean
+          edicao_aprovada?: boolean | null
+          concluida_at?: string | null
+          canal_origem?: "whatsapp" | "app"
+          origem_audio_url?: string | null
+          observacoes?: string | null
+          confianca_ia?: number | null
+          whatsapp_message_id?: string | null
+          distancia_km?: number | null
+          valor_estimado?: number | null
+          created_at?: string
         }
         Update: {
           id?: string
-          role?: Database["public"]["Enums"]["app_role"]
-          user_id?: string
+          cliente_id?: string
+          motorista_id?: string | null
+          origem_texto?: string
+          destino_texto?: string
+          horario_estimado?: string | null
+          status?: "nova" | "aguardando_motorista" | "aceita" | "em_analise" | "aprovada" | "nao_realizada" | "recusada"
+          aprovado_admin?: boolean
+          valor?: number | null
+          observacao_motorista?: string | null
+          origem_editada?: string | null
+          destino_editado?: string | null
+          edicao_pendente?: boolean
+          edicao_aprovada?: boolean | null
+          concluida_at?: string | null
+          canal_origem?: "whatsapp" | "app"
+          origem_audio_url?: string | null
+          observacoes?: string | null
+          confianca_ia?: number | null
+          whatsapp_message_id?: string | null
+          distancia_km?: number | null
+          valor_estimado?: number | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      aprovacoes: {
+        Row: {
+          id: string
+          solicitacao_id: string
+          admin_id: string
+          status_admin: "aprovada" | "nao_realizada" | "recusada"
+          observacao: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          solicitacao_id: string
+          admin_id: string
+          status_admin: "aprovada" | "nao_realizada" | "recusada"
+          observacao: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          solicitacao_id?: string
+          admin_id?: string
+          status_admin?: "aprovada" | "nao_realizada" | "recusada"
+          observacao?: string
+          created_at?: string
+        }
+        Relationships: []
+      }
+      avaliacoes: {
+        Row: {
+          id: string
+          corrida_id: string
+          cliente_id: string
+          motorista_id: string
+          nota: number
+          comentario: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          corrida_id: string
+          cliente_id: string
+          motorista_id: string
+          nota: number
+          comentario?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          corrida_id?: string
+          cliente_id?: string
+          motorista_id?: string
+          nota?: number
+          comentario?: string | null
+          created_at?: string
         }
         Relationships: []
       }
@@ -109,18 +185,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      has_role: {
-        Args: {
-          _role: Database["public"]["Enums"]["app_role"]
-          _user_id: string
-        }
-        Returns: boolean
-      }
+      [_ in never]: never
     }
     Enums: {
-      app_role: "cliente" | "motorista" | "admin"
-      ride_status: "pendente" | "aceita" | "concluida" | "rejeitada"
-      user_status: "ativo" | "banido"
+      [_ in never]: never
     }
     CompositeTypes: {
       [_ in never]: never
@@ -247,10 +315,6 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {
-      app_role: ["cliente", "motorista", "admin"],
-      ride_status: ["pendente", "aceita", "concluida", "rejeitada"],
-      user_status: ["ativo", "banido"],
-    },
+    Enums: {},
   },
 } as const

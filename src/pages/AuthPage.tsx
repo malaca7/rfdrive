@@ -16,11 +16,6 @@ const formatPhone = (value: string) => {
   return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7, 11)}`;
 };
 
-const toE164 = (value: string) => {
-  const digits = value.replace(/\D/g, '');
-  return `+55${digits}`;
-};
-
 const AuthPage: React.FC = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [telefone, setTelefone] = useState('');
@@ -44,19 +39,24 @@ const AuthPage: React.FC = () => {
     setLoading(true);
     try {
       if (isLogin) {
-        await signIn(telefone, password);
+        const ok = await signIn(telefone, password);
+        if (!ok) {
+          toast({
+            title: 'Credenciais inválidas',
+            description: 'Verifique seu telefone e senha.',
+            variant: 'destructive',
+          });
+        }
       } else {
         await signUp(telefone, password, nome);
         toast({ title: 'Conta criada!', description: 'Você já pode fazer login.' });
       }
     } catch (err: unknown) {
-      if (!isLogin) {
-        toast({
-          title: 'Erro no cadastro',
-          description: err instanceof Error ? err.message : 'Erro desconhecido',
-          variant: 'destructive',
-        });
-      }
+      toast({
+        title: isLogin ? 'Erro no login' : 'Erro no cadastro',
+        description: err instanceof Error ? err.message : 'Erro desconhecido',
+        variant: 'destructive',
+      });
     } finally {
       setLoading(false);
     }
@@ -79,8 +79,8 @@ const AuthPage: React.FC = () => {
           >
             <Car className="w-8 h-8 text-accent-foreground" />
           </motion.div>
-          <h1 className="text-3xl font-bold text-primary-foreground">LocaliZZou</h1>
-          <p className="text-primary-foreground/60 mt-1">Seu transporte inteligente</p>
+          <h1 className="text-3xl font-bold text-foreground">LocaliZZou</h1>
+          <p className="text-muted-foreground mt-1">Seu transporte inteligente</p>
         </div>
 
         <Card className="glass border-border/30">

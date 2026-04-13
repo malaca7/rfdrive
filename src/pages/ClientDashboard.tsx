@@ -22,7 +22,7 @@ const ClientDashboard: React.FC = () => {
         <Tabs defaultValue="nova" className="w-full">
           <TabsList className="w-full mb-4">
             <TabsTrigger value="nova" className="flex-1 gap-2">
-              <Plus className="w-4 h-4" /> Nova Corrida
+              <Plus className="w-4 h-4" /> Nova
             </TabsTrigger>
             <TabsTrigger value="historico" className="flex-1 gap-2">
               <History className="w-4 h-4" /> Histórico

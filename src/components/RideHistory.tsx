@@ -4,14 +4,17 @@ import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { MapPin, Navigation, Clock, Car } from 'lucide-react';
+import { MapPin, Navigation, Clock, Car, DollarSign, MessageSquare, Route } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const statusConfig: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
-  pendente: { label: 'Pendente', variant: 'secondary' },
+  nova: { label: 'Nova', variant: 'secondary' },
+  aguardando_motorista: { label: 'Ag. Motorista', variant: 'secondary' },
   aceita: { label: 'Aceita', variant: 'default' },
-  concluida: { label: 'Concluída', variant: 'outline' },
-  rejeitada: { label: 'Rejeitada', variant: 'destructive' },
+  em_analise: { label: 'Em Análise', variant: 'outline' },
+  aprovada: { label: 'Aprovada', variant: 'outline' },
+  nao_realizada: { label: 'Não Realizada', variant: 'destructive' },
+  recusada: { label: 'Recusada', variant: 'destructive' },
 };
 
 const RideHistory: React.FC = () => {
@@ -88,7 +91,39 @@ const RideHistory: React.FC = () => {
                       <span className="text-sm text-muted-foreground">{ride.horario_estimado}</span>
                     </div>
                   )}
+                  {(ride.distancia_km != null || ride.valor_estimado != null) && (
+                    <div className="flex items-center gap-3">
+                      {ride.distancia_km != null && (
+                        <div className="flex items-center gap-1">
+                          <Route className="w-4 h-4 text-accent shrink-0" />
+                          <span className="text-sm font-medium text-accent">{ride.distancia_km} km</span>
+                        </div>
+                      )}
+                      {ride.valor_estimado != null && (
+                        <div className="flex items-center gap-1">
+                          <DollarSign className="w-4 h-4 text-green-400 shrink-0" />
+                          <span className="text-sm font-semibold text-green-400">R$ {Number(ride.valor_estimado).toFixed(2)}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
+                {(ride.valor != null || ride.observacao_motorista) && (
+                  <div className="border-t border-border/50 pt-2 mt-2 space-y-1">
+                    {ride.valor != null && (
+                      <div className="flex items-center gap-2">
+                        <DollarSign className="w-4 h-4 text-green-400 shrink-0" />
+                        <span className="text-sm font-semibold text-green-400">R$ {Number(ride.valor).toFixed(2)}</span>
+                      </div>
+                    )}
+                    {ride.observacao_motorista && (
+                      <div className="flex items-start gap-2">
+                        <MessageSquare className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
+                        <span className="text-xs text-muted-foreground italic">"{ride.observacao_motorista}"</span>
+                      </div>
+                    )}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </motion.div>
