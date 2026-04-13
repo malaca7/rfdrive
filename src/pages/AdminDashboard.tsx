@@ -21,6 +21,7 @@ import {
 import { Separator } from '@/components/ui/separator';
 import AppShell from '@/components/AppShell';
 import AdminPricing from '@/components/AdminPricing';
+import AdminTabelaPrecos from '@/components/AdminTabelaPrecos';
 import { motion } from 'framer-motion';
 import {
   MapPin, Navigation, Clock, CheckCircle, XCircle,
@@ -850,7 +851,22 @@ const AdminDashboard: React.FC = () => {
 
           {/* ═══════════════════════════════ PRECIFICAÇÃO TAB ═══════════════════════════════ */}
           <TabsContent value="precificacao">
-            <AdminPricing />
+            <Tabs defaultValue="tabela_rf" className="w-full">
+              <TabsList className="w-full mb-4">
+                <TabsTrigger value="tabela_rf" className="flex-1 gap-2">
+                  <TableProperties className="w-4 h-4" /> Tabela RF
+                </TabsTrigger>
+                <TabsTrigger value="precificacao_dinamica" className="flex-1 gap-2">
+                  <DollarSign className="w-4 h-4" /> Precificação Dinâmica
+                </TabsTrigger>
+              </TabsList>
+              <TabsContent value="tabela_rf">
+                <AdminTabelaPrecos />
+              </TabsContent>
+              <TabsContent value="precificacao_dinamica">
+                <AdminPricing />
+              </TabsContent>
+            </Tabs>
           </TabsContent>
         </Tabs>
       </div>

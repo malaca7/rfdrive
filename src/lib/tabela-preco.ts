@@ -186,3 +186,94 @@ export function getTabelaStats() {
     precoMax: Math.max(...tabela.map(e => e.valor)),
   };
 }
+
+// ══════════════════════════════════════════════════════════
+// MUTATIONS (for admin management)
+// ══════════════════════════════════════════════════════════
+
+let _version = 0;
+export function getTabelaVersion() { return _version; }
+
+function rebuildMaps() {
+  exactMap.clear();
+  origensMap.clear();
+  destinosMap.clear();
+  for (const entry of tabela) {
+    const key = `${normalize(entry.origem)}|${normalize(entry.destino)}`;
+    exactMap.set(key, entry);
+    const on = normalize(entry.origem);
+    if (!origensMap.has(on)) origensMap.set(on, entry.origem);
+    if (!destinosMap.has(on)) destinosMap.set(on, new Set());
+    destinosMap.get(on)!.add(entry.destino);
+  }
+  _version++;
+}
+
+export function getTabela(): TabelaEntry[] {
+  return tabela;
+}
+
+export function addEntry(entry: TabelaEntry): boolean {
+  const key = `${normalize(entry.origem)}|${normalize(entry.destino)}`;
+  if (exactMap.has(key)) return false;
+  tabela.push(entry);
+  rebuildMaps();
+  return true;
+}
+
+export function updateEntry(origOrigem: string, origDestino: string, updated: Partial<TabelaEntry>): boolean {
+  const key = `${normalize(origOrigem)}|${normalize(origDestino)}`;
+  const existing = exactMap.get(key);
+  if (!existing) return false;
+  if (updated.origem !== undefined) existing.origem = updated.origem;
+  if (updated.destino !== undefined) existing.destino = updated.destino;
+  if (updated.valor !== undefined) existing.valor = updated.valor;
+  if (updated.regiao !== undefined) existing.regiao = updated.regiao;
+  rebuildMaps();
+  return true;
+}
+
+export function deleteEntry(origem: string, destino: string): boolean {
+  const key = `${normalize(origem)}|${normalize(destino)}`;
+  if (!exactMap.has(key)) return false;
+  const idx = tabela.findIndex(e => `${normalize(e.origem)}|${normalize(e.destino)}` === key);
+  if (idx === -1) return false;
+  tabela.splice(idx, 1);
+  rebuildMaps();
+  return true;
+}
+
+export function deleteBulk(entries: { origem: string; destino: string }[]): number {
+  let removed = 0;
+  for (const { origem, destino } of entries) {
+    const key = `${normalize(origem)}|${normalize(destino)}`;
+    const idx = tabela.findIndex(e => `${normalize(e.origem)}|${normalize(e.destino)}` === key);
+    if (idx !== -1) { tabela.splice(idx, 1); removed++; }
+  }
+  if (removed > 0) rebuildMaps();
+  return removed;
+}
+
+export function importTabela(entries: TabelaEntry[], replace = false): { added: number; skipped: number } {
+  let added = 0, skipped = 0;
+  if (replace) {
+    tabela.length = 0;
+    for (const e of entries) {
+      if (e.origem && e.destino && e.valor != null) { tabela.push(e); added++; }
+      else skipped++;
+    }
+  } else {
+    for (const e of entries) {
+      if (!e.origem || !e.destino || e.valor == null) { skipped++; continue; }
+      const key = `${normalize(e.origem)}|${normalize(e.destino)}`;
+      if (exactMap.has(key)) { skipped++; continue; }
+      tabela.push(e); added++;
+    }
+  }
+  rebuildMaps();
+  return { added, skipped };
+}
+
+export function exportTabela(): string {
+  return JSON.stringify(tabela, null, 2);
+}
