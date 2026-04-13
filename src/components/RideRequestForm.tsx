@@ -17,6 +17,7 @@ import { calculateRoute } from '@/lib/route-ai';
 import { calcularPreco, salvarHistoricoPreco } from '@/lib/pricing-engine';
 import { buscarPrecoTabela } from '@/lib/tabela-preco';
 import { usePrecoTabela, useAllLocations } from '@/hooks/usePrecoTabela';
+import { normalizeText } from '@/lib/tabela-preco';
 
 interface RouteEstimate {
   distancia_km: number;
@@ -50,14 +51,14 @@ const RideRequestForm: React.FC = () => {
 
   const filteredOrigens = useMemo(() => {
     if (!origem.trim()) return allLocations;
-    const q = origem.toLowerCase();
-    return allLocations.filter(o => o.toLowerCase().includes(q));
+    const q = normalizeText(origem);
+    return allLocations.filter(o => normalizeText(o).includes(q));
   }, [origem, allLocations]);
 
   const filteredDestinos = useMemo(() => {
     if (!destino.trim()) return allLocations;
-    const q = destino.toLowerCase();
-    return allLocations.filter(d => d.toLowerCase().includes(q));
+    const q = normalizeText(destino);
+    return allLocations.filter(d => normalizeText(d).includes(q));
   }, [destino, allLocations]);
 
   const { data: activeRide, refetch: refetchActiveRide } = useQuery({

@@ -469,14 +469,18 @@ const AdminDashboard: React.FC = () => {
       r.cliente?.nome,
       r.cliente?.telefone,
       r.motorista?.nome,
-    ].some(f => f?.toLowerCase().includes(searchTerm.toLowerCase()));
+    ].some(f => f?.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').includes(
+      searchTerm.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    ));
     return matchStatus && matchSearch;
   });
 
   const filteredUsers = users?.filter((u) => {
     const matchType = userTypeFilter === 'all' || u.tipo === userTypeFilter || (u.roles && u.roles.includes(userTypeFilter));
     const matchSearch = !userSearchTerm ||
-      u.nome?.toLowerCase().includes(userSearchTerm.toLowerCase()) ||
+      u.nome?.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').includes(
+        userSearchTerm.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      ) ||
       u.telefone?.includes(userSearchTerm);
     return matchType && matchSearch;
   });

@@ -26,7 +26,7 @@ import {
 } from 'lucide-react';
 import StarRating from '@/components/StarRating';
 import { useToast } from '@/hooks/use-toast';
-import { buscarPrecoTabela } from '@/lib/tabela-preco';
+import { buscarPrecoTabela, normalizeText } from '@/lib/tabela-preco';
 import { usePrecoTabela, useAllLocations } from '@/hooks/usePrecoTabela';
 
 type Corrida = {
@@ -74,13 +74,13 @@ const DriverDashboard: React.FC = () => {
   const allLocations = useAllLocations();
   const filteredEditOrigens = useMemo(() => {
     if (!editOrigem.trim()) return allLocations;
-    const q = editOrigem.toLowerCase();
-    return allLocations.filter(o => o.toLowerCase().includes(q));
+    const q = normalizeText(editOrigem);
+    return allLocations.filter(o => normalizeText(o).includes(q));
   }, [editOrigem, allLocations]);
   const filteredEditDestinos = useMemo(() => {
     if (!editDestino.trim()) return allLocations;
-    const q = editDestino.toLowerCase();
-    return allLocations.filter(d => d.toLowerCase().includes(q));
+    const q = normalizeText(editDestino);
+    return allLocations.filter(d => normalizeText(d).includes(q));
   }, [editDestino, allLocations]);
 
   // ── Tabela de preço: lookup para edição e conclusão (reativo) ──
