@@ -138,7 +138,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       const { data, error } = await supabase
         .from('users')
-        .insert({ telefone, senha: password, nome, tipo: 'cliente' as const, status: 'ativo' as const, roles: ['cliente'] })
+        .insert({ telefone, senha: password, nome, tipo: 'cliente' as const, status: 'ativo' as const })
         .select()
         .single();
       if (error) throw new Error(error.message);

@@ -215,7 +215,16 @@ const AdminDashboard: React.FC = () => {
   const updateUserMutation = useMutation({
     mutationFn: async ({ userId, updates }: { userId: string; updates: Record<string, unknown> }) => {
       const { error } = await supabase.from('users').update(updates).eq('id', userId);
-      if (error) throw error;
+      if (error) {
+        // If roles column doesn't exist yet, retry without it
+        if (error.message?.includes('roles') || error.code === '42703') {
+          const { roles, ...updatesWithoutRoles } = updates;
+          const { error: retryError } = await supabase.from('users').update(updatesWithoutRoles).eq('id', userId);
+          if (retryError) throw retryError;
+          return;
+        }
+        throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-users'] });
@@ -224,8 +233,8 @@ const AdminDashboard: React.FC = () => {
       setShowEditUserDialog(false);
       setSelectedUser(null);
     },
-    onError: () => {
-      toast({ title: 'Erro ao atualizar usuário', variant: 'destructive' });
+    onError: (e: any) => {
+      toast({ title: 'Erro ao atualizar usuário', description: e?.message || 'Erro desconhecido', variant: 'destructive' });
     },
   });
 
