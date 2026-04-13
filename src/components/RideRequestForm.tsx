@@ -1,4 +1,4 @@
-﻿import React, { useState, useRef } from 'react';
+﻿import React, { useState, useRef, useMemo, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
@@ -8,12 +8,13 @@ import { Card, CardContent } from '@/components/ui/card';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   MapPin, Navigation, Loader2, Check, CheckCircle, Clock,
-  Edit3, X, DollarSign, Route, Car, Star, Send,
+  Edit3, X, DollarSign, Route, Car, Star, Send, TableProperties,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import StarRating from '@/components/StarRating';
 import { calculateRoute } from '@/lib/route-ai';
 import { calcularPreco, salvarHistoricoPreco } from '@/lib/pricing-engine';
+import { buscarPrecoTabela, getOrigens, getDestinosPorOrigem } from '@/lib/tabela-preco';
 
 interface RouteEstimate {
   distancia_km: number;
@@ -35,6 +36,34 @@ const RideRequestForm: React.FC = () => {
   const [ratingSubmitted, setRatingSubmitted] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const destinoRef = useRef<HTMLInputElement>(null);
+  const [showOrigemSuggestions, setShowOrigemSuggestions] = useState(false);
+  const [showDestinoSuggestions, setShowDestinoSuggestions] = useState(false);
+
+  // ── Tabela de preço: lookup em tempo real ──
+  const precoTabela = useMemo(() => {
+    if (!origem.trim() || !destino.trim()) return null;
+    return buscarPrecoTabela(origem, destino);
+  }, [origem, destino]);
+
+  // ── Autocomplete: origens e destinos ──
+  const allOrigens = useMemo(() => getOrigens(), []);
+
+  const filteredOrigens = useMemo(() => {
+    if (!origem.trim()) return allOrigens;
+    const q = origem.toLowerCase();
+    return allOrigens.filter(o => o.toLowerCase().includes(q));
+  }, [origem, allOrigens]);
+
+  const destinosPorOrigem = useMemo(() => {
+    if (!origem.trim()) return [];
+    return getDestinosPorOrigem(origem);
+  }, [origem]);
+
+  const filteredDestinos = useMemo(() => {
+    if (!destino.trim()) return destinosPorOrigem;
+    const q = destino.toLowerCase();
+    return destinosPorOrigem.filter(d => d.toLowerCase().includes(q));
+  }, [destino, destinosPorOrigem]);
 
   const { data: activeRide, refetch: refetchActiveRide } = useQuery({
     queryKey: ['active-ride', user?.id],
@@ -136,22 +165,36 @@ const RideRequestForm: React.FC = () => {
         valor_estimado = routeResult.valor_estimado;
       }
 
-      // Motor dinâmico: tenta buscar preço por localidade/horário
-      try {
-        const precoDinamico = await calcularPreco(o, d);
-        if (precoDinamico) {
-          valor_estimado = precoDinamico.preco_final;
-          preco_regra_aplicada = precoDinamico.origem_regra;
-          preco_detalhes = {
-            preco_base: precoDinamico.preco_base,
-            ajuste: precoDinamico.ajuste_aplicado,
-            fallback: precoDinamico.fallback_usado,
-            origem_loc: precoDinamico.origem_localidade?.nome,
-            destino_loc: precoDinamico.destino_localidade?.nome,
-          };
+      // 1) Tabela oficial RF: prioridade máxima
+      const tabelaResult = buscarPrecoTabela(o, d);
+      if (tabelaResult) {
+        valor_estimado = tabelaResult.valor;
+        preco_regra_aplicada = 'tabela_rf';
+        preco_detalhes = {
+          origem_tabela: tabelaResult.origem_tabela,
+          destino_tabela: tabelaResult.destino_tabela,
+          regiao: tabelaResult.regiao,
+          match_exato: tabelaResult.match_exato,
+          fonte: 'TabelaRF',
+        };
+      } else {
+        // 2) Motor dinâmico: fallback
+        try {
+          const precoDinamico = await calcularPreco(o, d);
+          if (precoDinamico) {
+            valor_estimado = precoDinamico.preco_final;
+            preco_regra_aplicada = precoDinamico.origem_regra;
+            preco_detalhes = {
+              preco_base: precoDinamico.preco_base,
+              ajuste: precoDinamico.ajuste_aplicado,
+              fallback: precoDinamico.fallback_usado,
+              origem_loc: precoDinamico.origem_localidade?.nome,
+              destino_loc: precoDinamico.destino_localidade?.nome,
+            };
+          }
+        } catch {
+          // fallback silencioso para preço da rota IA
         }
-      } catch {
-        // fallback silencioso para preço da rota IA
       }
 
       const { data: corridaData, error } = await supabase.from('corridas').insert({
@@ -481,22 +524,39 @@ const RideRequestForm: React.FC = () => {
           </div>
 
           {/* Origin */}
-          <div className="space-y-1.5">
+          <div className="space-y-1.5 relative">
             <label className="text-sm font-medium flex items-center gap-2">
               <div className="w-2.5 h-2.5 rounded-full bg-green-500" />
               Origem
             </label>
             <Input
               value={origem}
-              onChange={(e) => { setOrigem(e.target.value); setErrorMsg(''); }}
-              onKeyDown={(e) => { if (e.key === 'Enter') destinoRef.current?.focus(); }}
+              onChange={(e) => { setOrigem(e.target.value); setErrorMsg(''); setShowOrigemSuggestions(true); }}
+              onFocus={() => setShowOrigemSuggestions(true)}
+              onBlur={() => setTimeout(() => setShowOrigemSuggestions(false), 200)}
+              onKeyDown={(e) => { if (e.key === 'Enter') { setShowOrigemSuggestions(false); destinoRef.current?.focus(); } }}
               placeholder="De onde você sai?"
               className="h-12 text-base"
             />
+            {showOrigemSuggestions && filteredOrigens.length > 0 && (
+              <div className="absolute z-50 w-full mt-1 bg-background border border-border rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                {filteredOrigens.slice(0, 15).map(o => (
+                  <button
+                    key={o}
+                    type="button"
+                    className="w-full text-left px-3 py-2 text-sm hover:bg-accent/10 transition-colors"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => { setOrigem(o); setShowOrigemSuggestions(false); destinoRef.current?.focus(); }}
+                  >
+                    {o}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Destination */}
-          <div className="space-y-1.5">
+          <div className="space-y-1.5 relative">
             <label className="text-sm font-medium flex items-center gap-2">
               <div className="w-2.5 h-2.5 rounded-full bg-accent" />
               Destino
@@ -504,12 +564,59 @@ const RideRequestForm: React.FC = () => {
             <Input
               ref={destinoRef}
               value={destino}
-              onChange={(e) => { setDestino(e.target.value); setErrorMsg(''); }}
-              onKeyDown={(e) => { if (e.key === 'Enter' && origem.trim() && destino.trim()) handleSolicitar(); }}
+              onChange={(e) => { setDestino(e.target.value); setErrorMsg(''); setShowDestinoSuggestions(true); }}
+              onFocus={() => setShowDestinoSuggestions(true)}
+              onBlur={() => setTimeout(() => setShowDestinoSuggestions(false), 200)}
+              onKeyDown={(e) => { if (e.key === 'Enter' && origem.trim() && destino.trim()) { setShowDestinoSuggestions(false); handleSolicitar(); } }}
               placeholder="Para onde vai?"
               className="h-12 text-base"
             />
+            {showDestinoSuggestions && filteredDestinos.length > 0 && (
+              <div className="absolute z-50 w-full mt-1 bg-background border border-border rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                {filteredDestinos.slice(0, 15).map(d => (
+                  <button
+                    key={d}
+                    type="button"
+                    className="w-full text-left px-3 py-2 text-sm hover:bg-accent/10 transition-colors"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => { setDestino(d); setShowDestinoSuggestions(false); }}
+                  >
+                    {d}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
+
+          {/* ── Price preview from table ── */}
+          <AnimatePresence>
+            {precoTabela && (
+              <motion.div
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                className="bg-green-500/10 border border-green-500/20 rounded-lg p-4"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <TableProperties className="w-4 h-4 text-green-400" />
+                    <div>
+                      <p className="text-[10px] text-muted-foreground">Preço tabelado</p>
+                      <p className="text-xl font-bold text-green-400">R$ {precoTabela.valor.toFixed(2)}</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[10px] text-muted-foreground">
+                      {precoTabela.match_exato ? 'Correspondência exata' : 'Melhor correspondência'}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground truncate max-w-[160px]">
+                      {precoTabela.origem_tabela} → {precoTabela.destino_tabela}
+                    </p>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* Error message */}
           <AnimatePresence>

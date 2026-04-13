@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -22,10 +22,11 @@ import { motion } from 'framer-motion';
 import {
   MapPin, Navigation, Clock, CheckCircle, Car, Loader2,
   Edit3, DollarSign, MessageSquare, User, Phone, AlertTriangle,
-  ChevronRight, X, Check, History, Star,
+  ChevronRight, X, Check, History, Star, TableProperties,
 } from 'lucide-react';
 import StarRating from '@/components/StarRating';
 import { useToast } from '@/hooks/use-toast';
+import { buscarPrecoTabela } from '@/lib/tabela-preco';
 
 type Corrida = {
   id: string;
@@ -62,6 +63,17 @@ const DriverDashboard: React.FC = () => {
   const [editDestino, setEditDestino] = useState('');
   const [valor, setValor] = useState('');
   const [observacao, setObservacao] = useState('');
+
+  // ── Tabela de preço: lookup para edição e conclusão ──
+  const precoTabelaEdit = useMemo(() => {
+    if (!editOrigem.trim() || !editDestino.trim()) return null;
+    return buscarPrecoTabela(editOrigem, editDestino);
+  }, [editOrigem, editDestino]);
+
+  const precoTabelaConcluir = useMemo(() => {
+    if (!selectedRide) return null;
+    return buscarPrecoTabela(selectedRide.origem_texto, selectedRide.destino_texto);
+  }, [selectedRide]);
 
   // ── Queries ──
   const { data: pendingRides, isLoading: loadingPending } = useQuery({
@@ -248,7 +260,13 @@ const DriverDashboard: React.FC = () => {
 
   const openConcluirDialog = (ride: Corrida) => {
     setSelectedRide(ride);
-    setValor(ride.valor?.toString() || '');
+    // Pre-fill with table price if available, else existing value
+    const tabelaResult = buscarPrecoTabela(ride.origem_texto, ride.destino_texto);
+    if (tabelaResult) {
+      setValor(tabelaResult.valor.toFixed(2));
+    } else {
+      setValor(ride.valor?.toString() || '');
+    }
     setObservacao(ride.observacao_motorista || '');
     setShowConcluirDialog(true);
   };
@@ -626,6 +644,22 @@ const DriverDashboard: React.FC = () => {
                 <Input value={editDestino} onChange={(e) => setEditDestino(e.target.value)} placeholder="Endereço de destino" />
               </div>
             </div>
+            {precoTabelaEdit && (
+              <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <TableProperties className="w-4 h-4 text-green-400" />
+                    <div>
+                      <p className="text-[10px] text-muted-foreground">Preço tabelado</p>
+                      <p className="text-lg font-bold text-green-400">R$ {precoTabelaEdit.valor.toFixed(2)}</p>
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground text-right max-w-[150px] truncate">
+                    {precoTabelaEdit.origem_tabela} → {precoTabelaEdit.destino_tabela}
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowEditDialog(false)}>Cancelar</Button>
@@ -684,6 +718,31 @@ const DriverDashboard: React.FC = () => {
                   placeholder="Ex: 25,00"
                   className="text-lg font-semibold"
                 />
+                {precoTabelaConcluir && (
+                  <div className="mt-2 bg-green-500/10 border border-green-500/20 rounded-lg p-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <TableProperties className="w-4 h-4 text-green-400" />
+                        <div>
+                          <p className="text-[10px] text-muted-foreground">Preço tabelado</p>
+                          <p className="text-lg font-bold text-green-400">R$ {precoTabelaConcluir.valor.toFixed(2)}</p>
+                        </div>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="text-xs text-green-400 hover:text-green-300"
+                        onClick={() => setValor(precoTabelaConcluir.valor.toFixed(2))}
+                      >
+                        Usar este valor
+                      </Button>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground mt-1 truncate">
+                      {precoTabelaConcluir.origem_tabela} → {precoTabelaConcluir.destino_tabela}
+                    </p>
+                  </div>
+                )}
               </div>
 
               {/* Observation */}

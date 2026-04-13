@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -27,9 +27,10 @@ import {
   Users, Car, Shield, Loader2, MessageSquare, Phone,
   Search, Filter, Eye, AlertTriangle, History,
   Smartphone, Globe, DollarSign, User, Ban,
-  FileText, ChevronDown, ChevronRight, Pencil, Trash2, Save, X
+  FileText, ChevronDown, ChevronRight, Pencil, Trash2, Save, X, TableProperties,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { buscarPrecoTabela } from '@/lib/tabela-preco';
 
 type Solicitacao = {
   id: string;
@@ -116,6 +117,12 @@ const AdminDashboard: React.FC = () => {
     observacoes: '',
     motorista_id: '' as string | null,
   });
+
+  // ── Tabela de preço: lookup para edição de corrida ──
+  const precoTabelaAdmin = useMemo(() => {
+    if (!editRideForm.origem_texto.trim() || !editRideForm.destino_texto.trim()) return null;
+    return buscarPrecoTabela(editRideForm.origem_texto, editRideForm.destino_texto);
+  }, [editRideForm.origem_texto, editRideForm.destino_texto]);
 
   // ── User Dialogs ──
   const [showEditUserDialog, setShowEditUserDialog] = useState(false);
@@ -958,6 +965,33 @@ const AdminDashboard: React.FC = () => {
                   onChange={(e) => setEditRideForm(f => ({ ...f, destino_texto: e.target.value }))}
                 />
               </div>
+              {precoTabelaAdmin && (
+                <div className="sm:col-span-2 bg-green-500/10 border border-green-500/20 rounded-lg p-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <TableProperties className="w-4 h-4 text-green-400" />
+                      <div>
+                        <p className="text-[10px] text-muted-foreground">Preço tabelado RF</p>
+                        <p className="text-lg font-bold text-green-400">R$ {precoTabelaAdmin.valor.toFixed(2)}</p>
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-end gap-1">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="text-xs text-green-400 hover:text-green-300 h-6"
+                        onClick={() => setEditRideForm(f => ({ ...f, valor: precoTabelaAdmin.valor.toFixed(2), valor_estimado: precoTabelaAdmin.valor.toFixed(2) }))}
+                      >
+                        Aplicar nos valores
+                      </Button>
+                      <p className="text-[10px] text-muted-foreground truncate max-w-[180px]">
+                        {precoTabelaAdmin.origem_tabela} → {precoTabelaAdmin.destino_tabela}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
               <div>
                 <Label className="text-xs">Status</Label>
                 <Select value={editRideForm.status} onValueChange={(v) => setEditRideForm(f => ({ ...f, status: v }))}>
