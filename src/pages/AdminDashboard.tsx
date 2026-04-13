@@ -22,13 +22,14 @@ import { Separator } from '@/components/ui/separator';
 import AppShell from '@/components/AppShell';
 import AdminPricing from '@/components/AdminPricing';
 import AdminTabelaPrecos from '@/components/AdminTabelaPrecos';
+import AdminStatsDashboard from '@/components/AdminStatsDashboard';
 import { motion } from 'framer-motion';
 import {
   MapPin, Navigation, Clock, CheckCircle, XCircle,
   Users, Car, Shield, Loader2, MessageSquare, Phone,
   Search, Filter, Eye, AlertTriangle, History,
   Smartphone, Globe, DollarSign, User, Ban,
-  FileText, ChevronDown, ChevronRight, Pencil, Trash2, Save, X, TableProperties, Star,
+  FileText, ChevronDown, ChevronRight, Pencil, Trash2, Save, X, TableProperties, Star, Activity,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { buscarPrecoTabela } from '@/lib/tabela-preco';
@@ -524,75 +525,11 @@ const AdminDashboard: React.FC = () => {
           <p className="text-muted-foreground text-[clamp(0.7rem,2vw,0.85rem)] mt-1">Controle completo de solicitações, motoristas e clientes</p>
         </div>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-[2%] mb-[3%]">
-          {[
-            { label: 'Total Corridas', value: stats.total, icon: FileText, color: 'text-white' },
-            { label: 'Novas', value: stats.novas, icon: AlertTriangle, color: 'text-purple-400' },
-            { label: 'Ag. Motorista', value: stats.aguardando, icon: Clock, color: 'text-yellow-400' },
-            { label: 'Em Análise', value: stats.emAnalise, icon: Eye, color: 'text-orange-400' },
-            { label: 'Aprovadas', value: stats.aprovadas, icon: CheckCircle, color: 'text-green-400' },
-          ].map((s) => (
-            <Card key={s.label}>
-              <CardContent className="py-[12%] text-center">
-                <s.icon className={`w-4 h-4 ${s.color} mx-auto mb-1`} />
-                <p className={`text-[clamp(1.1rem,3.5vw,1.5rem)] font-extrabold ${s.color}`}>{s.value}</p>
-                <p className="text-[clamp(0.55rem,1.8vw,0.7rem)] text-muted-foreground font-medium">{s.label}</p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        {/* Channel stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-[2%] mb-[3%]">
-          <Card>
-            <CardContent className="py-3 flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center shrink-0">
-                <MessageSquare className="w-4 h-4 text-green-400" />
-              </div>
-              <div>
-                <p className="text-lg font-bold">{stats.whatsapp}</p>
-                <p className="text-[10px] text-muted-foreground">Via WhatsApp</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="py-3 flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center shrink-0">
-                <Globe className="w-4 h-4 text-blue-400" />
-              </div>
-              <div>
-                <p className="text-lg font-bold">{stats.app}</p>
-                <p className="text-[10px] text-muted-foreground">Via App</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="py-3 flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center shrink-0">
-                <Car className="w-4 h-4 text-accent" />
-              </div>
-              <div>
-                <p className="text-lg font-bold">{stats.motoristas}</p>
-                <p className="text-[10px] text-muted-foreground">Motoristas</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="py-3 flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-purple-500/20 flex items-center justify-center shrink-0">
-                <Users className="w-4 h-4 text-purple-400" />
-              </div>
-              <div>
-                <p className="text-lg font-bold">{stats.totalUsers}</p>
-                <p className="text-[10px] text-muted-foreground">Total Usuários</p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        <Tabs defaultValue="solicitacoes">
+        <Tabs defaultValue="dashboard">
           <TabsList className="w-full mb-[3%] h-12 p-1 bg-muted/50 rounded-2xl">
+            <TabsTrigger value="dashboard" className="flex-1 gap-1.5 rounded-xl h-full text-xs font-semibold data-[state=active]:shadow-md">
+              <Activity className="w-3.5 h-3.5" /> Dashboard
+            </TabsTrigger>
             <TabsTrigger value="solicitacoes" className="flex-1 gap-1.5 rounded-xl h-full text-xs font-semibold data-[state=active]:shadow-md">
               <Car className="w-3.5 h-3.5" /> Corridas ({stats.total})
             </TabsTrigger>
@@ -603,6 +540,17 @@ const AdminDashboard: React.FC = () => {
               <DollarSign className="w-3.5 h-3.5" /> Preços
             </TabsTrigger>
           </TabsList>
+
+          {/* ═══════════════════════════════ DASHBOARD TAB ═══════════════════════════════ */}
+          <TabsContent value="dashboard">
+            {loadingRides || loadingUsers ? (
+              <div className="flex justify-center py-12">
+                <Loader2 className="w-6 h-6 animate-spin text-accent" />
+              </div>
+            ) : (
+              <AdminStatsDashboard rides={rides || []} users={users || []} />
+            )}
+          </TabsContent>
 
           {/* ═══════════════════════════════ CORRIDAS TAB ═══════════════════════════════ */}
           <TabsContent value="solicitacoes">
