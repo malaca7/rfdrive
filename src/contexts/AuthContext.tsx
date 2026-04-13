@@ -44,9 +44,6 @@ export const useAuth = () => {
 function deriveRoles(tipo: string, dbRoles?: string[] | null): AppRole[] {
   const validRoles = new Set<AppRole>();
 
-  // Always add 'cliente' as base
-  validRoles.add('cliente');
-
   // Add roles from DB array
   if (dbRoles && dbRoles.length > 0) {
     for (const r of dbRoles) {
@@ -58,18 +55,30 @@ function deriveRoles(tipo: string, dbRoles?: string[] | null): AppRole[] {
 
   // Fallback: if no DB roles, derive from tipo
   if (!dbRoles || dbRoles.length === 0) {
-    if (tipo === 'motorista') validRoles.add('motorista');
-    if (tipo === 'admin') validRoles.add('admin');
+    if (tipo === 'motorista') {
+      validRoles.add('motorista');
+    } else if (tipo === 'admin') {
+      validRoles.add('cliente');
+      validRoles.add('admin');
+    } else {
+      validRoles.add('cliente');
+    }
   }
+
+  // Ensure at least one role
+  if (validRoles.size === 0) validRoles.add('cliente');
 
   return Array.from(validRoles);
 }
 
 // Determine which screens a user can access
 function getAvailableScreens(roles: AppRole[]): ScreenKey[] {
-  const screens: ScreenKey[] = ['cliente'];
+  const screens: ScreenKey[] = [];
+  if (roles.includes('cliente')) screens.push('cliente');
   if (roles.includes('motorista')) screens.push('motorista');
   if (roles.includes('admin')) screens.push('admin');
+  // Fallback
+  if (screens.length === 0) screens.push('cliente');
   return screens;
 }
 
@@ -112,7 +121,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     if (user && !availableScreens.includes(activeScreen)) {
       const defaultScreen = availableScreens.includes('admin') ? 'admin' :
-        availableScreens.includes('motorista') ? 'motorista' : 'cliente';
+        availableScreens.includes('motorista') ? 'motorista' :
+        availableScreens.includes('cliente') ? 'cliente' : 'cliente';
       setActiveScreenState(defaultScreen);
       localStorage.setItem(SCREEN_KEY, defaultScreen);
     }
@@ -178,7 +188,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       // Set default screen to highest privilege
       const defaultScreen = derivedRoles.includes('admin') ? 'admin' :
-        derivedRoles.includes('motorista') ? 'motorista' : 'cliente';
+        derivedRoles.includes('motorista') ? 'motorista' :
+        derivedRoles.includes('cliente') ? 'cliente' : 'cliente';
       setActiveScreen(defaultScreen);
 
       return true;
