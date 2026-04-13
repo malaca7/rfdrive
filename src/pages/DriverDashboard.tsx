@@ -69,6 +69,8 @@ const DriverDashboard: React.FC = () => {
   const [observacao, setObservacao] = useState('');
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [motivoCancelamento, setMotivoCancelamento] = useState('');
+  const [driverRating, setDriverRating] = useState(0);
+  const [driverComentario, setDriverComentario] = useState('');
 
   // ── Autocomplete locations (reativo) ──
   const allLocations = useAllLocations();
@@ -292,7 +294,10 @@ const DriverDashboard: React.FC = () => {
   });
 
   const completeMutation = useMutation({
-    mutationFn: async ({ rideId, valorFinal, obs }: { rideId: string; valorFinal: number | null; obs: string }) => {
+    mutationFn: async ({ rideId, valorFinal, obs, rating, comentarioRating, clienteId, motoristaId }: {
+      rideId: string; valorFinal: number | null; obs: string;
+      rating: number; comentarioRating: string; clienteId: string; motoristaId: string;
+    }) => {
       const { error } = await supabase
         .from('corridas')
         .update({
@@ -303,6 +308,18 @@ const DriverDashboard: React.FC = () => {
         })
         .eq('id', rideId);
       if (error) throw error;
+
+      // Submit driver's rating of client
+      if (rating > 0) {
+        await supabase.from('avaliacoes').upsert({
+          corrida_id: rideId,
+          cliente_id: clienteId,
+          motorista_id: motoristaId,
+          nota: rating,
+          comentario: comentarioRating.trim() || null,
+          tipo: 'motorista',
+        }, { onConflict: 'corrida_id,tipo' });
+      }
     },
     onSuccess: () => {
       toast({ title: 'Corrida concluída!', description: 'O passageiro foi notificado.' });
@@ -339,6 +356,8 @@ const DriverDashboard: React.FC = () => {
       setValor(ride.valor_estimado?.toString() || ride.valor?.toString() || '');
     }
     setObservacao(ride.observacao_motorista || '');
+    setDriverRating(0);
+    setDriverComentario('');
     setShowConcluirDialog(true);
   };
 
@@ -353,7 +372,15 @@ const DriverDashboard: React.FC = () => {
       toast({ title: 'Valor inválido', variant: 'destructive' });
       return;
     }
-    completeMutation.mutate({ rideId: selectedRide.id, valorFinal, obs: observacao });
+    completeMutation.mutate({
+      rideId: selectedRide.id,
+      valorFinal,
+      obs: observacao,
+      rating: driverRating,
+      comentarioRating: driverComentario,
+      clienteId: selectedRide.cliente_id,
+      motoristaId: user!.id,
+    });
   };
 
   const handleEditSubmit = () => {
@@ -901,6 +928,27 @@ const DriverDashboard: React.FC = () => {
                     )}
                   </div>
                 )}
+              </div>
+
+              {/* Driver rates client */}
+              <div>
+                <label className="text-sm font-medium mb-1.5 flex items-center gap-1.5">
+                  <Star className="w-4 h-4 text-yellow-400" />
+                  Avalie o Passageiro
+                </label>
+                <div className="bg-muted/50 rounded-lg p-3 space-y-2">
+                  <div className="flex justify-center">
+                    <StarRating value={driverRating} onChange={setDriverRating} size="lg" />
+                  </div>
+                  {driverRating > 0 && (
+                    <Input
+                      value={driverComentario}
+                      onChange={(e) => setDriverComentario(e.target.value)}
+                      placeholder="Comentário sobre o passageiro (opcional)"
+                      className="text-sm"
+                    />
+                  )}
+                </div>
               </div>
 
               {/* Observation */}

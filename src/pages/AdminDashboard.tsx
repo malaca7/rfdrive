@@ -28,7 +28,7 @@ import {
   Users, Car, Shield, Loader2, MessageSquare, Phone,
   Search, Filter, Eye, AlertTriangle, History,
   Smartphone, Globe, DollarSign, User, Ban,
-  FileText, ChevronDown, ChevronRight, Pencil, Trash2, Save, X, TableProperties,
+  FileText, ChevronDown, ChevronRight, Pencil, Trash2, Save, X, TableProperties, Star,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { buscarPrecoTabela } from '@/lib/tabela-preco';
@@ -53,6 +53,8 @@ type Solicitacao = {
   concluida_at: string | null;
   cliente?: { nome: string; telefone: string; tipo: string } | null;
   motorista?: { nome: string; telefone: string } | null;
+  avaliacao_cliente?: { nota: number; comentario: string | null } | null;
+  avaliacao_motorista?: { nota: number; comentario: string | null } | null;
 };
 
 type Aprovacao = {
@@ -210,7 +212,16 @@ const AdminDashboard: React.FC = () => {
             motorista = m;
           }
 
-          return { ...ride, cliente, motorista } as Solicitacao;
+          // Fetch avaliacoes for this ride
+          const { data: avaliacoes } = await supabase
+            .from('avaliacoes')
+            .select('nota, comentario, tipo')
+            .eq('corrida_id', ride.id);
+
+          const avaliacao_cliente = avaliacoes?.find((a: any) => a.tipo === 'cliente') || null;
+          const avaliacao_motorista = avaliacoes?.find((a: any) => a.tipo === 'motorista') || null;
+
+          return { ...ride, cliente, motorista, avaliacao_cliente, avaliacao_motorista } as Solicitacao;
         })
       );
 
@@ -720,6 +731,40 @@ const AdminDashboard: React.FC = () => {
                                   <span className="flex items-center gap-1 text-muted-foreground italic">
                                     <MessageSquare className="w-3 h-3" />
                                     {ride.observacao_motorista}
+                                  </span>
+                                )}
+                              </div>
+                            )}
+
+                            {/* Avaliações */}
+                            {(ride.avaliacao_cliente || ride.avaliacao_motorista) && (
+                              <div className="flex items-center gap-4 text-xs flex-wrap">
+                                {ride.avaliacao_cliente && (
+                                  <span className="flex items-center gap-1.5" title={ride.avaliacao_cliente.comentario || ''}>
+                                    <User className="w-3 h-3 text-blue-400" />
+                                    <span className="text-muted-foreground">Cliente:</span>
+                                    <span className="flex items-center gap-0.5">
+                                      {[1,2,3,4,5].map(s => (
+                                        <Star key={s} className={`w-3 h-3 ${s <= ride.avaliacao_cliente!.nota ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground/30'}`} />
+                                      ))}
+                                    </span>
+                                    {ride.avaliacao_cliente.comentario && (
+                                      <span className="text-muted-foreground italic max-w-[150px] truncate">"{ride.avaliacao_cliente.comentario}"</span>
+                                    )}
+                                  </span>
+                                )}
+                                {ride.avaliacao_motorista && (
+                                  <span className="flex items-center gap-1.5" title={ride.avaliacao_motorista.comentario || ''}>
+                                    <Car className="w-3 h-3 text-accent" />
+                                    <span className="text-muted-foreground">Motorista:</span>
+                                    <span className="flex items-center gap-0.5">
+                                      {[1,2,3,4,5].map(s => (
+                                        <Star key={s} className={`w-3 h-3 ${s <= ride.avaliacao_motorista!.nota ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground/30'}`} />
+                                      ))}
+                                    </span>
+                                    {ride.avaliacao_motorista.comentario && (
+                                      <span className="text-muted-foreground italic max-w-[150px] truncate">"{ride.avaliacao_motorista.comentario}"</span>
+                                    )}
                                   </span>
                                 )}
                               </div>
@@ -1498,6 +1543,46 @@ const AdminDashboard: React.FC = () => {
                         <p className="text-sm">"{ap.observacao}"</p>
                       </div>
                     ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Avaliações */}
+              {selectedRide && (selectedRide.avaliacao_cliente || selectedRide.avaliacao_motorista) && (
+                <div>
+                  <h4 className="text-sm font-semibold mb-2 flex items-center gap-1.5">
+                    <Star className="w-4 h-4 text-yellow-400" />
+                    Avaliações
+                  </h4>
+                  <div className="space-y-2">
+                    {selectedRide.avaliacao_cliente && (
+                      <div className="bg-muted/50 rounded-lg p-3 space-y-1">
+                        <p className="text-xs text-muted-foreground">Cliente avaliou o motorista</p>
+                        <div className="flex items-center gap-1">
+                          {[1,2,3,4,5].map(s => (
+                            <Star key={s} className={`w-4 h-4 ${s <= selectedRide.avaliacao_cliente!.nota ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground/30'}`} />
+                          ))}
+                          <span className="text-sm ml-1 font-semibold">{selectedRide.avaliacao_cliente.nota}/5</span>
+                        </div>
+                        {selectedRide.avaliacao_cliente.comentario && (
+                          <p className="text-sm text-muted-foreground italic">"{selectedRide.avaliacao_cliente.comentario}"</p>
+                        )}
+                      </div>
+                    )}
+                    {selectedRide.avaliacao_motorista && (
+                      <div className="bg-muted/50 rounded-lg p-3 space-y-1">
+                        <p className="text-xs text-muted-foreground">Motorista avaliou o cliente</p>
+                        <div className="flex items-center gap-1">
+                          {[1,2,3,4,5].map(s => (
+                            <Star key={s} className={`w-4 h-4 ${s <= selectedRide.avaliacao_motorista!.nota ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground/30'}`} />
+                          ))}
+                          <span className="text-sm ml-1 font-semibold">{selectedRide.avaliacao_motorista.nota}/5</span>
+                        </div>
+                        {selectedRide.avaliacao_motorista.comentario && (
+                          <p className="text-sm text-muted-foreground italic">"{selectedRide.avaliacao_motorista.comentario}"</p>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               )}

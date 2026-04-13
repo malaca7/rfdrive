@@ -122,6 +122,7 @@ const RideRequestForm: React.FC = () => {
         .from('avaliacoes')
         .select('*')
         .eq('corrida_id', lastCompletedRide!.id)
+        .eq('tipo', 'cliente')
         .maybeSingle();
       if (error) throw error;
       return data;
@@ -139,6 +140,7 @@ const RideRequestForm: React.FC = () => {
         motorista_id: lastCompletedRide.motorista_id,
         nota: rating,
         comentario: comentario.trim() || null,
+        tipo: 'cliente',
       });
       if (error) throw error;
       toast({ title: 'Avaliação enviada!', description: 'Obrigado pelo seu feedback.' });
