@@ -323,9 +323,9 @@ const RideRequestForm: React.FC = () => {
     const hasEditPending = activeRide.edicao_pendente && activeRide.edicao_aprovada === null;
 
     return (
-      <div className="space-y-4">
-        <Card className="border-accent/30">
-          <CardContent className="py-6 space-y-4">
+      <div className="space-y-[3%]">
+        <Card className="border-accent/30 rounded-2xl">
+          <CardContent className="py-[5%] px-[4%] space-y-[3%]">
             <div className="text-center">
               <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-accent/10 mx-auto mb-3">
                 {activeRide.status === 'aceita' ? (
@@ -334,14 +334,14 @@ const RideRequestForm: React.FC = () => {
                   <Loader2 className="w-7 h-7 text-accent animate-spin" />
                 )}
               </div>
-              <h3 className="font-semibold text-lg">
+              <h3 className="font-bold text-[clamp(1rem,3.5vw,1.25rem)]">
                 {activeRide.status === 'nova' ? 'Pedido recebido' :
                  activeRide.status === 'aguardando_motorista' ? 'Corrida solicitada' :
                  'Motorista a caminho'}
               </h3>
               <p className="text-sm text-muted-foreground mt-1">{statusLabel}</p>
             </div>
-            <div className="bg-muted/50 rounded-lg p-4 space-y-3">
+            <div className="bg-muted/50 rounded-xl p-[4%] space-y-3">
               <div className="flex items-start gap-2">
                 <div className="mt-1.5 w-2 h-2 rounded-full bg-green-500 shrink-0" />
                 <div>
@@ -357,7 +357,7 @@ const RideRequestForm: React.FC = () => {
                 </div>
               </div>
               {activeRide.valor_estimado != null && (
-                <div className="flex items-center justify-between bg-green-500/10 border border-green-500/20 rounded-lg px-4 py-3">
+                <div className="flex items-center justify-between bg-green-500/10 border border-green-500/20 rounded-xl px-[4%] py-3">
                   <div className="flex items-center gap-2">
                     <DollarSign className="w-4 h-4 text-green-400" />
                     <div>
@@ -381,7 +381,7 @@ const RideRequestForm: React.FC = () => {
             </div>
             {/* ── Motorista info when ride is accepted ── */}
             {activeRide.status === 'aceita' && motoristaInfo && (
-              <div className="bg-accent/5 border border-accent/20 rounded-lg p-4 space-y-3">
+              <div className="bg-accent/5 border border-accent/20 rounded-xl p-[4%] space-y-3">
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 rounded-full bg-accent/20 flex items-center justify-center">
                     <Car className="w-6 h-6 text-accent" />
@@ -395,7 +395,7 @@ const RideRequestForm: React.FC = () => {
                   </div>
                 </div>
                 {(motoristaInfo.veiculo_marca || motoristaInfo.veiculo_modelo || motoristaInfo.veiculo_cor || motoristaInfo.veiculo_placa) && (
-                  <div className="bg-muted/50 rounded-lg p-3 space-y-1.5">
+                  <div className="bg-muted/50 rounded-xl p-3 space-y-1.5">
                     <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide">Veículo</p>
                     {(motoristaInfo.veiculo_marca || motoristaInfo.veiculo_modelo) && (
                       <p className="text-sm font-medium">
@@ -494,21 +494,21 @@ const RideRequestForm: React.FC = () => {
 
   if (lastCompletedRide && showCompletedSummary) {
     return (
-      <div className="space-y-4">
-        <Card className="border-green-500/30 bg-green-500/5">
-          <CardContent className="py-6 space-y-4">
+      <div className="space-y-[3%]">
+        <Card className="border-green-500/30 bg-green-500/5 rounded-2xl">
+          <CardContent className="py-[5%] px-[4%] space-y-[3%]">
             <div className="text-center">
               <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-green-500/10 mx-auto mb-3">
                 <CheckCircle className="w-7 h-7 text-green-400" />
               </div>
-              <h3 className="font-semibold text-lg">Corrida Concluída!</h3>
+              <h3 className="font-bold text-[clamp(1rem,3.5vw,1.25rem)]">Corrida Concluída!</h3>
               <p className="text-xs text-muted-foreground mt-1">
                 {lastCompletedRide.concluida_at && new Date(lastCompletedRide.concluida_at).toLocaleString('pt-BR', {
                   day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit',
                 })}
               </p>
             </div>
-            <div className="bg-muted/50 rounded-lg p-4 space-y-3">
+            <div className="bg-muted/50 rounded-xl p-[4%] space-y-3">
               <div className="flex items-start gap-2">
                 <div className="mt-1.5 w-2 h-2 rounded-full bg-green-500 shrink-0" />
                 <div>
@@ -525,9 +525,9 @@ const RideRequestForm: React.FC = () => {
               </div>
             </div>
             {lastCompletedRide.valor != null && (
-              <div className="text-center bg-muted/50 rounded-lg py-3">
+              <div className="text-center bg-muted/50 rounded-xl py-3">
                 <p className="text-xs text-muted-foreground">Valor da corrida</p>
-                <p className="text-2xl font-bold text-green-400">
+                <p className="text-[clamp(1.25rem,5vw,1.75rem)] font-bold text-green-400">
                   R$ {Number(lastCompletedRide.valor).toFixed(2)}
                 </p>
               </div>
@@ -535,7 +535,7 @@ const RideRequestForm: React.FC = () => {
 
             {/* Rating section */}
             {lastCompletedRide.motorista_id && !existingRating && !ratingSubmitted ? (
-              <div className="bg-muted/50 rounded-lg p-4 space-y-3">
+              <div className="bg-muted/50 rounded-xl p-[4%] space-y-3">
                 <p className="text-sm font-medium text-center">Como foi sua viagem?</p>
                 <div className="flex justify-center">
                   <StarRating value={rating} onChange={setRating} size="lg" />
@@ -564,7 +564,7 @@ const RideRequestForm: React.FC = () => {
                 )}
               </div>
             ) : (existingRating || ratingSubmitted) ? (
-              <div className="bg-muted/50 rounded-lg p-4 text-center space-y-2">
+              <div className="bg-muted/50 rounded-xl p-[4%] text-center space-y-2">
                 <p className="text-xs text-muted-foreground">Sua avaliação</p>
                 <div className="flex justify-center">
                   <StarRating
@@ -591,14 +591,14 @@ const RideRequestForm: React.FC = () => {
   }
 
   return (
-    <div className="space-y-4">
-      <Card>
-        <CardContent className="pt-6 pb-5 space-y-5">
+    <div className="space-y-[3%]">
+      <Card className="rounded-2xl">
+        <CardContent className="pt-[5%] pb-[4%] px-[4%] space-y-[3.5%]">
           <div className="text-center space-y-1">
             <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-accent/10 mx-auto">
               <Navigation className="w-6 h-6 text-accent" />
             </div>
-            <h2 className="text-xl font-bold">Solicitar Corrida</h2>
+            <h2 className="text-[clamp(1.1rem,3.5vw,1.35rem)] font-bold">Solicitar Corrida</h2>
             <p className="text-xs text-muted-foreground">
               Informe os dados da sua viagem
             </p>
@@ -691,14 +691,14 @@ const RideRequestForm: React.FC = () => {
                 initial={{ opacity: 0, y: -8 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -8 }}
-                className={`${precoTabela.estimado ? 'bg-amber-500/10 border-amber-500/20' : 'bg-green-500/10 border-green-500/20'} border rounded-lg p-4`}
+                className={`${precoTabela.estimado ? 'bg-amber-500/10 border-amber-500/20' : 'bg-green-500/10 border-green-500/20'} border rounded-xl p-[4%]`}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <TableProperties className={`w-4 h-4 ${precoTabela.estimado ? 'text-amber-400' : 'text-green-400'}`} />
                     <div>
                       <p className="text-[10px] text-muted-foreground">{precoTabela.estimado ? 'Preço estimado' : 'Preço tabelado'}</p>
-                      <p className={`text-xl font-bold ${precoTabela.estimado ? 'text-amber-400' : 'text-green-400'}`}>R$ {precoTabela.valor.toFixed(2)}</p>
+                      <p className={`text-[clamp(1.1rem,3.5vw,1.35rem)] font-bold ${precoTabela.estimado ? 'text-amber-400' : 'text-green-400'}`}>R$ {precoTabela.valor.toFixed(2)}</p>
                     </div>
                   </div>
                   <div className="text-right">
@@ -732,7 +732,7 @@ const RideRequestForm: React.FC = () => {
           <Button
             onClick={handleSolicitar}
             disabled={!origem.trim() || !destino.trim() || isSending || hasActiveRide}
-            className="w-full h-12 text-base font-semibold bg-green-600 hover:bg-green-700 text-white"
+            className="w-full h-12 rounded-xl text-base font-bold bg-green-600 hover:bg-green-700 text-white shadow-lg shadow-green-600/20"
           >
             {isSending ? (
               <><Loader2 className="w-5 h-5 animate-spin mr-2" />Solicitando...</>

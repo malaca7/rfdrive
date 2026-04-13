@@ -59,7 +59,7 @@ const RouteMap: React.FC<RouteMapProps> = ({ origem, destino }) => {
   ];
 
   return (
-    <div className="rounded-lg overflow-hidden border border-border/50" style={{ height: 220 }}>
+    <div className="rounded-xl overflow-hidden border border-border/50 h-[45vw] sm:h-[220px] max-h-[280px]">
       <MapContainer
         center={center}
         zoom={13}

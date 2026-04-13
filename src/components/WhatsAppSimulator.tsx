@@ -124,9 +124,9 @@ const WhatsAppSimulator: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col h-full max-h-[600px]">
+    <div className="flex flex-col h-full max-h-[80vh] sm:max-h-[600px]">
       {/* Chat header */}
-      <div className="bg-[#075e54] rounded-t-xl px-4 py-3 flex items-center gap-3">
+      <div className="bg-[#075e54] rounded-t-xl px-[4%] py-3 flex items-center gap-3">
         <div className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center">
           <Bot className="w-5 h-5 text-white" />
         </div>
@@ -140,7 +140,7 @@ const WhatsAppSimulator: React.FC = () => {
       {/* Messages area */}
       <div
         ref={scrollRef}
-        className="flex-1 overflow-y-auto bg-[#0b141a] px-3 py-4 space-y-2 min-h-[300px]"
+        className="flex-1 overflow-y-auto bg-[#0b141a] px-[3%] py-4 space-y-2 min-h-[40vh] sm:min-h-[300px]"
         style={{
           backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.02'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
         }}
@@ -188,7 +188,7 @@ const WhatsAppSimulator: React.FC = () => {
       </div>
 
       {/* Input area */}
-      <div className="bg-[#202c33] rounded-b-xl px-3 py-2 flex items-center gap-2">
+      <div className="bg-[#202c33] rounded-b-xl px-[3%] py-2 flex items-center gap-2">
         <Input
           value={input}
           onChange={(e) => setInput(e.target.value)}

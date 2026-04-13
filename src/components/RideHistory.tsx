@@ -40,10 +40,10 @@ const RideHistory: React.FC = () => {
 
   if (!rides || rides.length === 0) {
     return (
-      <Card>
-        <CardContent className="py-12 text-center">
+      <Card className="rounded-2xl">
+        <CardContent className="py-[10%] text-center">
           <Car className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
-          <p className="text-muted-foreground">Nenhuma corrida solicitada ainda</p>
+          <p className="text-muted-foreground text-sm">Nenhuma corrida solicitada ainda</p>
         </CardContent>
       </Card>
     );
@@ -60,8 +60,8 @@ const RideHistory: React.FC = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.05 }}
           >
-            <Card>
-              <CardContent className="py-4">
+            <Card className="rounded-2xl">
+              <CardContent className="py-[3.5%] px-[4%]">
                 <div className="flex items-start justify-between mb-3">
                   <div className="text-xs text-muted-foreground">
                     {new Date(ride.created_at).toLocaleDateString('pt-BR', {
