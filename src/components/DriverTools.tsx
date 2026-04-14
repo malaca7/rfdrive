@@ -634,33 +634,15 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
         <div
           ref={badgeRef}
           style={{
-            background: 'linear-gradient(145deg, #0c0c0c 0%, #141414 40%, #1a1810 100%)',
+            background: '#000000',
             borderRadius: '16px',
-            border: '1px solid #3a3020',
+            border: '1.5px solid #d4af37',
             fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
             position: 'relative' as const,
             overflow: 'hidden',
           }}
         >
-          {/* ── Car background image (large, behind everything) ── */}
-          {hasVehicle && (
-            <div style={{
-              position: 'absolute' as const, top: 0, left: 0, width: '100%', height: '100%',
-              display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
-              pointerEvents: 'none' as const,
-            }}>
-              <img
-                src={`https://cdn.imagin.studio/getimage?customer=hrjavascript-mastery&make=${encodeURIComponent(profile.veiculo_marca || '')}&modelFamily=${encodeURIComponent(profile.veiculo_modelo || '')}&paintId=pspc0001&angle=01&width=600`}
-                alt=""
-                crossOrigin="anonymous"
-                style={{
-                  width: '110%', maxHeight: '70%', objectFit: 'contain', objectPosition: 'center bottom',
-                  opacity: 0.18, filter: 'brightness(1.2)',
-                }}
-                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-              />
-            </div>
-          )}
+
 
           {/* Gold corner accents */}
           <div style={{
@@ -733,37 +715,45 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
               </div>
             </div>
 
-            {/* Vehicle info: car image left + info/plate right */}
+            {/* Vehicle section: big car image + info/plate */}
             {hasVehicle && (
-              <div style={{ marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                {/* Car image (left) */}
-                <div style={{ flexShrink: 0, width: '120px', height: '80px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ marginBottom: '12px' }}>
+                {/* Large car image */}
+                <div style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  background: 'radial-gradient(ellipse at center, rgba(212,175,55,0.06) 0%, transparent 70%)',
+                  borderRadius: '12px',
+                  padding: '8px 0',
+                  marginBottom: '10px',
+                }}>
                   <img
-                    src={`https://cdn.imagin.studio/getimage?customer=hrjavascript-mastery&make=${encodeURIComponent(profile.veiculo_marca || '')}&modelFamily=${encodeURIComponent(profile.veiculo_modelo || '')}&paintId=pspc0001&angle=01&width=400`}
+                    src={`https://cdn.imagin.studio/getimage?customer=hrjavascript-mastery&make=${encodeURIComponent(profile.veiculo_marca || '')}&modelFamily=${encodeURIComponent(profile.veiculo_modelo || '')}&paintId=pspc0001&angle=01&width=800`}
                     alt=""
                     crossOrigin="anonymous"
                     style={{
-                      maxWidth: '100%', maxHeight: '100%', objectFit: 'contain',
-                      filter: 'brightness(1.1) drop-shadow(0 2px 8px rgba(212,175,55,0.2))',
+                      width: '100%', maxHeight: '140px', objectFit: 'contain',
+                      filter: 'brightness(1.15) drop-shadow(0 4px 16px rgba(212,175,55,0.25))',
                     }}
                     onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                   />
                 </div>
-                {/* Info + plate (right) */}
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: '13px', fontWeight: '700', color: '#e8e8e8', lineHeight: '1.2' }}>
-                    {[profile.veiculo_marca, profile.veiculo_modelo].filter(Boolean).join(' ')}
-                  </div>
-                  {profile.veiculo_cor && (
-                    <div style={{ fontSize: '10px', color: '#999', marginTop: '2px', marginBottom: '8px' }}>
-                      {profile.veiculo_cor}
+                {/* Info + plate row */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
+                  <div>
+                    <div style={{ fontSize: '14px', fontWeight: '700', color: '#d4af37', lineHeight: '1.2' }}>
+                      {[profile.veiculo_marca, profile.veiculo_modelo].filter(Boolean).join(' ')}
                     </div>
-                  )}
+                    {profile.veiculo_cor && (
+                      <div style={{ fontSize: '10px', color: '#999', marginTop: '2px' }}>
+                        {profile.veiculo_cor}
+                      </div>
+                    )}
+                  </div>
 
                   {/* Mercosul plate */}
                   {profile.veiculo_placa && (
                     <div style={{
-                      width: '140px',
+                      width: '140px', flexShrink: 0,
                       background: '#ffffff',
                       borderRadius: '5px',
                       border: '2px solid #ccc',
