@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useRef, useCallback } from 'react';
 import Cropper, { Area } from 'react-easy-crop';
 import { supabase } from '@/integrations/supabase/client';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQueryClient, useQuery } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -24,6 +24,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { usePrecoTabela, useAllLocations } from '@/hooks/usePrecoTabela';
 import { useDynamicAdjustment } from '@/hooks/useDynamicAdjustment';
 import { normalizeText } from '@/lib/tabela-preco';
+import { getConfigTarifas, type ConfigTarifas } from '@/lib/pricing-engine';
 import { useToast } from '@/hooks/use-toast';
 
 // ── Crop helper: canvas-based crop to blob ──
@@ -106,13 +107,21 @@ export const TripCalculator: React.FC<{
   const preco = usePrecoTabela(origem, destino);
   const dynamicAdj = useDynamicAdjustment();
 
+  const { data: configTarifas } = useQuery<ConfigTarifas | null>({
+    queryKey: ['config-tarifas-driver'],
+    queryFn: () => getConfigTarifas(),
+    staleTime: 60_000,
+  });
+
+  const taxaBagagemValor = configTarifas?.taxa_bagagem ?? 5;
+
   const totalValue = useMemo(() => {
     if (!preco) return 0;
     let total = preco.valor;
     if (dynamicAdj) total = dynamicAdj.aplicar(total);
-    if (temBagagem) total += 5;
+    if (temBagagem) total += taxaBagagemValor;
     return Math.round(total * 100) / 100;
-  }, [preco, dynamicAdj, temBagagem]);
+  }, [preco, dynamicAdj, temBagagem, taxaBagagemValor]);
 
   const quoteMensagem = useMemo(() => {
     if (!preco || !origem.trim() || !destino.trim()) return '';
@@ -127,9 +136,9 @@ export const TripCalculator: React.FC<{
     ];
     if (dynamicAdj) {
       const ajusteValor = dynamicAdj.aplicar(preco.valor) - preco.valor;
-      lines.push(`   ⏰ ${dynamicAdj.regra.nome}: +R$ ${ajusteValor.toFixed(2)} (${dynamicAdj.regra.tipo_ajuste === 'percentual' ? `${dynamicAdj.regra.valor_ajuste}%` : `fixo`})`);
+      lines.push(`   ⏰ ${dynamicAdj.regra.nome}: +R$ ${ajusteValor.toFixed(2)} (${dynamicAdj.regra.valor_ajuste}%)`);
     }
-    if (temBagagem) lines.push(`   📦 Feira/Bagagem: +R$ 5,00`);
+    if (temBagagem) lines.push(`   📦 Feira/Bagagem: +R$ ${taxaBagagemValor.toFixed(2)}`);
     lines.push(`   ─────────────────`);
     lines.push(`   *Total: R$ ${totalValue.toFixed(2)}*`);
     lines.push(``);
@@ -137,7 +146,7 @@ export const TripCalculator: React.FC<{
     if (observacao.trim()) lines.push(`📝 *Obs:* ${observacao.trim()}`);
     lines.push(``, `_Consulta feita pela Tabela RF Drive_`);
     return lines.filter(Boolean).join('\n');
-  }, [preco, origem, destino, clienteNome, observacao, totalValue, dynamicAdj, temBagagem]);
+  }, [preco, origem, destino, clienteNome, observacao, totalValue, dynamicAdj, temBagagem, taxaBagagemValor]);
 
   const handleCopy = async () => {
     if (!quoteMensagem) return;
@@ -279,7 +288,7 @@ export const TripCalculator: React.FC<{
             />
             <label htmlFor="temBagagemCalc" className="text-sm cursor-pointer">
               <span className="font-medium">Feira ou Bagagem?</span>
-              <span className="text-muted-foreground"> (+R$ 5,00)</span>
+              <span className="text-muted-foreground"> (+R$ {taxaBagagemValor.toFixed(2).replace('.', ',')})</span>
             </label>
           </div>
 
@@ -333,7 +342,7 @@ export const TripCalculator: React.FC<{
                         <span className="text-orange-400 text-xs">📦</span>
                         <span className="text-xs text-muted-foreground">Taxa Feira/Bagagem</span>
                       </div>
-                      <span className="text-sm font-bold text-orange-400">R$ 5,00</span>
+                      <span className="text-sm font-bold text-orange-400">R$ {taxaBagagemValor.toFixed(2)}</span>
                     </div>
                   )}
                   {(dynamicAdj || temBagagem) && (
@@ -430,7 +439,7 @@ export const TripCalculator: React.FC<{
                       <span className="text-orange-400 flex items-center gap-1.5">
                         <span>📦</span> Feira/Bagagem
                       </span>
-                      <span className="font-medium text-orange-400">+R$ 5,00</span>
+                      <span className="font-medium text-orange-400">+R$ {taxaBagagemValor.toFixed(2)}</span>
                     </div>
                   )}
                   <Separator className="my-1" />

@@ -14,7 +14,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import StarRating from '@/components/StarRating';
 import { calculateRoute } from '@/lib/route-ai';
-import { calcularPreco, salvarHistoricoPreco, type PricingResult } from '@/lib/pricing-engine';
+import { calcularPreco, salvarHistoricoPreco, getConfigTarifas, type PricingResult, type ConfigTarifas } from '@/lib/pricing-engine';
 import { buscarPrecoTabela } from '@/lib/tabela-preco';
 import { usePrecoTabela, useAllLocations } from '@/hooks/usePrecoTabela';
 import { useDynamicAdjustment } from '@/hooks/useDynamicAdjustment';
@@ -50,6 +50,13 @@ const RideRequestForm: React.FC = () => {
 
   // ── Regra de horário dinâmica (noturno, madrugada, etc.) ──
   const dynamicAdj = useDynamicAdjustment();
+
+  // ── Configuração global de tarifas ──
+  const { data: configTarifas } = useQuery<ConfigTarifas | null>({
+    queryKey: ['config-tarifas-form'],
+    queryFn: () => getConfigTarifas(),
+    staleTime: 60_000,
+  });
 
   // ── Motor dinâmico: preço reativo via localidades + precos_rotas + regras_horario ──
   const origemTrim = origem.trim();
@@ -248,7 +255,8 @@ const RideRequestForm: React.FC = () => {
       }
 
       // Adicionar taxa de bagagem se aplicável
-      const taxaBagagem = temBagagem ? 5.00 : 0;
+      const taxaBagagemValor = configTarifas?.taxa_bagagem ?? 5.00;
+      const taxaBagagem = temBagagem ? taxaBagagemValor : 0;
       if (taxaBagagem > 0) {
         valor_estimado = (valor_estimado || 0) + taxaBagagem;
       }
@@ -732,7 +740,7 @@ const RideRequestForm: React.FC = () => {
             />
             <label htmlFor="temBagagem" className="text-sm cursor-pointer">
               <span className="font-medium">Levando Feira ou Bagagem?</span>
-              <span className="text-muted-foreground"> (+R$ 5,00)</span>
+              <span className="text-muted-foreground"> (+R$ {(configTarifas?.taxa_bagagem ?? 5).toFixed(2).replace('.', ',')})</span>
             </label>
           </div>
 
@@ -866,7 +874,7 @@ const RideRequestForm: React.FC = () => {
                         <span className="text-orange-400 text-xs">📦</span>
                         <span className="text-xs text-muted-foreground">Taxa Feira/Bagagem</span>
                       </div>
-                      <span className="text-sm font-bold text-orange-400">R$ 5,00</span>
+                      <span className="text-sm font-bold text-orange-400">R$ {(configTarifas?.taxa_bagagem ?? 5).toFixed(2)}</span>
                     </div>
                   )}
                   {temBagagem && (
@@ -881,7 +889,7 @@ const RideRequestForm: React.FC = () => {
                             : precoTabela
                               ? (dynamicAdj ? dynamicAdj.aplicar(precoTabela.valor) : precoTabela.valor)
                               : 0;
-                          if (temBagagem) total += 5;
+                          if (temBagagem) total += (configTarifas?.taxa_bagagem ?? 5);
                           return total.toFixed(2);
                         })()}
                       </span>

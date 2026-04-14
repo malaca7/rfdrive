@@ -32,8 +32,17 @@ export interface RegraHorario {
   nome: string;
   hora_inicio: string;
   hora_fim: string;
-  tipo_ajuste: 'percentual' | 'fixo';
+  tipo_ajuste: 'percentual';
   valor_ajuste: number;
+  ativo: boolean;
+}
+
+export interface ConfigTarifas {
+  id: string;
+  tarifa_minima: number;
+  tarifa_base_km: number;
+  taxa_bagagem: number;
+  bandeirada: number;
   ativo: boolean;
 }
 
@@ -78,6 +87,7 @@ function normalize(s: string): string {
 let localidadesCache: Localidade[] | null = null;
 let precosRotasCache: PrecoRota[] | null = null;
 let regrasHorarioCache: RegraHorario[] | null = null;
+let configTarifasCache: ConfigTarifas | null = null;
 let cacheTimestamp = 0;
 const CACHE_TTL = 60_000; // 1 min
 
@@ -85,34 +95,37 @@ export function invalidatePricingCache() {
   localidadesCache = null;
   precosRotasCache = null;
   regrasHorarioCache = null;
+  configTarifasCache = null;
   cacheTimestamp = 0;
   loadDataPromise = null;
 }
 
 // Dedup in-flight requests
-let loadDataPromise: Promise<{ localidades: Localidade[]; precos: PrecoRota[]; regras: RegraHorario[] }> | null = null;
+let loadDataPromise: Promise<{ localidades: Localidade[]; precos: PrecoRota[]; regras: RegraHorario[]; config: ConfigTarifas | null }> | null = null;
 
 async function loadData() {
   if (localidadesCache && precosRotasCache && regrasHorarioCache && Date.now() - cacheTimestamp < CACHE_TTL) {
-    return { localidades: localidadesCache, precos: precosRotasCache, regras: regrasHorarioCache };
+    return { localidades: localidadesCache, precos: precosRotasCache, regras: regrasHorarioCache, config: configTarifasCache };
   }
 
   if (loadDataPromise) return loadDataPromise;
 
   loadDataPromise = (async () => {
-    const [locRes, precRes, regRes] = await Promise.allSettled([
+    const [locRes, precRes, regRes, cfgRes] = await Promise.allSettled([
       supabase.from('localidades').select('*').eq('ativo', true),
       supabase.from('precos_rotas').select('*').eq('ativo', true),
       supabase.from('regras_horario').select('*').eq('ativo', true),
+      supabase.from('config_tarifas').select('*').eq('ativo', true).limit(1).single(),
     ]);
 
     localidadesCache = (locRes.status === 'fulfilled' && locRes.value.data ? locRes.value.data : []) as Localidade[];
     precosRotasCache = (precRes.status === 'fulfilled' && precRes.value.data ? precRes.value.data : []) as PrecoRota[];
     regrasHorarioCache = (regRes.status === 'fulfilled' && regRes.value.data ? regRes.value.data : []) as RegraHorario[];
+    configTarifasCache = (cfgRes.status === 'fulfilled' && cfgRes.value.data ? cfgRes.value.data : null) as ConfigTarifas | null;
     cacheTimestamp = Date.now();
     loadDataPromise = null;
 
-    return { localidades: localidadesCache, precos: precosRotasCache, regras: regrasHorarioCache };
+    return { localidades: localidadesCache, precos: precosRotasCache, regras: regrasHorarioCache, config: configTarifasCache };
   })();
 
   return loadDataPromise;
@@ -240,12 +253,15 @@ export function findActiveTimeRules(regras: RegraHorario[], horario: string): Re
   return null;
 }
 
-// ── Apply time adjustment ──
+// ── Apply time adjustment (percentual only) ──
 export function applyTimeAdjustment(precoBase: number, regra: RegraHorario): number {
-  if (regra.tipo_ajuste === 'percentual') {
-    return precoBase * (1 + regra.valor_ajuste / 100);
-  }
-  return precoBase + regra.valor_ajuste;
+  return precoBase * (1 + regra.valor_ajuste / 100);
+}
+
+// ── Get config tarifas (loads from cache/DB) ──
+export async function getConfigTarifas(): Promise<ConfigTarifas | null> {
+  const { config } = await loadData();
+  return config;
 }
 
 // ── Get current time as "HH:MM" (24h) reliably across all browsers ──
@@ -269,7 +285,7 @@ export async function calcularPreco(
   destinoTexto: string,
   horario?: string, // "HH:MM" or auto-detect
 ): Promise<PricingResult | null> {
-  const { localidades, precos, regras } = await loadData();
+  const { localidades, precos, regras, config } = await loadData();
 
   if (localidades.length === 0 || precos.length === 0) {
     return null; // No pricing data configured
@@ -294,8 +310,10 @@ export async function calcularPreco(
     return null; // No pricing rule found
   }
 
-  // Determine base price
-  const precoBase = rota.preco_fixo ?? rota.preco_minimo ?? 0;
+  // Determine base price (route price + bandeirada)
+  const precoRota = rota.preco_fixo ?? rota.preco_minimo ?? 0;
+  const bandeirada = config?.bandeirada ?? 0;
+  const precoBase = precoRota + bandeirada;
 
   // Determine current time
   const now = horario || getCurrentTime24h();
@@ -309,16 +327,18 @@ export async function calcularPreco(
 
   if (regraHorario) {
     precoFinal = applyTimeAdjustment(precoBase, regraHorario);
-    if (regraHorario.tipo_ajuste === 'percentual') {
-      ajusteAplicado = `+${regraHorario.valor_ajuste}% ${regraHorario.nome}`;
-    } else {
-      ajusteAplicado = `+R$${regraHorario.valor_ajuste.toFixed(2)} ${regraHorario.nome}`;
-    }
+    ajusteAplicado = `+${regraHorario.valor_ajuste}% ${regraHorario.nome}`;
   }
 
-  // Ensure minimum price
+  // Ensure minimum price from route
   if (rota.preco_minimo != null && precoFinal < rota.preco_minimo) {
     precoFinal = rota.preco_minimo;
+  }
+
+  // Ensure global tarifa mínima
+  const tarifaMinima = config?.tarifa_minima ?? 0;
+  if (tarifaMinima > 0 && precoFinal < tarifaMinima) {
+    precoFinal = tarifaMinima;
   }
 
   precoFinal = Math.round(precoFinal * 100) / 100;

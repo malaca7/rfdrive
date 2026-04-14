@@ -22,7 +22,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import {
   calcularPreco, invalidatePricingCache,
-  type Localidade, type PrecoRota, type RegraHorario, type PricingResult,
+  type Localidade, type PrecoRota, type RegraHorario, type PricingResult, type ConfigTarifas,
 } from '@/lib/pricing-engine';
 
 // ── Types ──
@@ -84,17 +84,31 @@ const AdminPricing: React.FC = () => {
     retry: 1,
   });
 
+  const { data: configTarifas, isLoading: loadingConfig } = useQuery({
+    queryKey: ['config-tarifas'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('config_tarifas').select('*').limit(1).single();
+      if (error) throw error;
+      return data as ConfigTarifas & { created_at: string; updated_at: string };
+    },
+    retry: 1,
+  });
+
   const refreshAll = () => {
     invalidatePricingCache();
     qc.invalidateQueries({ queryKey: ['pricing-localidades'] });
     qc.invalidateQueries({ queryKey: ['pricing-precos'] });
     qc.invalidateQueries({ queryKey: ['pricing-regras'] });
+    qc.invalidateQueries({ queryKey: ['config-tarifas'] });
   };
 
   return (
     <div className="space-y-4">
-      <Tabs defaultValue="localidades">
-        <TabsList className="w-full grid grid-cols-4">
+      <Tabs defaultValue="tarifas">
+        <TabsList className="w-full grid grid-cols-5">
+          <TabsTrigger value="tarifas" className="gap-1 text-xs">
+            <Tag className="w-3.5 h-3.5" /> Tarifas
+          </TabsTrigger>
           <TabsTrigger value="localidades" className="gap-1 text-xs">
             <TreePine className="w-3.5 h-3.5" /> Localidades
           </TabsTrigger>
@@ -108,6 +122,10 @@ const AdminPricing: React.FC = () => {
             <Calculator className="w-3.5 h-3.5" /> Simulador
           </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="tarifas">
+          <TarifasTab config={configTarifas ?? null} loading={loadingConfig} onRefresh={refreshAll} />
+        </TabsContent>
 
         <TabsContent value="localidades">
           <LocalidadesTab localidades={localidades} loading={loadingLoc} onRefresh={refreshAll} />
@@ -129,6 +147,212 @@ const AdminPricing: React.FC = () => {
           <SimuladorTab localidades={localidades} />
         </TabsContent>
       </Tabs>
+    </div>
+  );
+};
+
+// ══════════════════════════════════════════════════════════
+// TAB 0: CONFIGURAÇÃO DE TARIFAS
+// ══════════════════════════════════════════════════════════
+const TarifasTab: React.FC<{
+  config: (ConfigTarifas & { created_at?: string; updated_at?: string }) | null;
+  loading: boolean;
+  onRefresh: () => void;
+}> = ({ config, loading, onRefresh }) => {
+  const { toast } = useToast();
+  const [form, setForm] = useState({
+    tarifa_minima: '',
+    tarifa_base_km: '',
+    taxa_bagagem: '',
+    bandeirada: '',
+  });
+  const [hasChanges, setHasChanges] = useState(false);
+
+  // Sync form with loaded config
+  React.useEffect(() => {
+    if (config) {
+      setForm({
+        tarifa_minima: String(config.tarifa_minima ?? 0),
+        tarifa_base_km: String(config.tarifa_base_km ?? 0),
+        taxa_bagagem: String(config.taxa_bagagem ?? 5),
+        bandeirada: String(config.bandeirada ?? 0),
+      });
+      setHasChanges(false);
+    }
+  }, [config]);
+
+  const updateField = (field: string, value: string) => {
+    setForm(f => ({ ...f, [field]: value }));
+    setHasChanges(true);
+  };
+
+  const saveMutation = useMutation({
+    mutationFn: async () => {
+      const payload = {
+        tarifa_minima: parseFloat(form.tarifa_minima) || 0,
+        tarifa_base_km: parseFloat(form.tarifa_base_km) || 0,
+        taxa_bagagem: parseFloat(form.taxa_bagagem) || 0,
+        bandeirada: parseFloat(form.bandeirada) || 0,
+        updated_at: new Date().toISOString(),
+      };
+
+      if (config?.id) {
+        const { error } = await supabase.from('config_tarifas').update(payload).eq('id', config.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from('config_tarifas').insert({ ...payload, ativo: true });
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      toast({ title: 'Configuração salva!' });
+      onRefresh();
+      setHasChanges(false);
+    },
+    onError: (e: any) => toast({ title: 'Erro ao salvar', description: e?.message, variant: 'destructive' }),
+  });
+
+  if (loading) {
+    return <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin" /></div>;
+  }
+
+  const tarifaConfigs = [
+    {
+      key: 'tarifa_minima',
+      label: 'Tarifa Mínima',
+      desc: 'Valor mínimo cobrado em qualquer corrida, independente da distância.',
+      icon: <DollarSign className="w-4 h-4" />,
+      prefix: 'R$',
+      placeholder: '0.00',
+      color: 'text-green-400',
+      bgColor: 'bg-green-500/10 border-green-500/20',
+    },
+    {
+      key: 'bandeirada',
+      label: 'Bandeirada',
+      desc: 'Taxa fixa cobrada no início de cada corrida (somada ao preço da rota).',
+      icon: <Zap className="w-4 h-4" />,
+      prefix: 'R$',
+      placeholder: '0.00',
+      color: 'text-yellow-400',
+      bgColor: 'bg-yellow-500/10 border-yellow-500/20',
+    },
+    {
+      key: 'tarifa_base_km',
+      label: 'Tarifa por Km',
+      desc: 'Valor cobrado por quilômetro rodado (usado quando não há preço fixo de rota).',
+      icon: <Map className="w-4 h-4" />,
+      prefix: 'R$/km',
+      placeholder: '0.00',
+      color: 'text-blue-400',
+      bgColor: 'bg-blue-500/10 border-blue-500/20',
+    },
+    {
+      key: 'taxa_bagagem',
+      label: 'Taxa de Bagagem/Feira',
+      desc: 'Valor adicional cobrado quando o passageiro leva feira ou bagagem grande.',
+      icon: <Layers className="w-4 h-4" />,
+      prefix: 'R$',
+      placeholder: '5.00',
+      color: 'text-purple-400',
+      bgColor: 'bg-purple-500/10 border-purple-500/20',
+    },
+  ];
+
+  return (
+    <div className="space-y-4">
+      <div className="text-center space-y-1 py-2">
+        <Tag className="w-8 h-8 text-accent mx-auto" />
+        <h3 className="font-semibold text-sm">Configuração de Tarifas</h3>
+        <p className="text-xs text-muted-foreground">Defina os valores globais que se aplicam a todas as corridas</p>
+      </div>
+
+      <div className="space-y-3">
+        {tarifaConfigs.map(cfg => (
+          <Card key={cfg.key} className={`border ${cfg.bgColor}`}>
+            <CardContent className="py-4">
+              <div className="flex items-start gap-4">
+                <div className={`mt-1 ${cfg.color}`}>{cfg.icon}</div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <p className={`text-sm font-semibold ${cfg.color}`}>{cfg.label}</p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">{cfg.desc}</p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="text-xs text-muted-foreground font-medium">{cfg.prefix}</span>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={(form as any)[cfg.key]}
+                        onChange={e => updateField(cfg.key, e.target.value)}
+                        placeholder={cfg.placeholder}
+                        className="w-28 text-right font-semibold"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Preview */}
+      <Card className="bg-muted/30">
+        <CardContent className="py-4">
+          <p className="text-xs text-muted-foreground font-medium mb-3">PREVIEW DO CÁLCULO</p>
+          <div className="grid grid-cols-2 gap-3 text-xs">
+            <div className="space-y-1">
+              <p className="text-muted-foreground">Corrida exemplo: Rota R$ 15,00</p>
+              <div className="space-y-0.5 text-muted-foreground">
+                <div className="flex justify-between">
+                  <span>Bandeirada</span>
+                  <span>+ R$ {(parseFloat(form.bandeirada) || 0).toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Base</span>
+                  <span>R$ {(15 + (parseFloat(form.bandeirada) || 0)).toFixed(2)}</span>
+                </div>
+                <Separator className="my-1" />
+                <div className="flex justify-between font-semibold text-foreground">
+                  <span>Total estimado</span>
+                  <span>R$ {Math.max(15 + (parseFloat(form.bandeirada) || 0), parseFloat(form.tarifa_minima) || 0).toFixed(2)}</span>
+                </div>
+              </div>
+            </div>
+            <div className="space-y-1">
+              <p className="text-muted-foreground">Se for menor que mínima:</p>
+              <div className="flex items-center gap-2 mt-2">
+                <AlertTriangle className="w-3.5 h-3.5 text-yellow-400" />
+                <span className="text-yellow-400 font-medium">
+                  {(parseFloat(form.tarifa_minima) || 0) > 0
+                    ? `Cobra no mínimo R$ ${(parseFloat(form.tarifa_minima) || 0).toFixed(2)}`
+                    : 'Sem tarifa mínima definida'}
+                </span>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Button
+        onClick={() => saveMutation.mutate()}
+        disabled={saveMutation.isPending || !hasChanges}
+        className="w-full gap-2"
+        size="lg"
+      >
+        {saveMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+        <Save className="w-4 h-4" />
+        Salvar Configuração
+      </Button>
+
+      {config?.updated_at && (
+        <p className="text-[10px] text-muted-foreground text-center">
+          Última atualização: {new Date(config.updated_at).toLocaleString('pt-BR')}
+        </p>
+      )}
     </div>
   );
 };
@@ -722,7 +946,7 @@ const HorariosTab: React.FC<{
   const [showDialog, setShowDialog] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState({
-    nome: '', hora_inicio: '', hora_fim: '', tipo_ajuste: 'percentual' as 'percentual' | 'fixo', valor_ajuste: '',
+    nome: '', hora_inicio: '', hora_fim: '', valor_ajuste: '',
   });
   const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; nome: string } | null>(null);
 
@@ -738,7 +962,7 @@ const HorariosTab: React.FC<{
         nome: form.nome.trim(),
         hora_inicio: fmtTime(form.hora_inicio),
         hora_fim: fmtTime(form.hora_fim),
-        tipo_ajuste: form.tipo_ajuste,
+        tipo_ajuste: 'percentual',
         valor_ajuste: parseFloat(form.valor_ajuste) || 0,
         ativo: true,
       };
@@ -782,7 +1006,7 @@ const HorariosTab: React.FC<{
   });
 
   const resetForm = () => {
-    setForm({ nome: '', hora_inicio: '', hora_fim: '', tipo_ajuste: 'percentual', valor_ajuste: '' });
+    setForm({ nome: '', hora_inicio: '', hora_fim: '', valor_ajuste: '' });
     setEditingId(null);
   };
 
@@ -792,7 +1016,6 @@ const HorariosTab: React.FC<{
       nome: r.nome,
       hora_inicio: r.hora_inicio.substring(0, 5),
       hora_fim: r.hora_fim.substring(0, 5),
-      tipo_ajuste: r.tipo_ajuste,
       valor_ajuste: String(r.valor_ajuste),
     });
     setShowDialog(true);
@@ -877,10 +1100,8 @@ const HorariosTab: React.FC<{
                       </div>
                       <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
                         <span>{r.hora_inicio.substring(0, 5)} – {r.hora_fim.substring(0, 5)}</span>
-                        <Badge variant="outline" className={`text-[10px] ${
-                          r.tipo_ajuste === 'percentual' ? 'text-yellow-400 border-yellow-500/30' : 'text-green-400 border-green-500/30'
-                        }`}>
-                          {r.tipo_ajuste === 'percentual' ? `+${r.valor_ajuste}%` : `+R$${Number(r.valor_ajuste).toFixed(2)}`}
+                        <Badge variant="outline" className="text-[10px] text-yellow-400 border-yellow-500/30">
+                          +{r.valor_ajuste}%
                         </Badge>
                       </div>
                     </div>
@@ -929,29 +1150,20 @@ const HorariosTab: React.FC<{
                 <Input type="time" value={form.hora_fim} onChange={e => setForm(f => ({ ...f, hora_fim: e.target.value }))} />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label className="text-xs">Tipo de Ajuste</Label>
-                <Select value={form.tipo_ajuste} onValueChange={v => setForm(f => ({ ...f, tipo_ajuste: v as any }))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="percentual">📊 Percentual (%)</SelectItem>
-                    <SelectItem value="fixo">💰 Valor Fixo (R$)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label className="text-xs">Valor do Ajuste</Label>
-                <Input type="number" step="0.01" value={form.valor_ajuste}
-                  onChange={e => setForm(f => ({ ...f, valor_ajuste: e.target.value }))}
-                  placeholder={form.tipo_ajuste === 'percentual' ? 'Ex: 20' : 'Ex: 5.00'} />
-              </div>
+            <div>
+              <Label className="text-xs">Percentual de Ajuste (%)</Label>
+              <Input type="number" step="0.01" value={form.valor_ajuste}
+                onChange={e => setForm(f => ({ ...f, valor_ajuste: e.target.value }))}
+                placeholder="Ex: 20 (para +20%)" />
+              <p className="text-[10px] text-muted-foreground mt-1">
+                O valor será acrescido como porcentagem sobre o preço base da corrida.
+              </p>
             </div>
             {form.hora_inicio && form.hora_fim && form.valor_ajuste && (
               <div className="bg-accent/10 border border-accent/20 rounded-lg p-3 text-sm">
                 <Zap className="w-3.5 h-3.5 inline mr-1 text-accent" />
                 Preview: <strong>{form.nome || 'Regra'}</strong> das {form.hora_inicio} às {form.hora_fim}{' '}
-                → {form.tipo_ajuste === 'percentual' ? `+${form.valor_ajuste}%` : `+R$${parseFloat(form.valor_ajuste || '0').toFixed(2)}`}
+                → <strong>+{form.valor_ajuste}%</strong> sobre o valor da corrida
               </div>
             )}
           </div>

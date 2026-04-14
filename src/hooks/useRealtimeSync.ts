@@ -44,6 +44,11 @@ export function useRealtimeSync() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'regras_horario' }, () => {
         qc.invalidateQueries({ queryKey: ['pricing-regras'] });
       })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'config_tarifas' }, () => {
+        qc.invalidateQueries({ queryKey: ['config-tarifas'] });
+        qc.invalidateQueries({ queryKey: ['config-tarifas-form'] });
+        qc.invalidateQueries({ queryKey: ['config-tarifas-driver'] });
+      })
       .subscribe();
 
     return () => {

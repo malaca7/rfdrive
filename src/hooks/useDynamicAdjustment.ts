@@ -25,10 +25,7 @@ export function useDynamicAdjustment(): DynamicAdjustment | null {
 
   if (!regra) return null;
 
-  const label =
-    regra.tipo_ajuste === 'percentual'
-      ? `+${regra.valor_ajuste}% ${regra.nome}`
-      : `+R$ ${regra.valor_ajuste.toFixed(2)} ${regra.nome}`;
+  const label = `+${regra.valor_ajuste}% ${regra.nome}`;
 
   return {
     regra,
