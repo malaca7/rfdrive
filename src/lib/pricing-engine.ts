@@ -81,30 +81,41 @@ let regrasHorarioCache: RegraHorario[] | null = null;
 let cacheTimestamp = 0;
 const CACHE_TTL = 60_000; // 1 min
 
-export async function invalidatePricingCache() {
+export function invalidatePricingCache() {
   localidadesCache = null;
   precosRotasCache = null;
   regrasHorarioCache = null;
   cacheTimestamp = 0;
+  loadDataPromise = null;
 }
+
+// Dedup in-flight requests
+let loadDataPromise: Promise<{ localidades: Localidade[]; precos: PrecoRota[]; regras: RegraHorario[] }> | null = null;
 
 async function loadData() {
   if (localidadesCache && precosRotasCache && regrasHorarioCache && Date.now() - cacheTimestamp < CACHE_TTL) {
     return { localidades: localidadesCache, precos: precosRotasCache, regras: regrasHorarioCache };
   }
 
-  const [locRes, precRes, regRes] = await Promise.allSettled([
-    supabase.from('localidades').select('*').eq('ativo', true),
-    supabase.from('precos_rotas').select('*').eq('ativo', true),
-    supabase.from('regras_horario').select('*').eq('ativo', true),
-  ]);
+  if (loadDataPromise) return loadDataPromise;
 
-  localidadesCache = (locRes.status === 'fulfilled' && locRes.value.data ? locRes.value.data : []) as Localidade[];
-  precosRotasCache = (precRes.status === 'fulfilled' && precRes.value.data ? precRes.value.data : []) as PrecoRota[];
-  regrasHorarioCache = (regRes.status === 'fulfilled' && regRes.value.data ? regRes.value.data : []) as RegraHorario[];
-  cacheTimestamp = Date.now();
+  loadDataPromise = (async () => {
+    const [locRes, precRes, regRes] = await Promise.allSettled([
+      supabase.from('localidades').select('*').eq('ativo', true),
+      supabase.from('precos_rotas').select('*').eq('ativo', true),
+      supabase.from('regras_horario').select('*').eq('ativo', true),
+    ]);
 
-  return { localidades: localidadesCache, precos: precosRotasCache, regras: regrasHorarioCache };
+    localidadesCache = (locRes.status === 'fulfilled' && locRes.value.data ? locRes.value.data : []) as Localidade[];
+    precosRotasCache = (precRes.status === 'fulfilled' && precRes.value.data ? precRes.value.data : []) as PrecoRota[];
+    regrasHorarioCache = (regRes.status === 'fulfilled' && regRes.value.data ? regRes.value.data : []) as RegraHorario[];
+    cacheTimestamp = Date.now();
+    loadDataPromise = null;
+
+    return { localidades: localidadesCache, precos: precosRotasCache, regras: regrasHorarioCache };
+  })();
+
+  return loadDataPromise;
 }
 
 // ── Resolve text input to best matching localidade ──

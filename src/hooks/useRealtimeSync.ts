@@ -24,6 +24,9 @@ export function useRealtimeSync() {
         qc.invalidateQueries({ queryKey: ['my-active-rides'] });
         qc.invalidateQueries({ queryKey: ['my-completed-rides'] });
         qc.invalidateQueries({ queryKey: ['my-rides'] });
+        qc.invalidateQueries({ queryKey: ['active-ride'] });
+        qc.invalidateQueries({ queryKey: ['last-completed-ride'] });
+        qc.invalidateQueries({ queryKey: ['motorista-info'] });
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, () => {
         qc.invalidateQueries({ queryKey: ['admin-users'] });

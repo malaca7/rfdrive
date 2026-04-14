@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, Suspense } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -20,10 +20,6 @@ import {
 } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
 import AppShell from '@/components/AppShell';
-import AdminPricing from '@/components/AdminPricing';
-import AdminTabelaPrecos from '@/components/AdminTabelaPrecos';
-import AdminStatsDashboard from '@/components/AdminStatsDashboard';
-import AdminMotoristas from '@/components/AdminMotoristas';
 import { motion } from 'framer-motion';
 import {
   MapPin, Navigation, Clock, CheckCircle, XCircle,
@@ -34,6 +30,18 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { buscarPrecoTabela } from '@/lib/tabela-preco';
+
+// Lazy-load heavy admin sub-components (each ~500-1000 lines)
+const AdminPricing = React.lazy(() => import('@/components/AdminPricing'));
+const AdminTabelaPrecos = React.lazy(() => import('@/components/AdminTabelaPrecos'));
+const AdminStatsDashboard = React.lazy(() => import('@/components/AdminStatsDashboard'));
+const AdminMotoristas = React.lazy(() => import('@/components/AdminMotoristas'));
+
+const TabLoader = () => (
+  <div className="flex items-center justify-center py-12">
+    <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+  </div>
+);
 
 type Solicitacao = {
   id: string;
@@ -588,7 +596,9 @@ const AdminDashboard: React.FC = () => {
                 <Loader2 className="w-6 h-6 animate-spin text-accent" />
               </div>
             ) : (
-              <AdminStatsDashboard rides={rides || []} users={users || []} />
+              <Suspense fallback={<TabLoader />}>
+                <AdminStatsDashboard rides={rides || []} users={users || []} />
+              </Suspense>
             )}
           </TabsContent>
 
@@ -963,7 +973,9 @@ const AdminDashboard: React.FC = () => {
 
           {/* ═══════════════════════════════ MOTORISTAS TAB ═══════════════════════════════ */}
           <TabsContent value="motoristas">
-            <AdminMotoristas users={users || []} rides={rides || []} loading={loadingUsers || loadingRides} />
+            <Suspense fallback={<TabLoader />}>
+              <AdminMotoristas users={users || []} rides={rides || []} loading={loadingUsers || loadingRides} />
+            </Suspense>
           </TabsContent>
 
           {/* ═══════════════════════════════ PRECIFICAÇÃO TAB ═══════════════════════════════ */}
@@ -978,10 +990,14 @@ const AdminDashboard: React.FC = () => {
                 </TabsTrigger>
               </TabsList>
               <TabsContent value="tabela_rf">
-                <AdminTabelaPrecos />
+                <Suspense fallback={<TabLoader />}>
+                  <AdminTabelaPrecos />
+                </Suspense>
               </TabsContent>
               <TabsContent value="precificacao_dinamica">
-                <AdminPricing />
+                <Suspense fallback={<TabLoader />}>
+                  <AdminPricing />
+                </Suspense>
               </TabsContent>
             </Tabs>
           </TabsContent>

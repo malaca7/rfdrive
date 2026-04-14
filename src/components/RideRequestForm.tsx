@@ -90,7 +90,6 @@ const RideRequestForm: React.FC = () => {
       return data;
     },
     enabled: !!user,
-    refetchInterval: 3000,
   });
 
   // ── Fetch motorista info when ride is accepted ──
@@ -127,7 +126,6 @@ const RideRequestForm: React.FC = () => {
       return null;
     },
     enabled: !!user && !activeRide,
-    refetchInterval: 5000,
   });
 
   const { data: existingRating } = useQuery({

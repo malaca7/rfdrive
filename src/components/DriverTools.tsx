@@ -1,5 +1,4 @@
 import React, { useState, useMemo, useRef, useCallback } from 'react';
-import html2canvas from 'html2canvas';
 import Cropper, { Area } from 'react-easy-crop';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
@@ -553,6 +552,7 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
     if (!badgeRef.current) return;
 
     try {
+      const { default: html2canvas } = await import('html2canvas');
       const canvas = await html2canvas(badgeRef.current, {
         scale: 3,
         backgroundColor: '#000000',
