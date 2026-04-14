@@ -698,67 +698,126 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
             </div>
           </div>
 
-          {/* Vehicle (compact) */}
+          {/* Vehicle illustration + info */}
           {hasVehicle && (
             <div style={{
-              background: 'rgba(212,175,55,0.04)', borderRadius: '10px', padding: '10px 12px',
+              background: 'rgba(212,175,55,0.04)', borderRadius: '12px', padding: '12px',
               border: '1px solid rgba(212,175,55,0.15)', marginBottom: '12px',
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div>
-                  <div style={{ fontSize: '12px', fontWeight: '600', color: '#e0e0e0' }}>
+              {/* Car illustration SVG */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '10px' }}>
+                <div style={{
+                  width: '64px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  flexShrink: 0,
+                }}>
+                  <svg width="60" height="36" viewBox="0 0 120 72" fill="none">
+                    {/* Car body */}
+                    <path d="M20 44 L30 24 C32 20 36 18 40 18 L80 18 C84 18 88 20 90 24 L100 44" stroke="#d4af37" strokeWidth="2" fill="rgba(212,175,55,0.08)" strokeLinejoin="round"/>
+                    <rect x="10" y="44" width="100" height="18" rx="4" stroke="#d4af37" strokeWidth="2" fill="rgba(212,175,55,0.06)"/>
+                    {/* Windows */}
+                    <path d="M35 24 L42 42 L60 42 L60 24 Z" fill="rgba(212,175,55,0.12)" stroke="#d4af37" strokeWidth="1" strokeOpacity="0.5"/>
+                    <path d="M65 24 L60 24 L60 42 L80 42 L85 24 Z" fill="rgba(212,175,55,0.12)" stroke="#d4af37" strokeWidth="1" strokeOpacity="0.5"/>
+                    {/* Headlights */}
+                    <rect x="12" y="48" width="12" height="5" rx="2" fill="#f97316" fillOpacity="0.6"/>
+                    <rect x="96" y="48" width="12" height="5" rx="2" fill="#ef4444" fillOpacity="0.5"/>
+                    {/* Wheels */}
+                    <circle cx="30" cy="62" r="9" stroke="#d4af37" strokeWidth="2" fill="#1a1a1a"/>
+                    <circle cx="30" cy="62" r="4" stroke="#d4af37" strokeWidth="1" fill="none"/>
+                    <circle cx="90" cy="62" r="9" stroke="#d4af37" strokeWidth="2" fill="#1a1a1a"/>
+                    <circle cx="90" cy="62" r="4" stroke="#d4af37" strokeWidth="1" fill="none"/>
+                  </svg>
+                </div>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: '13px', fontWeight: '700', color: '#e8e8e8', lineHeight: '1.2' }}>
                     {[profile.veiculo_marca, profile.veiculo_modelo].filter(Boolean).join(' ')}
                   </div>
-                  <div style={{ fontSize: '10px', color: '#888', marginTop: '1px' }}>
-                    {[profile.veiculo_cor, profile.veiculo_placa].filter(Boolean).join(' • ')}
+                  {profile.veiculo_cor && (
+                    <div style={{ fontSize: '10px', color: '#999', marginTop: '2px' }}>
+                      {profile.veiculo_cor}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Mercosul plate */}
+              {profile.veiculo_placa && (
+                <div style={{ display: 'flex', justifyContent: 'center' }}>
+                  <div style={{
+                    width: '160px',
+                    background: '#ffffff',
+                    borderRadius: '6px',
+                    border: '2px solid #ccc',
+                    overflow: 'hidden',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
+                  }}>
+                    {/* Blue top strip (Mercosul) */}
+                    <div style={{
+                      background: 'linear-gradient(90deg, #003399, #0044aa)',
+                      height: '18px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '4px',
+                      padding: '0 8px',
+                    }}>
+                      {/* BR flag mini */}
+                      <div style={{
+                        width: '12px', height: '8px', borderRadius: '1px',
+                        background: '#009c3b', position: 'relative' as const, overflow: 'hidden', flexShrink: 0,
+                      }}>
+                        <div style={{
+                          position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%) rotate(0deg)',
+                          width: '10px', height: '6px',
+                          background: '#ffdf00',
+                          clipPath: 'polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)',
+                        }} />
+                      </div>
+                      <span style={{ fontSize: '7px', fontWeight: '700', color: '#ffffff', letterSpacing: '1px' }}>
+                        BRASIL
+                      </span>
+                    </div>
+                    {/* Plate characters */}
+                    <div style={{
+                      padding: '4px 0 6px',
+                      textAlign: 'center' as const,
+                    }}>
+                      <span style={{
+                        fontSize: '28px',
+                        fontWeight: '900',
+                        color: '#1a1a1a',
+                        fontFamily: "'FE-Schrift', 'Roboto Condensed', 'Arial Narrow', monospace",
+                        letterSpacing: '3px',
+                        lineHeight: '1',
+                      }}>
+                        {profile.veiculo_placa}
+                      </span>
+                    </div>
                   </div>
                 </div>
-                {profile.veiculo_placa && (
-                  <div style={{
-                    background: '#1a1a1a', border: '1px solid #d4af37', borderRadius: '6px',
-                    padding: '3px 8px', fontSize: '11px', fontWeight: '700',
-                    color: '#d4af37', fontFamily: 'monospace', letterSpacing: '1px',
-                  }}>
-                    {profile.veiculo_placa}
-                  </div>
-                )}
-              </div>
+              )}
             </div>
           )}
 
-          {/* Stats row */}
-          <div style={{ display: 'flex', gap: '6px' }}>
+          {/* Status badge */}
+          <div style={{
+            display: 'flex', justifyContent: 'center', marginBottom: '4px',
+          }}>
             <div style={{
-              flex: 1, background: 'rgba(212,175,55,0.05)', border: '1px solid rgba(212,175,55,0.12)', borderRadius: '8px',
-              padding: '8px 0', textAlign: 'center' as const,
+              background: profile.status === 'ativo' ? 'rgba(74,222,128,0.1)' : 'rgba(239,68,68,0.1)',
+              border: `1px solid ${profile.status === 'ativo' ? 'rgba(74,222,128,0.3)' : 'rgba(239,68,68,0.3)'}`,
+              borderRadius: '20px',
+              padding: '4px 16px',
+              fontSize: '11px',
+              fontWeight: '700',
+              color: profile.status === 'ativo' ? '#4ade80' : '#ef4444',
+              letterSpacing: '0.5px',
             }}>
-              <div style={{ fontSize: '16px', fontWeight: '800', color: '#d4af37' }}>{completedCount}</div>
-              <div style={{ fontSize: '8px', color: '#777', textTransform: 'uppercase' as const, letterSpacing: '0.5px' }}>corridas</div>
-            </div>
-            <div style={{
-              flex: 1, background: 'rgba(212,175,55,0.05)', border: '1px solid rgba(212,175,55,0.12)', borderRadius: '8px',
-              padding: '8px 0', textAlign: 'center' as const,
-            }}>
-              <div style={{ fontSize: '16px', fontWeight: '800', color: '#facc15' }}>
-                {avgRating ? `${avgRating.avg}` : '—'}
-              </div>
-              <div style={{ fontSize: '8px', color: '#777', textTransform: 'uppercase' as const, letterSpacing: '0.5px' }}>
-                {avgRating ? `${avgRating.count} aval.` : 'sem aval.'}
-              </div>
-            </div>
-            <div style={{
-              flex: 1, background: 'rgba(212,175,55,0.05)', border: '1px solid rgba(212,175,55,0.12)', borderRadius: '8px',
-              padding: '8px 0', textAlign: 'center' as const,
-            }}>
-              <div style={{ fontSize: '12px', fontWeight: '700', color: profile.status === 'ativo' ? '#4ade80' : '#ef4444' }}>
-                {profile.status === 'ativo' ? '● Ativo' : '● ' + profile.status}
-              </div>
-              <div style={{ fontSize: '8px', color: '#777', textTransform: 'uppercase' as const, letterSpacing: '0.5px' }}>status</div>
+              {profile.status === 'ativo' ? '● Ativo' : '● ' + profile.status}
             </div>
           </div>
 
           {/* Bottom gold line + ID */}
-          <div style={{ marginTop: '12px' }}>
+          <div style={{ marginTop: '10px' }}>
             <div style={{ height: '1px', background: 'linear-gradient(90deg, transparent, rgba(212,175,55,0.3), transparent)', marginBottom: '8px' }} />
             <div style={{ textAlign: 'center' as const }}>
               <span style={{ fontSize: '8px', color: '#6b6040', fontFamily: 'monospace', letterSpacing: '1.5px' }}>
