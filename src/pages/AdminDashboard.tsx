@@ -461,10 +461,6 @@ const AdminDashboard: React.FC = () => {
     if (editUserForm.senha.trim()) {
       updates.senha = editUserForm.senha.trim();
     }
-    if (editUserForm.veiculo_marca.trim()) updates.veiculo_marca = editUserForm.veiculo_marca.trim();
-    if (editUserForm.veiculo_modelo.trim()) updates.veiculo_modelo = editUserForm.veiculo_modelo.trim();
-    if (editUserForm.veiculo_cor.trim()) updates.veiculo_cor = editUserForm.veiculo_cor.trim();
-    if (editUserForm.veiculo_placa.trim()) updates.veiculo_placa = editUserForm.veiculo_placa.trim();
     updateUserMutation.mutate({ userId: selectedUser.id, updates });
   };
 
@@ -1204,7 +1200,6 @@ const AdminDashboard: React.FC = () => {
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="cliente">👤 Cliente</SelectItem>
-                    <SelectItem value="motorista">🚗 Motorista</SelectItem>
                     <SelectItem value="admin">🛡️ Admin</SelectItem>
                   </SelectContent>
                 </Select>
@@ -1212,9 +1207,9 @@ const AdminDashboard: React.FC = () => {
               <div>
                 <Label className="text-xs">Funções / Acessos</Label>
                 <div className="flex flex-col gap-2 mt-1.5">
-                  {(['cliente', 'motorista', 'admin'] as const).map((r) => {
+                  {(['cliente', 'admin'] as const).map((r) => {
                     const checked = editUserForm.roles.includes(r);
-                    const labels: Record<string, string> = { cliente: '👤 Cliente', motorista: '🚗 Motorista', admin: '🛡️ Admin' };
+                    const labels: Record<string, string> = { cliente: '👤 Cliente', admin: '🛡️ Admin' };
                     return (
                       <label key={r} className="flex items-center gap-2 cursor-pointer">
                         <input
@@ -1256,46 +1251,6 @@ const AdminDashboard: React.FC = () => {
                 placeholder="Deixe em branco para manter"
               />
             </div>
-
-            {/* Vehicle fields - shown for motorista */}
-            {editUserForm.roles.includes('motorista') && (
-              <div className="space-y-2 border border-border rounded-lg p-3">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Veículo do Motorista</p>
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <Label className="text-xs">Marca</Label>
-                    <Select value={editUserForm.veiculo_marca} onValueChange={(v) => setEditUserForm(f => ({ ...f, veiculo_marca: v, veiculo_modelo: '' }))}>
-                      <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                      <SelectContent>
-                        {VEHICLE_BRANDS.map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label className="text-xs">Modelo</Label>
-                    <Select value={editUserForm.veiculo_modelo} onValueChange={(v) => setEditUserForm(f => ({ ...f, veiculo_modelo: v }))}>
-                      <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                      <SelectContent>
-                        {(VEHICLE_MODELS[editUserForm.veiculo_marca] || []).map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label className="text-xs">Cor</Label>
-                    <Select value={editUserForm.veiculo_cor} onValueChange={(v) => setEditUserForm(f => ({ ...f, veiculo_cor: v }))}>
-                      <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                      <SelectContent>
-                        {VEHICLE_COLORS.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label className="text-xs">Placa</Label>
-                    <Input value={editUserForm.veiculo_placa} onChange={(e) => setEditUserForm(f => ({ ...f, veiculo_placa: e.target.value.toUpperCase() }))} placeholder="Ex: ABC-1D23" maxLength={8} />
-                  </div>
-                </div>
-              </div>
-            )}
 
             {selectedUser && (
               <div className="bg-muted/50 rounded-lg p-3 text-xs text-muted-foreground space-y-1">
