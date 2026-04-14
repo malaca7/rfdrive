@@ -698,45 +698,44 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
             </div>
           </div>
 
-          {/* Vehicle illustration + info */}
+          {/* Vehicle photo + info */}
           {hasVehicle && (
             <div style={{
               background: 'rgba(212,175,55,0.04)', borderRadius: '12px', padding: '12px',
               border: '1px solid rgba(212,175,55,0.15)', marginBottom: '12px',
             }}>
-              {/* Car illustration SVG */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '10px' }}>
+              {/* Car photo from imagin.studio */}
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '8px' }}>
                 <div style={{
-                  width: '64px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  flexShrink: 0,
+                  width: '180px', height: '90px', borderRadius: '8px', overflow: 'hidden',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  background: 'rgba(0,0,0,0.3)',
                 }}>
-                  <svg width="60" height="36" viewBox="0 0 120 72" fill="none">
-                    {/* Car body */}
-                    <path d="M20 44 L30 24 C32 20 36 18 40 18 L80 18 C84 18 88 20 90 24 L100 44" stroke="#d4af37" strokeWidth="2" fill="rgba(212,175,55,0.08)" strokeLinejoin="round"/>
-                    <rect x="10" y="44" width="100" height="18" rx="4" stroke="#d4af37" strokeWidth="2" fill="rgba(212,175,55,0.06)"/>
-                    {/* Windows */}
-                    <path d="M35 24 L42 42 L60 42 L60 24 Z" fill="rgba(212,175,55,0.12)" stroke="#d4af37" strokeWidth="1" strokeOpacity="0.5"/>
-                    <path d="M65 24 L60 24 L60 42 L80 42 L85 24 Z" fill="rgba(212,175,55,0.12)" stroke="#d4af37" strokeWidth="1" strokeOpacity="0.5"/>
-                    {/* Headlights */}
-                    <rect x="12" y="48" width="12" height="5" rx="2" fill="#f97316" fillOpacity="0.6"/>
-                    <rect x="96" y="48" width="12" height="5" rx="2" fill="#ef4444" fillOpacity="0.5"/>
-                    {/* Wheels */}
-                    <circle cx="30" cy="62" r="9" stroke="#d4af37" strokeWidth="2" fill="#1a1a1a"/>
-                    <circle cx="30" cy="62" r="4" stroke="#d4af37" strokeWidth="1" fill="none"/>
-                    <circle cx="90" cy="62" r="9" stroke="#d4af37" strokeWidth="2" fill="#1a1a1a"/>
-                    <circle cx="90" cy="62" r="4" stroke="#d4af37" strokeWidth="1" fill="none"/>
-                  </svg>
-                </div>
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: '13px', fontWeight: '700', color: '#e8e8e8', lineHeight: '1.2' }}>
-                    {[profile.veiculo_marca, profile.veiculo_modelo].filter(Boolean).join(' ')}
+                  <img
+                    src={`https://cdn.imagin.studio/getimage?customer=hrjavascript-mastery&make=${encodeURIComponent(profile.veiculo_marca || '')}&modelFamily=${encodeURIComponent(profile.veiculo_modelo || '')}&paintId=pspc0001&angle=01`}
+                    alt={`${profile.veiculo_marca} ${profile.veiculo_modelo}`}
+                    style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; (e.target as HTMLImageElement).nextElementSibling && ((e.target as HTMLImageElement).parentElement!.querySelector('.car-fallback') as HTMLElement)?.style.setProperty('display', 'flex'); }}
+                  />
+                  <div className="car-fallback" style={{ display: 'none', width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center', position: 'absolute' as const }}>
+                    <svg width="60" height="36" viewBox="0 0 120 72" fill="none">
+                      <path d="M20 44 L30 24 C32 20 36 18 40 18 L80 18 C84 18 88 20 90 24 L100 44" stroke="#d4af37" strokeWidth="2" fill="rgba(212,175,55,0.08)" strokeLinejoin="round"/>
+                      <rect x="10" y="44" width="100" height="18" rx="4" stroke="#d4af37" strokeWidth="2" fill="rgba(212,175,55,0.06)"/>
+                      <circle cx="30" cy="62" r="9" stroke="#d4af37" strokeWidth="2" fill="#1a1a1a"/>
+                      <circle cx="90" cy="62" r="9" stroke="#d4af37" strokeWidth="2" fill="#1a1a1a"/>
+                    </svg>
                   </div>
-                  {profile.veiculo_cor && (
-                    <div style={{ fontSize: '10px', color: '#999', marginTop: '2px' }}>
-                      {profile.veiculo_cor}
-                    </div>
-                  )}
                 </div>
+              </div>
+              <div style={{ textAlign: 'center' as const }}>
+                <div style={{ fontSize: '13px', fontWeight: '700', color: '#e8e8e8', lineHeight: '1.2' }}>
+                  {[profile.veiculo_marca, profile.veiculo_modelo].filter(Boolean).join(' ')}
+                </div>
+                {profile.veiculo_cor && (
+                  <div style={{ fontSize: '10px', color: '#999', marginTop: '2px' }}>
+                    {profile.veiculo_cor}
+                  </div>
+                )}
               </div>
 
               {/* Mercosul plate */}
