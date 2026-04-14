@@ -733,27 +733,39 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
               </div>
             </div>
 
-            {/* Vehicle info + Mercosul plate */}
+            {/* Vehicle info: car image left + info/plate right */}
             {hasVehicle && (
-              <div style={{ marginBottom: '12px' }}>
-                <div style={{ textAlign: 'center' as const, marginBottom: '10px' }}>
+              <div style={{ marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                {/* Car image (left) */}
+                <div style={{ flexShrink: 0, width: '120px', height: '80px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <img
+                    src={`https://cdn.imagin.studio/getimage?customer=hrjavascript-mastery&make=${encodeURIComponent(profile.veiculo_marca || '')}&modelFamily=${encodeURIComponent(profile.veiculo_modelo || '')}&paintId=pspc0001&angle=01&width=400`}
+                    alt=""
+                    crossOrigin="anonymous"
+                    style={{
+                      maxWidth: '100%', maxHeight: '100%', objectFit: 'contain',
+                      filter: 'brightness(1.1) drop-shadow(0 2px 8px rgba(212,175,55,0.2))',
+                    }}
+                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                  />
+                </div>
+                {/* Info + plate (right) */}
+                <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: '13px', fontWeight: '700', color: '#e8e8e8', lineHeight: '1.2' }}>
                     {[profile.veiculo_marca, profile.veiculo_modelo].filter(Boolean).join(' ')}
                   </div>
                   {profile.veiculo_cor && (
-                    <div style={{ fontSize: '10px', color: '#999', marginTop: '2px' }}>
+                    <div style={{ fontSize: '10px', color: '#999', marginTop: '2px', marginBottom: '8px' }}>
                       {profile.veiculo_cor}
                     </div>
                   )}
-                </div>
 
-                {/* Mercosul plate */}
-                {profile.veiculo_placa && (
-                  <div style={{ display: 'flex', justifyContent: 'center' }}>
+                  {/* Mercosul plate */}
+                  {profile.veiculo_placa && (
                     <div style={{
-                      width: '160px',
+                      width: '140px',
                       background: '#ffffff',
-                      borderRadius: '6px',
+                      borderRadius: '5px',
                       border: '2px solid #ccc',
                       overflow: 'hidden',
                       boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
@@ -761,40 +773,40 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
                       {/* Blue top strip (Mercosul) */}
                       <div style={{
                         background: 'linear-gradient(90deg, #003399, #0044aa)',
-                        height: '18px',
+                        height: '16px',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
                         gap: '4px',
-                        padding: '0 8px',
+                        padding: '0 6px',
                       }}>
                         <div style={{
-                          width: '12px', height: '8px', borderRadius: '1px',
+                          width: '10px', height: '7px', borderRadius: '1px',
                           background: '#009c3b', position: 'relative' as const, overflow: 'hidden', flexShrink: 0,
                         }}>
                           <div style={{
                             position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%) rotate(0deg)',
-                            width: '10px', height: '6px',
+                            width: '8px', height: '5px',
                             background: '#ffdf00',
                             clipPath: 'polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)',
                           }} />
                         </div>
-                        <span style={{ fontSize: '7px', fontWeight: '700', color: '#ffffff', letterSpacing: '1px' }}>
+                        <span style={{ fontSize: '6px', fontWeight: '700', color: '#ffffff', letterSpacing: '1px' }}>
                           BRASIL
                         </span>
                       </div>
-                      <div style={{ padding: '4px 0 6px', textAlign: 'center' as const }}>
+                      <div style={{ padding: '2px 0 4px', textAlign: 'center' as const }}>
                         <span style={{
-                          fontSize: '28px', fontWeight: '900', color: '#1a1a1a',
+                          fontSize: '22px', fontWeight: '900', color: '#1a1a1a',
                           fontFamily: "'FE-Schrift', 'Roboto Condensed', 'Arial Narrow', monospace",
-                          letterSpacing: '3px', lineHeight: '1',
+                          letterSpacing: '2px', lineHeight: '1',
                         }}>
                           {profile.veiculo_placa}
                         </span>
                       </div>
                     </div>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
             )}
 
