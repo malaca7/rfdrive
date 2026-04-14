@@ -13,6 +13,7 @@ interface UserData {
   roles: AppRole[];
   status: string;
   veiculo_placa?: string | null;
+  avatar_url?: string | null;
 }
 
 interface AuthContextType {

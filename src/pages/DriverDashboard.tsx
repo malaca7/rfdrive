@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import StarRating from '@/components/StarRating';
 import { TripCalculator, DriverBadge } from '@/components/DriverTools';
+import ProfileEditor from '@/components/ProfileEditor';
 import { useToast } from '@/hooks/use-toast';
 import { buscarPrecoTabela, normalizeText } from '@/lib/tabela-preco';
 import { usePrecoTabela, useAllLocations } from '@/hooks/usePrecoTabela';
@@ -73,6 +74,7 @@ const DriverDashboard: React.FC = () => {
   const [motivoCancelamento, setMotivoCancelamento] = useState('');
   const [driverRating, setDriverRating] = useState(0);
   const [driverComentario, setDriverComentario] = useState('');
+  const [showProfileEditor, setShowProfileEditor] = useState(false);
 
   // ── Autocomplete locations (reativo) ──
   const allLocations = useAllLocations();
@@ -195,7 +197,7 @@ const DriverDashboard: React.FC = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('users')
-        .select('id, nome, telefone, tipo, status, veiculo_marca, veiculo_modelo, veiculo_cor, veiculo_placa')
+        .select('id, nome, telefone, tipo, status, veiculo_marca, veiculo_modelo, veiculo_cor, veiculo_placa, avatar_url')
         .eq('id', user!.id)
         .single();
       if (error) throw error;
@@ -797,12 +799,28 @@ const DriverDashboard: React.FC = () => {
 
           {/* DRIVER BADGE */}
           <TabsContent value="cracha">
-            {fullProfile ? (
-              <DriverBadge
+            {showProfileEditor && fullProfile ? (
+              <ProfileEditor
                 profile={fullProfile}
-                avgRating={avgRating || null}
-                completedCount={completedRides?.length || 0}
+                onClose={() => setShowProfileEditor(false)}
+                onUpdated={() => queryClient.invalidateQueries({ queryKey: ['driver-full-profile'] })}
               />
+            ) : fullProfile ? (
+              <div className="space-y-3">
+                <DriverBadge
+                  profile={fullProfile}
+                  avgRating={avgRating || null}
+                  completedCount={completedRides?.length || 0}
+                />
+                <Button
+                  variant="outline"
+                  className="w-full h-11 rounded-xl gap-2 font-semibold"
+                  onClick={() => setShowProfileEditor(true)}
+                >
+                  <Edit3 className="w-4 h-4" />
+                  Editar Perfil
+                </Button>
+              </div>
             ) : (
               <div className="flex justify-center py-12">
                 <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
