@@ -74,10 +74,19 @@ function deriveRoles(tipo: string, dbRoles?: string[] | null): AppRole[] {
 // Determine which screens a user can access
 function getAvailableScreens(roles: AppRole[], user?: UserData | null): ScreenKey[] {
   const screens: ScreenKey[] = [];
-  if (roles.includes('cliente')) screens.push('cliente');
-  // Motorista screen requires role + vehicle registered
-  if (roles.includes('motorista') && user?.veiculo_placa) screens.push('motorista');
-  if (roles.includes('admin')) screens.push('admin');
+  const isAdmin = user?.tipo === 'admin' || roles.includes('admin');
+  
+  // Admin tem acesso a cliente e admin
+  if (isAdmin) {
+    screens.push('cliente');
+    screens.push('admin');
+  } else {
+    if (roles.includes('cliente')) screens.push('cliente');
+    // Motorista screen requires role + vehicle registered
+    if (roles.includes('motorista') && user?.veiculo_placa) screens.push('motorista');
+    if (roles.includes('admin')) screens.push('admin');
+  }
+  
   // Fallback
   if (screens.length === 0) screens.push('cliente');
   return screens;
