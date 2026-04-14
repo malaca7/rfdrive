@@ -179,10 +179,10 @@ const AdminTabelaPrecos: React.FC = () => {
   };
 
   // ── Mutations ──
-  const onMutationSuccess = (msg: string) => {
+  const onMutationSuccess = async (msg: string) => {
     toast({ title: msg });
+    await syncCacheFromSupabase();
     qc.invalidateQueries({ queryKey: ['tabela-precos'] });
-    syncCacheFromSupabase();
   };
 
   const addMutation = useMutation({

@@ -17,7 +17,7 @@ import {
 } from '@/components/ui/dialog';
 import {
   Calculator, MapPin, Navigation, DollarSign, Send, Check, Copy,
-  Car, Phone, Star, User, Shield, Clock, MessageSquare, ChevronRight, TableProperties,
+  Phone, Star, User, Shield, Clock, MessageSquare, ChevronRight, TableProperties,
   Camera, Loader2, ZoomIn, ZoomOut, AlertTriangle,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -553,11 +553,6 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
   const [zoom, setZoom] = useState(1);
   const [croppedArea, setCroppedArea] = useState<Area | null>(null);
   const [uploading, setUploading] = useState(false);
-  const [cropTarget, setCropTarget] = useState<'avatar' | 'car'>('avatar');
-
-  // ── Car photo state ──
-  const carFileInputRef = useRef<HTMLInputElement>(null);
-  const [carPhotoUrl, setCarPhotoUrl] = useState(profile.veiculo_foto || '');
 
   const onCropComplete = useCallback((_: Area, croppedAreaPixels: Area) => {
     setCroppedArea(croppedAreaPixels);
@@ -579,30 +574,6 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
       setRawImage(reader.result as string);
       setCrop({ x: 0, y: 0 });
       setZoom(1);
-      setCropTarget('avatar');
-      setShowCropDialog(true);
-    };
-    reader.readAsDataURL(file);
-    e.target.value = '';
-  };
-
-  const handleCarFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (!file.type.startsWith('image/')) {
-      toast({ title: 'Selecione uma imagem', variant: 'destructive' });
-      return;
-    }
-    if (file.size > 10 * 1024 * 1024) {
-      toast({ title: 'Imagem muito grande (máx. 10MB)', variant: 'destructive' });
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = () => {
-      setRawImage(reader.result as string);
-      setCrop({ x: 0, y: 0 });
-      setZoom(1);
-      setCropTarget('car');
       setShowCropDialog(true);
     };
     reader.readAsDataURL(file);
@@ -613,28 +584,9 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
     if (!rawImage || !croppedArea) return;
     setUploading(true);
     try {
-      if (cropTarget === 'car') {
-        // Car photo upload (landscape, PNG for transparency)
-        const blob = await getCroppedBlob(rawImage, croppedArea, 800);
-        const filePath = `veiculos/${profile.id}.png`;
-
-        const { error: uploadError } = await supabase.storage
-          .from('avatars')
-          .upload(filePath, blob, { upsert: true, contentType: 'image/png', cacheControl: '3600' });
-        if (uploadError) throw uploadError;
-
-        const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(filePath);
-        const publicUrl = `${urlData.publicUrl}?t=${Date.now()}`;
-        setCarPhotoUrl(publicUrl);
-
-        await supabase.from('users').update({ veiculo_foto: publicUrl }).eq('id', profile.id);
-        queryClient.invalidateQueries({ queryKey: ['driver-full-profile'] });
-
-        toast({ title: 'Foto do veículo atualizada!' });
-      } else {
-        // Avatar upload (square, JPEG)
-        const blob = await getCroppedBlob(rawImage, croppedArea);
-        const filePath = `avatars/${profile.id}.jpg`;
+      // Avatar upload (square, JPEG)
+      const blob = await getCroppedBlob(rawImage, croppedArea);
+      const filePath = `avatars/${profile.id}.jpg`;
 
         const { error: uploadError } = await supabase.storage
           .from('avatars')
@@ -649,7 +601,6 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
         queryClient.invalidateQueries({ queryKey: ['driver-full-profile'] });
 
         toast({ title: 'Foto atualizada!' });
-      }
       setShowCropDialog(false);
       setRawImage(null);
     } catch (err) {
@@ -716,22 +667,13 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
 
   // Hidden file inputs
   const fileInput = (
-    <>
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/*"
-        className="hidden"
-        onChange={handleFileSelect}
-      />
-      <input
-        ref={carFileInputRef}
-        type="file"
-        accept="image/*"
-        className="hidden"
-        onChange={handleCarFileSelect}
-      />
-    </>
+    <input
+      ref={fileInputRef}
+      type="file"
+      accept="image/*"
+      className="hidden"
+      onChange={handleFileSelect}
+    />
   );
 
   return (
@@ -839,28 +781,16 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
                     position: 'relative' as const,
                   }}
                 >
-                  {carPhotoUrl ? (
-                    <img
-                      src={carPhotoUrl}
-                      alt=""
-                      crossOrigin="anonymous"
-                      style={{
-                        width: '100%', maxHeight: '160px', objectFit: 'contain',
-                        filter: 'drop-shadow(0 4px 16px rgba(212,175,55,0.25))',
-                      }}
-                    />
-                  ) : (
-                    <img
-                      src={`https://cdn.imagin.studio/getimage?customer=hrjavascript-mastery&make=${encodeURIComponent(profile.veiculo_marca || '')}&modelFamily=${encodeURIComponent(profile.veiculo_modelo || '')}&paintId=pspc0001&angle=01&width=800`}
-                      alt=""
-                      crossOrigin="anonymous"
-                      style={{
-                        width: '100%', maxHeight: '140px', objectFit: 'contain',
-                        filter: 'brightness(1.15) drop-shadow(0 4px 16px rgba(212,175,55,0.25))',
-                      }}
-                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                    />
-                  )}
+                  <img
+                    src={`https://cdn.imagin.studio/getimage?customer=hrjavascript-mastery&make=${encodeURIComponent(profile.veiculo_marca || '')}&modelFamily=${encodeURIComponent(profile.veiculo_modelo || '')}&paintId=pspc0001&angle=01&width=800`}
+                    alt=""
+                    crossOrigin="anonymous"
+                    style={{
+                      width: '100%', maxHeight: '140px', objectFit: 'contain',
+                      filter: 'brightness(1.15) drop-shadow(0 4px 16px rgba(212,175,55,0.25))',
+                    }}
+                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                  />
                 </div>
                 {/* Info + plate row */}
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
@@ -965,14 +895,6 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
             {avatarUrl ? 'Trocar Foto' : 'Minha Foto'}
           </Button>
           <Button
-            variant="outline"
-            className="flex-1 h-11 rounded-xl gap-2 font-semibold"
-            onClick={() => carFileInputRef.current?.click()}
-          >
-            <Car className="w-4 h-4" />
-            {carPhotoUrl ? 'Trocar Carro' : 'Foto Carro'}
-          </Button>
-          <Button
             className="flex-1 h-11 rounded-xl gap-2 font-semibold"
             onClick={handleShare}
           >
@@ -988,10 +910,10 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
           <DialogHeader className="p-4 pb-0">
             <DialogTitle className="flex items-center gap-2 text-base">
               <Camera className="w-5 h-5 text-accent" />
-              {cropTarget === 'car' ? 'Recortar Foto do Carro' : 'Recortar Foto'}
+              Recortar Foto
             </DialogTitle>
             <DialogDescription>
-              {cropTarget === 'car' ? 'Ajuste para enquadrar o veículo' : 'Arraste e ajuste o zoom para enquadrar seu rosto'}
+              Arraste e ajuste o zoom para enquadrar seu rosto
             </DialogDescription>
           </DialogHeader>
 

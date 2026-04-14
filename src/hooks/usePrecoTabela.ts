@@ -3,8 +3,9 @@ import { useQuery } from '@tanstack/react-query';
 import {
   fetchTabelaFromSupabase,
   buscarPrecoTabela,
-  getAllLocations,
+  normalizeText,
   type LookupResult,
+  type TabelaEntry,
 } from '@/lib/tabela-preco';
 
 /**
@@ -30,16 +31,26 @@ export function usePrecoTabela(origem: string, destino: string): LookupResult | 
 
 /**
  * Hook reativo de localizações para autocomplete.
- * Re-avalia quando a tabela de preços muda.
+ * Deriva diretamente do react-query data (garantido fresco após invalidação).
+ * Deduplicação por normalização: evita mostrar "Centro do Cabo" e "centro do cabo" como itens separados.
  */
 export function useAllLocations(): string[] {
-  const { data: tabelaData } = useQuery({
+  const { data: tabelaData } = useQuery<TabelaEntry[]>({
     queryKey: ['tabela-precos'],
     queryFn: fetchTabelaFromSupabase,
     staleTime: 5 * 60_000,
   });
 
   return useMemo(() => {
-    return getAllLocations();
+    const entries = tabelaData ?? [];
+    // Map normalized → first-seen original form (keeps consistent casing)
+    const seen = new Map<string, string>();
+    for (const entry of entries) {
+      const normO = normalizeText(entry.origem);
+      if (!seen.has(normO)) seen.set(normO, entry.origem);
+      const normD = normalizeText(entry.destino);
+      if (!seen.has(normD)) seen.set(normD, entry.destino);
+    }
+    return Array.from(seen.values()).sort((a, b) => a.localeCompare(b, 'pt-BR'));
   }, [tabelaData]);
 }
