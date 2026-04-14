@@ -122,8 +122,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Ensure activeScreen is valid for current user
   useEffect(() => {
     if (user && !availableScreens.includes(activeScreen)) {
-      const defaultScreen = availableScreens.includes('admin') ? 'admin' :
-        availableScreens.includes('motorista') ? 'motorista' :
+      const defaultScreen = availableScreens.includes('motorista') ? 'motorista' :
+        availableScreens.includes('admin') ? 'admin' :
         availableScreens.includes('cliente') ? 'cliente' : 'cliente';
       setActiveScreenState(defaultScreen);
       localStorage.setItem(SCREEN_KEY, defaultScreen);
@@ -195,10 +195,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(userObj);
       setRole(userData.tipo as AppRole);
 
-      // Set default screen to highest privilege (respects vehicle check)
+      // Motorista ativo com veículo entra direto no painel motorista
       const screens = getAvailableScreens(derivedRoles, userObj);
-      const defaultScreen = screens.includes('admin') ? 'admin' :
-        screens.includes('motorista') ? 'motorista' :
+      const defaultScreen = screens.includes('motorista') ? 'motorista' :
+        screens.includes('admin') ? 'admin' :
         screens.includes('cliente') ? 'cliente' : 'cliente';
       setActiveScreen(defaultScreen);
 

@@ -1205,33 +1205,6 @@ const AdminDashboard: React.FC = () => {
                 </Select>
               </div>
               <div>
-                <Label className="text-xs">Funções / Acessos</Label>
-                <div className="flex flex-col gap-2 mt-1.5">
-                  {(['cliente', 'admin'] as const).map((r) => {
-                    const checked = editUserForm.roles.includes(r);
-                    const labels: Record<string, string> = { cliente: '👤 Cliente', admin: '🛡️ Admin' };
-                    return (
-                      <label key={r} className="flex items-center gap-2 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={checked}
-                          onChange={() => {
-                            setEditUserForm(f => {
-                              const next = checked ? f.roles.filter(x => x !== r) : [...f.roles, r];
-                              // Always keep at least 'cliente'
-                              if (next.length === 0) next.push('cliente');
-                              return { ...f, roles: next };
-                            });
-                          }}
-                          className="rounded border-muted-foreground/50 w-4 h-4 accent-accent"
-                        />
-                        <span className="text-sm">{labels[r]}</span>
-                      </label>
-                    );
-                  })}
-                </div>
-              </div>
-              <div>
                 <Label className="text-xs">Status</Label>
                 <Select value={editUserForm.status} onValueChange={(v) => setEditUserForm(f => ({ ...f, status: v }))}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
