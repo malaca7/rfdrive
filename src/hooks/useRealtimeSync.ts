@@ -37,12 +37,20 @@ export function useRealtimeSync() {
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'precos_rotas' }, () => {
         qc.invalidateQueries({ queryKey: ['pricing-precos'] });
+        qc.invalidateQueries({ queryKey: ['preco-dinamico'] });
+        import('@/lib/pricing-engine').then(m => m.invalidatePricingCache());
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'localidades' }, () => {
         qc.invalidateQueries({ queryKey: ['pricing-localidades'] });
+        qc.invalidateQueries({ queryKey: ['preco-dinamico'] });
+        import('@/lib/pricing-engine').then(m => m.invalidatePricingCache());
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'regras_horario' }, () => {
         qc.invalidateQueries({ queryKey: ['pricing-regras'] });
+        qc.invalidateQueries({ queryKey: ['active-time-rule'] });
+        qc.invalidateQueries({ queryKey: ['preco-dinamico'] });
+        // Invalidar cache interno do motor de preços
+        import('@/lib/pricing-engine').then(m => m.invalidatePricingCache());
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'config_tarifas' }, () => {
         qc.invalidateQueries({ queryKey: ['config-tarifas'] });

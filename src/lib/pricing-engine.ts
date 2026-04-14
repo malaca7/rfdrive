@@ -273,8 +273,12 @@ function getCurrentTime24h(): string {
 // ── Get current active time rule (loads data from cache/DB) ──
 export async function getActiveTimeRule(): Promise<RegraHorario | null> {
   const { regras } = await loadData();
+  const time = getCurrentTime24h();
+  console.log('[PricingEngine] getActiveTimeRule:', { regrasCount: regras.length, time, regras: regras.map(r => ({ nome: r.nome, inicio: r.hora_inicio, fim: r.hora_fim, valor: r.valor_ajuste, ativo: r.ativo })) });
   if (!regras.length) return null;
-  return findActiveTimeRules(regras, getCurrentTime24h());
+  const matched = findActiveTimeRules(regras, time);
+  console.log('[PricingEngine] Regra ativa encontrada:', matched ? { nome: matched.nome, valor_ajuste: matched.valor_ajuste } : 'NENHUMA');
+  return matched;
 }
 
 // ══════════════════════════════════════════════════════════
@@ -287,7 +291,16 @@ export async function calcularPreco(
 ): Promise<PricingResult | null> {
   const { localidades, precos, regras, config } = await loadData();
 
+  console.log('[calcularPreco] Dados carregados:', {
+    localidades: localidades.length,
+    precos: precos.length,
+    regras: regras.length,
+    config: !!config,
+    regrasList: regras.map(r => ({ nome: r.nome, inicio: r.hora_inicio, fim: r.hora_fim, valor: r.valor_ajuste })),
+  });
+
   if (localidades.length === 0 || precos.length === 0) {
+    console.log('[calcularPreco] SEM dados de localidades/precos → retornando null');
     return null; // No pricing data configured
   }
 
@@ -320,6 +333,7 @@ export async function calcularPreco(
 
   // Find active time rule
   const regraHorario = findActiveTimeRules(regras, now);
+  console.log('[calcularPreco] Horário atual:', now, '| Regra horário encontrada:', regraHorario ? { nome: regraHorario.nome, valor: regraHorario.valor_ajuste } : 'NENHUMA');
 
   // Calculate final price
   let precoFinal = precoBase;

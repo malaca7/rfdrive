@@ -14,7 +14,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import StarRating from '@/components/StarRating';
 import { calculateRoute } from '@/lib/route-ai';
-import { calcularPreco, salvarHistoricoPreco, getConfigTarifas, type PricingResult, type ConfigTarifas } from '@/lib/pricing-engine';
+import { calcularPreco, salvarHistoricoPreco, getConfigTarifas, getActiveTimeRule, applyTimeAdjustment, invalidatePricingCache, type PricingResult, type ConfigTarifas } from '@/lib/pricing-engine';
 import { buscarPrecoTabela } from '@/lib/tabela-preco';
 import { usePrecoTabela, useAllLocations } from '@/hooks/usePrecoTabela';
 import { useDynamicAdjustment } from '@/hooks/useDynamicAdjustment';
@@ -242,16 +242,37 @@ const RideRequestForm: React.FC = () => {
       }
 
       // 3) Aplicar regra de horário dinâmica se nenhuma fonte já a aplicou
-      if (dynamicAdj && valor_estimado != null && !motorDinamicoAplicouRegra) {
-        const precoBase = valor_estimado;
-        valor_estimado = dynamicAdj.aplicar(precoBase);
-        preco_regra_aplicada = `${preco_regra_aplicada || 'route_ai'}+${dynamicAdj.regra.nome}`;
-        preco_detalhes = {
-          ...preco_detalhes,
-          preco_base_antes_ajuste: precoBase,
-          ajuste_horario: dynamicAdj.label,
-          regra_horario: dynamicAdj.regra.nome,
-        };
+      //    Busca DIRETO do DB (dados frescos) em vez de depender do hook closure
+      if (valor_estimado != null && !motorDinamicoAplicouRegra) {
+        try {
+          invalidatePricingCache(); // Forçar dados frescos
+          const regraAtiva = await getActiveTimeRule();
+          console.log('[handleSolicitar] Regra ativa fresca:', regraAtiva);
+          if (regraAtiva) {
+            const precoBase = valor_estimado;
+            valor_estimado = Math.round(applyTimeAdjustment(precoBase, regraAtiva) * 100) / 100;
+            preco_regra_aplicada = `${preco_regra_aplicada || 'route_ai'}+${regraAtiva.nome}`;
+            preco_detalhes = {
+              ...preco_detalhes,
+              preco_base_antes_ajuste: precoBase,
+              ajuste_horario: `+${regraAtiva.valor_ajuste}% ${regraAtiva.nome}`,
+              regra_horario: regraAtiva.nome,
+            };
+          }
+        } catch {
+          // fallback: try hook value
+          if (dynamicAdj) {
+            const precoBase = valor_estimado;
+            valor_estimado = dynamicAdj.aplicar(precoBase);
+            preco_regra_aplicada = `${preco_regra_aplicada || 'route_ai'}+${dynamicAdj.regra.nome}`;
+            preco_detalhes = {
+              ...preco_detalhes,
+              preco_base_antes_ajuste: precoBase,
+              ajuste_horario: dynamicAdj.label,
+              regra_horario: dynamicAdj.regra.nome,
+            };
+          }
+        }
       }
 
       // Adicionar taxa de bagagem se aplicável
