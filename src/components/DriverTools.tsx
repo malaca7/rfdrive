@@ -113,7 +113,7 @@ export const TripCalculator: React.FC<{
   const { data: configTarifas } = useQuery<ConfigTarifas | null>({
     queryKey: ['config-tarifas-driver'],
     queryFn: () => getConfigTarifas(),
-    staleTime: 60_000,
+    staleTime: 10_000,
   });
 
   const taxaBagagemValor = configTarifas?.taxa_bagagem ?? 5;
@@ -138,6 +138,14 @@ export const TripCalculator: React.FC<{
     if (temBagagem) total += taxaBagagemValor;
     return total < minima;
   }, [preco, dynamicAdj, temBagagem, taxaBagagemValor, configTarifas]);
+
+  const rawTotalValue = useMemo(() => {
+    if (!preco) return 0;
+    let total = preco.valor;
+    if (dynamicAdj) total = dynamicAdj.aplicar(total);
+    if (temBagagem) total += taxaBagagemValor;
+    return Math.round(total * 100) / 100;
+  }, [preco, dynamicAdj, temBagagem, taxaBagagemValor]);
 
   const quoteMensagem = useMemo(() => {
     if (!preco || !origem.trim() || !destino.trim()) return '';
@@ -325,9 +333,12 @@ export const TripCalculator: React.FC<{
                         <p className="text-[10px] text-muted-foreground">
                           {preco.estimado ? 'Preço estimado' : 'Preço tabelado'}
                         </p>
-                        <p className={`text-[clamp(1.1rem,3.5vw,1.35rem)] font-bold ${preco.estimado ? 'text-amber-400' : 'text-green-400'}`}>
+                        <p className={`text-[clamp(1.1rem,3.5vw,1.35rem)] font-bold ${isTarifaMinima ? 'text-yellow-400' : preco.estimado ? 'text-amber-400' : 'text-green-400'}`}>
                           R$ {totalValue.toFixed(2)}
                         </p>
+                        {isTarifaMinima && (
+                          <p className="text-xs text-muted-foreground line-through">R$ {rawTotalValue.toFixed(2)}</p>
+                        )}
                       </div>
                     </div>
                     <div className="text-right">
@@ -365,18 +376,23 @@ export const TripCalculator: React.FC<{
                       <span className="text-sm font-bold text-orange-400">R$ {taxaBagagemValor.toFixed(2)}</span>
                     </div>
                   )}
-                  {(dynamicAdj || temBagagem) && (
+                  {(dynamicAdj || temBagagem || isTarifaMinima) && (
                     <div className="flex items-center justify-between border-t border-border pt-2">
                       <span className="text-sm font-medium">Total</span>
-                      <span className={`text-lg font-bold ${preco.estimado ? 'text-amber-400' : 'text-green-400'}`}>
-                        R$ {totalValue.toFixed(2)}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        {isTarifaMinima && (
+                          <span className="text-xs text-muted-foreground line-through">R$ {rawTotalValue.toFixed(2)}</span>
+                        )}
+                        <span className={`text-lg font-bold ${isTarifaMinima ? 'text-yellow-400' : preco.estimado ? 'text-amber-400' : 'text-green-400'}`}>
+                          R$ {totalValue.toFixed(2)}
+                        </span>
+                      </div>
                     </div>
                   )}
                   {isTarifaMinima && (
                     <div className="flex items-center gap-2 bg-yellow-500/10 border border-yellow-500/20 rounded-lg px-3 py-2">
                       <AlertTriangle className="w-3.5 h-3.5 text-yellow-400 shrink-0" />
-                      <span className="text-xs text-yellow-400">Tarifa mínima aplicada (R$ {(configTarifas?.tarifa_minima ?? 0).toFixed(2)})</span>
+                      <span className="text-xs text-yellow-400">Tarifa mínima aplicada</span>
                     </div>
                   )}
                 </div>
@@ -471,7 +487,12 @@ export const TripCalculator: React.FC<{
                   <Separator className="my-1" />
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-semibold">Total</span>
-                    <span className="text-lg font-bold text-green-400">R$ {totalValue.toFixed(2)}</span>
+                    <div className="flex items-center gap-2">
+                      {isTarifaMinima && (
+                        <span className="text-xs text-muted-foreground line-through">R$ {rawTotalValue.toFixed(2)}</span>
+                      )}
+                      <span className={`text-lg font-bold ${isTarifaMinima ? 'text-yellow-400' : 'text-green-400'}`}>R$ {totalValue.toFixed(2)}</span>
+                    </div>
                   </div>
                   {isTarifaMinima && (
                     <div className="flex items-center gap-2 mt-1">

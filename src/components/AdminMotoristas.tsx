@@ -445,7 +445,7 @@ const AdminMotoristas: React.FC<AdminMotoristasProps> = ({ users, rides, loading
                             demoteMutation.mutate({ userId: driver.id, currentRoles: roles });
                           }}
                         >
-                          <XCircle className="w-3 h-3" /> Remover Role
+                          <XCircle className="w-3 h-3" /> Remover Motorista
                         </Button>
                       </div>
                     </div>

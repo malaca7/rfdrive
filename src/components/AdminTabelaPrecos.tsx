@@ -346,124 +346,64 @@ const AdminTabelaPrecos: React.FC = () => {
   }
 
   return (
-    <div className="space-y-4">
-      {/* ── Stats cards ── */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <Card className="cursor-pointer hover:border-accent/30 transition-colors" onClick={() => setShowStatsDialog(true)}>
-          <CardContent className="py-3 px-4 flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-accent/10 flex items-center justify-center">
-              <Route className="w-4 h-4 text-accent" />
-            </div>
-            <div>
-              <p className="text-[10px] text-muted-foreground">Rotas</p>
-              <p className="text-lg font-bold">{stats.totalRotas.toLocaleString('pt-BR')}</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="py-3 px-4 flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-green-500/10 flex items-center justify-center">
-              <MapPin className="w-4 h-4 text-green-400" />
-            </div>
-            <div>
-              <p className="text-[10px] text-muted-foreground">Origens</p>
-              <p className="text-lg font-bold">{stats.totalOrigens}</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="py-3 px-4 flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-blue-500/10 flex items-center justify-center">
-              <MapPin className="w-4 h-4 text-blue-400" />
-            </div>
-            <div>
-              <p className="text-[10px] text-muted-foreground">Destinos</p>
-              <p className="text-lg font-bold">{stats.totalDestinos}</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="py-3 px-4 flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-yellow-500/10 flex items-center justify-center">
-              <DollarSign className="w-4 h-4 text-yellow-400" />
-            </div>
-            <div>
-              <p className="text-[10px] text-muted-foreground">Faixa</p>
-              <p className="text-sm font-bold">R$ {stats.precoMin.toFixed(0)}–{stats.precoMax.toFixed(0)}</p>
-            </div>
-          </CardContent>
-        </Card>
+    <div className="space-y-3">
+      {/* ── Compact summary ── */}
+      <div className="flex items-center justify-between bg-muted/30 rounded-xl px-4 py-2.5">
+        <div className="flex items-center gap-4 text-xs">
+          <span className="flex items-center gap-1.5 font-medium">
+            <Route className="w-3.5 h-3.5 text-accent" />
+            {stats.totalRotas.toLocaleString('pt-BR')} rotas
+          </span>
+          <span className="text-muted-foreground">{stats.totalOrigens} origens</span>
+          <span className="text-muted-foreground">R$ {stats.precoMin.toFixed(0)}–{stats.precoMax.toFixed(0)}</span>
+        </div>
+        <Button variant="ghost" size="sm" className="h-7 px-2 text-xs gap-1" onClick={() => setShowStatsDialog(true)}>
+          <BarChart3 className="w-3 h-3" /> Detalhes
+        </Button>
       </div>
 
       {/* ── Toolbar ── */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            value={search}
-            onChange={(e) => { setSearch(e.target.value); setPage(0); }}
-            placeholder="Buscar origem, destino ou valor..."
-            className="pl-10"
-          />
-          {search && (
-            <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2">
-              <X className="w-4 h-4 text-muted-foreground hover:text-foreground" />
-            </button>
-          )}
-        </div>
-        <Select value={filterOrigem} onValueChange={(v) => { setFilterOrigem(v); setPage(0); }}>
-          <SelectTrigger className="w-full sm:w-[200px]">
-            <SelectValue placeholder="Filtrar origem" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="_all">Todas as origens</SelectItem>
-            {origens.map(o => (
-              <SelectItem key={o} value={o}>{o}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        {regioes.length > 1 && (
-          <Select value={filterRegiao} onValueChange={(v) => { setFilterRegiao(v); setPage(0); }}>
-            <SelectTrigger className="w-full sm:w-[140px]">
-              <SelectValue placeholder="Região" />
+      <div className="flex flex-col gap-2">
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              value={search}
+              onChange={(e) => { setSearch(e.target.value); setPage(0); }}
+              placeholder="Buscar origem, destino ou valor..."
+              className="pl-10 h-9"
+            />
+            {search && (
+              <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2">
+                <X className="w-4 h-4 text-muted-foreground hover:text-foreground" />
+              </button>
+            )}
+          </div>
+          <Select value={filterOrigem} onValueChange={(v) => { setFilterOrigem(v); setPage(0); }}>
+            <SelectTrigger className="w-[160px] h-9">
+              <SelectValue placeholder="Origem" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="_all">Todas regiões</SelectItem>
-              {regioes.map(r => (
-                <SelectItem key={r} value={r}>{r}</SelectItem>
+              <SelectItem value="_all">Todas origens</SelectItem>
+              {origens.map(o => (
+                <SelectItem key={o} value={o}>{o}</SelectItem>
               ))}
             </SelectContent>
           </Select>
-        )}
-      </div>
-
-      {/* ── Action bar ── */}
-      <div className="flex flex-wrap items-center gap-2">
-        <Button size="sm" onClick={() => { resetForm(); setShowAddDialog(true); }} className="gap-1.5">
-          <Plus className="w-4 h-4" /> Adicionar Rota
-        </Button>
-        <Button size="sm" variant="outline" onClick={handleExport} className="gap-1.5">
-          <Download className="w-4 h-4" /> Exportar
-        </Button>
-        <Button size="sm" variant="outline" onClick={() => { setImportData(null); setImportFileName(''); setShowImportDialog(true); }} className="gap-1.5">
-          <Upload className="w-4 h-4" /> Importar
-        </Button>
-        {selected.size > 0 && (
-          <>
-            <Separator orientation="vertical" className="h-6" />
-            <Badge variant="secondary" className="text-xs">
-              {selected.size} selecionada(s)
-            </Badge>
-            <Button size="sm" variant="destructive" onClick={() => setShowBulkDeleteDialog(true)} className="gap-1.5">
-              <Trash2 className="w-4 h-4" /> Remover Selecionadas
-            </Button>
-            <Button size="sm" variant="ghost" onClick={() => setSelected(new Set())} className="gap-1.5 text-xs">
-              <X className="w-3 h-3" /> Limpar seleção
-            </Button>
-          </>
-        )}
-        <div className="ml-auto text-xs text-muted-foreground">
-          {filtered.length.toLocaleString('pt-BR')} rota(s) encontrada(s)
+        </div>
+        <div className="flex items-center gap-2">
+          <Button size="sm" onClick={() => { resetForm(); setShowAddDialog(true); }} className="gap-1.5 h-8">
+            <Plus className="w-3.5 h-3.5" /> Rota
+          </Button>
+          <Button size="sm" variant="outline" onClick={handleExport} className="gap-1.5 h-8">
+            <Download className="w-3.5 h-3.5" /> Exportar
+          </Button>
+          <Button size="sm" variant="outline" onClick={() => { setImportData(null); setImportFileName(''); setShowImportDialog(true); }} className="gap-1.5 h-8">
+            <Upload className="w-3.5 h-3.5" /> Importar
+          </Button>
+          <span className="ml-auto text-[10px] text-muted-foreground">
+            {filtered.length !== tabela.length ? `${filtered.length} de ${tabela.length}` : `${tabela.length}`} rota(s)
+          </span>
         </div>
       </div>
 
@@ -473,81 +413,59 @@ const AdminTabelaPrecos: React.FC = () => {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border">
-                <th className="py-2.5 px-3 w-10">
-                  <Checkbox
-                    checked={allPageSelected}
-                    onCheckedChange={toggleSelectAll}
-                  />
-                </th>
                 <th
-                  className="py-2.5 px-3 text-left font-medium cursor-pointer hover:text-accent transition-colors"
+                  className="py-2 px-3 text-left font-medium cursor-pointer hover:text-accent transition-colors"
                   onClick={() => toggleSort('origem')}
                 >
-                  <span className="flex items-center gap-1.5">Origem <SortIcon col="origem" /></span>
+                  <span className="flex items-center gap-1">Origem <SortIcon col="origem" /></span>
                 </th>
                 <th
-                  className="py-2.5 px-3 text-left font-medium cursor-pointer hover:text-accent transition-colors"
+                  className="py-2 px-3 text-left font-medium cursor-pointer hover:text-accent transition-colors"
                   onClick={() => toggleSort('destino')}
                 >
-                  <span className="flex items-center gap-1.5">Destino <SortIcon col="destino" /></span>
+                  <span className="flex items-center gap-1">Destino <SortIcon col="destino" /></span>
                 </th>
                 <th
-                  className="py-2.5 px-3 text-right font-medium cursor-pointer hover:text-accent transition-colors w-28"
+                  className="py-2 px-3 text-right font-medium cursor-pointer hover:text-accent transition-colors w-24"
                   onClick={() => toggleSort('valor')}
                 >
-                  <span className="flex items-center gap-1.5 justify-end">Valor <SortIcon col="valor" /></span>
+                  <span className="flex items-center gap-1 justify-end">Valor <SortIcon col="valor" /></span>
                 </th>
-                <th
-                  className="py-2.5 px-3 text-left font-medium cursor-pointer hover:text-accent transition-colors w-24"
-                  onClick={() => toggleSort('regiao')}
-                >
-                  <span className="flex items-center gap-1.5">Região <SortIcon col="regiao" /></span>
-                </th>
-                <th className="py-2.5 px-3 w-20 text-center font-medium">Ações</th>
+                <th className="py-2 px-3 w-16 text-center font-medium">Ações</th>
               </tr>
             </thead>
             <tbody>
               {pageData.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-12 text-center text-muted-foreground">
-                    {search || filterOrigem !== '_all' ? 'Nenhuma rota encontrada para os filtros aplicados.' : 'Tabela vazia.'}
+                  <td colSpan={4} className="py-10 text-center text-muted-foreground text-sm">
+                    {search || filterOrigem !== '_all' ? 'Nenhuma rota encontrada.' : 'Tabela vazia.'}
                   </td>
                 </tr>
               ) : (
-                pageData.map((entry, i) => {
+                pageData.map((entry) => {
                   const k = entryKey(entry);
-                  const isSelected = selected.has(k);
                   return (
-                    <tr
-                      key={k}
-                      className={`border-b border-border/50 transition-colors ${isSelected ? 'bg-accent/5' : 'hover:bg-muted/30'}`}
-                    >
-                      <td className="py-2 px-3">
-                        <Checkbox checked={isSelected} onCheckedChange={() => toggleSelect(entry)} />
-                      </td>
-                      <td className="py-2 px-3 font-medium">{entry.origem}</td>
-                      <td className="py-2 px-3">{entry.destino}</td>
-                      <td className="py-2 px-3 text-right font-mono font-semibold text-green-400">
+                    <tr key={k} className="border-b border-border/50 hover:bg-muted/30 transition-colors">
+                      <td className="py-1.5 px-3 font-medium text-xs">{entry.origem}</td>
+                      <td className="py-1.5 px-3 text-xs">{entry.destino}</td>
+                      <td className="py-1.5 px-3 text-right font-mono font-semibold text-green-400 text-xs">
                         R$ {entry.valor.toFixed(2)}
                       </td>
-                      <td className="py-2 px-3">
-                        <Badge variant="outline" className="text-[10px]">{entry.regiao}</Badge>
-                      </td>
-                      <td className="py-2 px-3">
-                        <div className="flex items-center gap-1 justify-center">
+                      <td className="py-1.5 px-3">
+                        <div className="flex items-center gap-0.5 justify-center">
                           <button
                             onClick={() => openEdit(entry)}
-                            className="p-1.5 rounded-md hover:bg-accent/10 text-muted-foreground hover:text-accent transition-colors"
+                            className="p-1 rounded-md hover:bg-accent/10 text-muted-foreground hover:text-accent transition-colors"
                             title="Editar"
                           >
-                            <Pencil className="w-3.5 h-3.5" />
+                            <Pencil className="w-3 h-3" />
                           </button>
                           <button
                             onClick={() => openDelete(entry)}
-                            className="p-1.5 rounded-md hover:bg-red-500/10 text-muted-foreground hover:text-red-400 transition-colors"
+                            className="p-1 rounded-md hover:bg-red-500/10 text-muted-foreground hover:text-red-400 transition-colors"
                             title="Excluir"
                           >
-                            <Trash2 className="w-3.5 h-3.5" />
+                            <Trash2 className="w-3 h-3" />
                           </button>
                         </div>
                       </td>
@@ -562,11 +480,11 @@ const AdminTabelaPrecos: React.FC = () => {
 
       {/* ── Pagination ── */}
       {totalPages > 1 && (
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <span>Exibindo {page * pageSize + 1}–{Math.min((page + 1) * pageSize, sorted.length)} de {sorted.length.toLocaleString('pt-BR')}</span>
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <span>{page * pageSize + 1}–{Math.min((page + 1) * pageSize, sorted.length)} de {sorted.length}</span>
             <Select value={pageSize.toString()} onValueChange={(v) => { setPageSize(Number(v)); setPage(0); }}>
-              <SelectTrigger className="h-7 w-20 text-xs">
+              <SelectTrigger className="h-6 w-16 text-[10px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -577,41 +495,15 @@ const AdminTabelaPrecos: React.FC = () => {
             </Select>
           </div>
           <div className="flex items-center gap-1">
-            <Button
-              variant="outline" size="sm"
-              onClick={() => setPage(0)}
-              disabled={page === 0}
-              className="h-7 w-7 p-0"
-            >
-              «
+            <Button variant="outline" size="sm" onClick={() => setPage(0)} disabled={page === 0} className="h-6 w-6 p-0">«</Button>
+            <Button variant="outline" size="sm" onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0} className="h-6 px-2 text-[10px]">
+              <ChevronLeft className="w-3 h-3" />
             </Button>
-            <Button
-              variant="outline" size="sm"
-              onClick={() => setPage(p => Math.max(0, p - 1))}
-              disabled={page === 0}
-              className="h-7 px-2 gap-1"
-            >
-              <ChevronLeft className="w-3 h-3" /> Anterior
+            <span className="px-2 text-xs font-medium">{page + 1}/{totalPages}</span>
+            <Button variant="outline" size="sm" onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))} disabled={page >= totalPages - 1} className="h-6 px-2 text-[10px]">
+              <ChevronRight className="w-3 h-3" />
             </Button>
-            <span className="px-3 text-xs font-medium">
-              {page + 1} / {totalPages}
-            </span>
-            <Button
-              variant="outline" size="sm"
-              onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
-              disabled={page >= totalPages - 1}
-              className="h-7 px-2 gap-1"
-            >
-              Próxima <ChevronRight className="w-3 h-3" />
-            </Button>
-            <Button
-              variant="outline" size="sm"
-              onClick={() => setPage(totalPages - 1)}
-              disabled={page >= totalPages - 1}
-              className="h-7 w-7 p-0"
-            >
-              »
-            </Button>
+            <Button variant="outline" size="sm" onClick={() => setPage(totalPages - 1)} disabled={page >= totalPages - 1} className="h-6 w-6 p-0">»</Button>
           </div>
         </div>
       )}

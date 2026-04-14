@@ -30,6 +30,16 @@ export function useRealtimeSync() {
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, () => {
         qc.invalidateQueries({ queryKey: ['admin-users'] });
+        qc.invalidateQueries({ queryKey: ['driver-profile'] });
+        qc.invalidateQueries({ queryKey: ['motorista-info'] });
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'avaliacoes' }, () => {
+        qc.invalidateQueries({ queryKey: ['ride-rating'] });
+        qc.invalidateQueries({ queryKey: ['admin-rides'] });
+        qc.invalidateQueries({ queryKey: ['my-completed-rides'] });
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'aprovacoes' }, () => {
+        qc.invalidateQueries({ queryKey: ['admin-rides'] });
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'tabela_precos' }, () => {
         qc.invalidateQueries({ queryKey: ['tabela-precos'] });

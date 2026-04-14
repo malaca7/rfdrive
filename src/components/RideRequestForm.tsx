@@ -55,7 +55,7 @@ const RideRequestForm: React.FC = () => {
   const { data: configTarifas } = useQuery<ConfigTarifas | null>({
     queryKey: ['config-tarifas-form'],
     queryFn: () => getConfigTarifas(),
-    staleTime: 60_000,
+    staleTime: 10_000,
   });
 
   // ── Motor dinâmico: preço reativo via localidades + precos_rotas + regras_horario ──
@@ -950,43 +950,43 @@ const RideRequestForm: React.FC = () => {
                       <span className="text-sm font-bold text-orange-400">+R$ {(configTarifas?.taxa_bagagem ?? 5).toFixed(2)}</span>
                     </div>
                   )}
-                  {(temBagagem || dynamicAdj || precoDinamico?.regra_horario) && (
-                    <div className="flex items-center justify-between border-t border-border pt-2">
-                      <span className="text-sm font-medium">Total da viagem</span>
-                      <span className={`text-lg font-bold ${
-                        precoDinamico ? 'text-blue-400' : precoTabela?.estimado ? 'text-amber-400' : 'text-green-400'
-                      }`}>
-                        R$ {(() => {
-                          let total = precoDinamico
-                            ? ((!precoDinamico.regra_horario && dynamicAdj) ? dynamicAdj.aplicar(precoDinamico.preco_final) : precoDinamico.preco_final)
-                            : precoTabela
-                              ? (dynamicAdj ? dynamicAdj.aplicar(precoTabela.valor) : precoTabela.valor)
-                              : 0;
-                          if (temBagagem) total += (configTarifas?.taxa_bagagem ?? 5);
-                          const minima = configTarifas?.tarifa_minima ?? 0;
-                          if (minima > 0 && total < minima) total = minima;
-                          return total.toFixed(2);
-                        })()}
-                      </span>
-                    </div>
-                  )}
-                  {/* Sinalização de tarifa mínima */}
                   {(() => {
-                    const minima = configTarifas?.tarifa_minima ?? 0;
-                    if (minima <= 0) return null;
-                    let total = precoDinamico
+                    // Compute raw total (before tarifa mínima)
+                    let rawTotal = precoDinamico
                       ? ((!precoDinamico.regra_horario && dynamicAdj) ? dynamicAdj.aplicar(precoDinamico.preco_final) : precoDinamico.preco_final)
                       : precoTabela
                         ? (dynamicAdj ? dynamicAdj.aplicar(precoTabela.valor) : precoTabela.valor)
                         : 0;
-                    if (temBagagem) total += (configTarifas?.taxa_bagagem ?? 5);
-                    if (total > 0 && total < minima) return (
-                      <div className="flex items-center gap-2 bg-yellow-500/10 border border-yellow-500/20 rounded-lg px-3 py-2">
-                        <AlertTriangle className="w-3.5 h-3.5 text-yellow-400 shrink-0" />
-                        <span className="text-xs text-yellow-400">Tarifa mínima aplicada (R$ {minima.toFixed(2)})</span>
-                      </div>
+                    if (temBagagem) rawTotal += (configTarifas?.taxa_bagagem ?? 5);
+                    const minima = configTarifas?.tarifa_minima ?? 0;
+                    const usaMinima = minima > 0 && rawTotal > 0 && rawTotal < minima;
+                    const valorFinal = usaMinima ? minima : rawTotal;
+                    const showTotal = temBagagem || dynamicAdj || precoDinamico?.regra_horario || usaMinima;
+
+                    if (!showTotal) return null;
+                    return (
+                      <>
+                        <div className="flex items-center justify-between border-t border-border pt-2">
+                          <span className="text-sm font-medium">Total da viagem</span>
+                          <div className="flex items-center gap-2">
+                            {usaMinima && (
+                              <span className="text-xs text-muted-foreground line-through">R$ {rawTotal.toFixed(2)}</span>
+                            )}
+                            <span className={`text-lg font-bold ${
+                              usaMinima ? 'text-yellow-400' : precoDinamico ? 'text-blue-400' : precoTabela?.estimado ? 'text-amber-400' : 'text-green-400'
+                            }`}>
+                              R$ {valorFinal.toFixed(2)}
+                            </span>
+                          </div>
+                        </div>
+                        {usaMinima && (
+                          <div className="flex items-center gap-2 bg-yellow-500/10 border border-yellow-500/20 rounded-lg px-3 py-2">
+                            <AlertTriangle className="w-3.5 h-3.5 text-yellow-400 shrink-0" />
+                            <span className="text-xs text-yellow-400">Tarifa mínima aplicada</span>
+                          </div>
+                        )}
+                      </>
                     );
-                    return null;
                   })()}
                 </div>
               </motion.div>
