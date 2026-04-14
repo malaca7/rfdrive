@@ -63,7 +63,7 @@ const AuthPage: React.FC = () => {
   };
 
   return (
-    <div className="h-[100dvh] w-full gradient-hero flex flex-col items-center justify-center px-[6%]">
+    <div className="h-[100dvh] w-full bg-[hsl(0_0%_4%)] flex flex-col items-center justify-center px-[6%]">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -75,18 +75,18 @@ const AuthPage: React.FC = () => {
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ type: 'spring', stiffness: 200, delay: 0.1 }}
-            className="inline-flex items-center justify-center w-[18%] max-w-[72px] aspect-square rounded-2xl gradient-accent mb-[3%] shadow-lg shadow-accent/30"
+            className="inline-flex items-center justify-center w-[18%] max-w-[72px] aspect-square rounded-2xl gradient-accent mb-[3%] shadow-lg shadow-[hsl(22_100%_55%/0.3)] glow-accent"
           >
-            <Navigation className="w-[45%] h-[45%] text-accent-foreground" />
+            <Navigation className="w-[45%] h-[45%] text-white" />
           </motion.div>
-          <h1 className="text-[clamp(1.75rem,6vw,2.5rem)] font-extrabold text-foreground tracking-tight">RF Drive</h1>
-          <p className="text-muted-foreground text-[clamp(0.8rem,2.5vw,0.95rem)] mt-1">Seu transporte inteligente</p>
+          <h1 className="text-[clamp(1.75rem,6vw,2.5rem)] font-extrabold text-white tracking-tight">RF Drive</h1>
+          <p className="text-white/40 text-[clamp(0.8rem,2.5vw,0.95rem)] mt-1">Seu transporte inteligente</p>
         </div>
 
-        <Card className="glass border-border/30 rounded-3xl overflow-hidden">
+        <Card className="bg-[hsl(0_0%_8%)]/90 backdrop-blur-2xl border border-white/[0.06] rounded-3xl overflow-hidden">
           <CardHeader className="text-center pb-2">
-            <CardTitle className="text-[clamp(1.1rem,3.5vw,1.3rem)]">{isLogin ? 'Entrar' : 'Criar Conta'}</CardTitle>
-            <CardDescription className="text-[clamp(0.7rem,2.2vw,0.8rem)]">
+            <CardTitle className="text-[clamp(1.1rem,3.5vw,1.3rem)] text-white">{isLogin ? 'Entrar' : 'Criar Conta'}</CardTitle>
+            <CardDescription className="text-[clamp(0.7rem,2.2vw,0.8rem)] text-white/40">
               {isLogin ? 'Acesse sua conta para solicitar corridas' : 'Cadastre-se para começar'}
             </CardDescription>
           </CardHeader>
@@ -94,35 +94,35 @@ const AuthPage: React.FC = () => {
             <form onSubmit={handleSubmit} className="space-y-4">
               {!isLogin && (
                 <div className="space-y-1.5">
-                  <Label htmlFor="nome" className="text-xs font-semibold">Nome</Label>
+                  <Label htmlFor="nome" className="text-xs font-semibold text-white/60">Nome</Label>
                   <Input
                     id="nome"
                     value={nome}
                     onChange={(e) => setNome(e.target.value)}
                     placeholder="Seu nome completo"
                     required={!isLogin}
-                    className="h-12 rounded-xl text-sm"
+                    className="h-12 rounded-2xl text-sm bg-white/[0.05] border-white/[0.08] text-white placeholder:text-white/25 focus:border-[hsl(22_100%_55%)] focus:ring-[hsl(22_100%_55%/0.2)]"
                   />
                 </div>
               )}
               <div className="space-y-1.5">
-                <Label htmlFor="telefone" className="text-xs font-semibold">Telefone</Label>
+                <Label htmlFor="telefone" className="text-xs font-semibold text-white/60">Telefone</Label>
                 <div className="relative">
-                  <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
                   <Input
                     id="telefone"
                     type="tel"
                     value={telefone}
                     onChange={handlePhoneChange}
                     placeholder="(11) 99999-9999"
-                    className="pl-10 h-12 rounded-xl text-sm"
+                    className="pl-10 h-12 rounded-2xl text-sm bg-white/[0.05] border-white/[0.08] text-white placeholder:text-white/25 focus:border-[hsl(22_100%_55%)] focus:ring-[hsl(22_100%_55%/0.2)]"
                     required
                     maxLength={16}
                   />
                 </div>
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="password" className="text-xs font-semibold">Senha</Label>
+                <Label htmlFor="password" className="text-xs font-semibold text-white/60">Senha</Label>
                 <Input
                   id="password"
                   type="password"
@@ -131,12 +131,12 @@ const AuthPage: React.FC = () => {
                   placeholder="••••••••"
                   required
                   minLength={6}
-                  className="h-12 rounded-xl text-sm"
+                  className="h-12 rounded-2xl text-sm bg-white/[0.05] border-white/[0.08] text-white placeholder:text-white/25 focus:border-[hsl(22_100%_55%)] focus:ring-[hsl(22_100%_55%/0.2)]"
                 />
               </div>
               <Button
                 type="submit"
-                className="w-full h-12 rounded-xl gradient-accent text-accent-foreground font-bold text-sm hover:opacity-90 transition-opacity shadow-lg shadow-accent/20"
+                className="w-full h-12 rounded-2xl gradient-accent text-white font-bold text-sm hover:opacity-90 transition-opacity shadow-lg shadow-[hsl(22_100%_55%/0.3)] glow-accent"
                 disabled={loading}
               >
                 {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
@@ -147,7 +147,7 @@ const AuthPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setIsLogin(!isLogin)}
-                className="text-[clamp(0.75rem,2.2vw,0.85rem)] text-muted-foreground hover:text-foreground transition-colors"
+                className="text-[clamp(0.75rem,2.2vw,0.85rem)] text-white/40 hover:text-[hsl(22_100%_55%)] transition-colors"
               >
                 {isLogin ? 'Não tem conta? Cadastre-se' : 'Já tem conta? Faça login'}
               </button>

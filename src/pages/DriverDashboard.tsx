@@ -726,8 +726,8 @@ const DriverDashboard: React.FC = () => {
         )}
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="w-full mb-[4%] h-auto min-h-[48px] p-1 bg-muted/50 rounded-2xl flex flex-wrap gap-1">
-            <TabsTrigger value="disponiveis" className="flex-1 min-w-[70px] gap-1 text-[11px] sm:text-xs rounded-xl h-10 font-semibold data-[state=active]:shadow-md">
+          <TabsList className="w-full mb-[4%] h-auto min-h-[48px] p-1 bg-white/[0.04] border border-white/[0.06] rounded-2xl flex flex-wrap gap-1">
+            <TabsTrigger value="disponiveis" className="flex-1 min-w-[70px] gap-1 text-[11px] sm:text-xs rounded-xl h-10 font-semibold data-[state=active]:bg-[hsl(22_100%_55%)] data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-[hsl(22_100%_55%/0.2)]">
               <Car className="w-3.5 h-3.5 shrink-0" />
               <span className="truncate">Disponíveis</span>
               {pendingCount > 0 && (
@@ -736,7 +736,7 @@ const DriverDashboard: React.FC = () => {
                 </span>
               )}
             </TabsTrigger>
-            <TabsTrigger value="ativas" className="flex-1 min-w-[70px] gap-1 text-[11px] sm:text-xs rounded-xl h-10 font-semibold data-[state=active]:shadow-md">
+            <TabsTrigger value="ativas" className="flex-1 min-w-[70px] gap-1 text-[11px] sm:text-xs rounded-xl h-10 font-semibold data-[state=active]:bg-[hsl(22_100%_55%)] data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-[hsl(22_100%_55%/0.2)]">
               <Navigation className="w-3.5 h-3.5 shrink-0" />
               <span className="truncate">Ativas</span>
               {activeCount > 0 && (
@@ -745,15 +745,15 @@ const DriverDashboard: React.FC = () => {
                 </span>
               )}
             </TabsTrigger>
-            <TabsTrigger value="historico" className="flex-1 min-w-[70px] gap-1 text-[11px] sm:text-xs rounded-xl h-10 font-semibold data-[state=active]:shadow-md">
+            <TabsTrigger value="historico" className="flex-1 min-w-[70px] gap-1 text-[11px] sm:text-xs rounded-xl h-10 font-semibold data-[state=active]:bg-[hsl(22_100%_55%)] data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-[hsl(22_100%_55%/0.2)]">
               <History className="w-3.5 h-3.5 shrink-0" />
               <span className="truncate">Histórico</span>
             </TabsTrigger>
-            <TabsTrigger value="calcular" className="flex-1 min-w-[70px] gap-1 text-[11px] sm:text-xs rounded-xl h-10 font-semibold data-[state=active]:shadow-md">
+            <TabsTrigger value="calcular" className="flex-1 min-w-[70px] gap-1 text-[11px] sm:text-xs rounded-xl h-10 font-semibold data-[state=active]:bg-[hsl(22_100%_55%)] data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-[hsl(22_100%_55%/0.2)]">
               <Calculator className="w-3.5 h-3.5 shrink-0" />
               <span className="truncate">Calcular</span>
             </TabsTrigger>
-            <TabsTrigger value="cracha" className="flex-1 min-w-[70px] gap-1 text-[11px] sm:text-xs rounded-xl h-10 font-semibold data-[state=active]:shadow-md">
+            <TabsTrigger value="cracha" className="flex-1 min-w-[70px] gap-1 text-[11px] sm:text-xs rounded-xl h-10 font-semibold data-[state=active]:bg-[hsl(22_100%_55%)] data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-[hsl(22_100%_55%/0.2)]">
               <IdCard className="w-3.5 h-3.5 shrink-0" />
               <span className="truncate">Crachá</span>
             </TabsTrigger>
@@ -867,9 +867,9 @@ const DriverDashboard: React.FC = () => {
                 />
               </div>
               {showEditOrigemSugg && filteredEditOrigens.length > 0 && (
-                <div className="absolute z-50 w-full mt-1 bg-background border border-border rounded-lg shadow-lg max-h-40 overflow-y-auto">
+                <div className="absolute z-50 w-full mt-1 bg-[hsl(0_0%_10%)] border border-white/[0.08] rounded-2xl shadow-2xl max-h-40 overflow-y-auto">
                   {filteredEditOrigens.slice(0, 12).map(o => (
-                    <button key={o} type="button" className="w-full text-left px-3 py-2 text-sm hover:bg-accent/10 transition-colors"
+                    <button key={o} type="button" className="w-full text-left px-3 py-2 text-sm hover:bg-white/[0.06] transition-colors first:rounded-t-2xl last:rounded-b-2xl"
                       onMouseDown={e => e.preventDefault()} onClick={() => { setEditOrigem(o); setShowEditOrigemSugg(false); }}>
                       {o}
                     </button>
@@ -890,9 +890,9 @@ const DriverDashboard: React.FC = () => {
                 />
               </div>
               {showEditDestinoSugg && filteredEditDestinos.length > 0 && (
-                <div className="absolute z-50 w-full mt-1 bg-background border border-border rounded-lg shadow-lg max-h-40 overflow-y-auto">
+                <div className="absolute z-50 w-full mt-1 bg-[hsl(0_0%_10%)] border border-white/[0.08] rounded-2xl shadow-2xl max-h-40 overflow-y-auto">
                   {filteredEditDestinos.slice(0, 12).map(d => (
-                    <button key={d} type="button" className="w-full text-left px-3 py-2 text-sm hover:bg-accent/10 transition-colors"
+                    <button key={d} type="button" className="w-full text-left px-3 py-2 text-sm hover:bg-white/[0.06] transition-colors first:rounded-t-2xl last:rounded-b-2xl"
                       onMouseDown={e => e.preventDefault()} onClick={() => { setEditDestino(d); setShowEditDestinoSugg(false); }}>
                       {d}
                     </button>

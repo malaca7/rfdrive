@@ -738,12 +738,12 @@ const RideRequestForm: React.FC = () => {
               className="h-12 text-base"
             />
             {showOrigemSuggestions && filteredOrigens.length > 0 && (
-              <div className="absolute z-50 w-full mt-1 bg-background border border-border rounded-lg shadow-lg max-h-48 overflow-y-auto">
+              <div className="absolute z-50 w-full mt-1 bg-[hsl(0_0%_10%)] border border-white/[0.08] rounded-2xl shadow-2xl max-h-48 overflow-y-auto">
                 {filteredOrigens.slice(0, 15).map(o => (
                   <button
                     key={o}
                     type="button"
-                    className="w-full text-left px-3 py-2 text-sm hover:bg-accent/10 transition-colors"
+                    className="w-full text-left px-3 py-2 text-sm hover:bg-white/[0.06] transition-colors first:rounded-t-2xl last:rounded-b-2xl"
                     onMouseDown={(e) => e.preventDefault()}
                     onClick={() => { setOrigem(o); setShowOrigemSuggestions(false); destinoRef.current?.focus(); }}
                   >
@@ -771,12 +771,12 @@ const RideRequestForm: React.FC = () => {
               className="h-12 text-base"
             />
             {showDestinoSuggestions && filteredDestinos.length > 0 && (
-              <div className="absolute z-50 w-full mt-1 bg-background border border-border rounded-lg shadow-lg max-h-48 overflow-y-auto">
+              <div className="absolute z-50 w-full mt-1 bg-[hsl(0_0%_10%)] border border-white/[0.08] rounded-2xl shadow-2xl max-h-48 overflow-y-auto">
                 {filteredDestinos.slice(0, 15).map(d => (
                   <button
                     key={d}
                     type="button"
-                    className="w-full text-left px-3 py-2 text-sm hover:bg-accent/10 transition-colors"
+                    className="w-full text-left px-3 py-2 text-sm hover:bg-white/[0.06] transition-colors first:rounded-t-2xl last:rounded-b-2xl"
                     onMouseDown={(e) => e.preventDefault()}
                     onClick={() => { setDestino(d); setShowDestinoSuggestions(false); }}
                   >
@@ -803,13 +803,13 @@ const RideRequestForm: React.FC = () => {
           </div>
 
           {/* Baggage checkbox */}
-          <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
+          <div className="flex items-center gap-3 p-3 bg-white/[0.03] border border-white/[0.06] rounded-2xl">
             <input
               type="checkbox"
               id="temBagagem"
               checked={temBagagem}
               onChange={(e) => setTemBagagem(e.target.checked)}
-              className="w-5 h-5 rounded border-border text-accent focus:ring-accent"
+              className="w-5 h-5 rounded border-white/[0.15] bg-white/[0.05] text-accent focus:ring-accent"
             />
             <label htmlFor="temBagagem" className="text-sm cursor-pointer">
               <span className="font-medium">Levando Feira ou Bagagem?</span>
@@ -1011,7 +1011,7 @@ const RideRequestForm: React.FC = () => {
           <Button
             onClick={handleSolicitar}
             disabled={!origem.trim() || !destino.trim() || isSending || hasActiveRide}
-            className="w-full h-12 rounded-xl text-base font-bold bg-green-600 hover:bg-green-700 text-white shadow-lg shadow-green-600/20"
+            className="w-full h-12 rounded-2xl text-base font-bold gradient-accent text-white shadow-lg shadow-[hsl(22_100%_55%/0.3)] glow-accent hover:opacity-90 transition-opacity"
           >
             {isSending ? (
               <><Loader2 className="w-5 h-5 animate-spin mr-2" />Solicitando...</>
