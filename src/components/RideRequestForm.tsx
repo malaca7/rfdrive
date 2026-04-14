@@ -431,17 +431,63 @@ const RideRequestForm: React.FC = () => {
                 </div>
               </div>
               {activeRide.valor_estimado != null && (
-                <div className="flex items-center justify-between bg-green-500/10 border border-green-500/20 rounded-xl px-[4%] py-3">
-                  <div className="flex items-center gap-2">
-                    <DollarSign className="w-4 h-4 text-green-400" />
-                    <div>
-                      <p className="text-[10px] text-muted-foreground">Valor estimado</p>
-                      <p className="text-base font-bold text-green-400">
-                        R$ {Number(activeRide.valor_estimado).toFixed(2)}
-                      </p>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between bg-green-500/10 border border-green-500/20 rounded-xl px-[4%] py-3">
+                    <div className="flex items-center gap-2">
+                      <DollarSign className="w-4 h-4 text-green-400" />
+                      <div>
+                        <p className="text-[10px] text-muted-foreground">Valor da viagem</p>
+                        <p className="text-base font-bold text-green-400">
+                          R$ {Number(activeRide.valor_estimado).toFixed(2)}
+                        </p>
+                      </div>
                     </div>
                   </div>
-
+                  {/* Detalhes do preço dinâmico */}
+                  {activeRide.preco_detalhes && (
+                    <div className="space-y-1.5 px-1">
+                      {(activeRide.preco_detalhes as any)?.preco_base != null && (activeRide.preco_detalhes as any).preco_base !== activeRide.valor_estimado && (
+                        <div className="flex items-center justify-between text-xs text-muted-foreground">
+                          <span>Tarifa base</span>
+                          <span className="line-through">R$ {Number((activeRide.preco_detalhes as any).preco_base).toFixed(2)}</span>
+                        </div>
+                      )}
+                      {(activeRide.preco_detalhes as any)?.preco_base_antes_ajuste != null && (
+                        <div className="flex items-center justify-between text-xs text-muted-foreground">
+                          <span>Preço antes do ajuste</span>
+                          <span className="line-through">R$ {Number((activeRide.preco_detalhes as any).preco_base_antes_ajuste).toFixed(2)}</span>
+                        </div>
+                      )}
+                      {(activeRide.preco_detalhes as any)?.regra_horario && (
+                        <div className="flex items-center justify-between bg-purple-500/10 border border-purple-500/20 rounded-lg px-3 py-1.5">
+                          <div className="flex items-center gap-2">
+                            <Clock className="w-3.5 h-3.5 text-purple-400" />
+                            <span className="text-xs text-muted-foreground">{(activeRide.preco_detalhes as any).regra_horario}</span>
+                          </div>
+                          <span className="text-xs font-bold text-purple-400">
+                            {(activeRide.preco_detalhes as any)?.ajuste_horario || (activeRide.preco_detalhes as any)?.ajuste || 'Dinâmico'}
+                          </span>
+                        </div>
+                      )}
+                      {activeRide.tem_bagagem && (
+                        <div className="flex items-center justify-between bg-orange-500/10 border border-orange-500/20 rounded-lg px-3 py-1.5">
+                          <div className="flex items-center gap-2">
+                            <span className="text-orange-400 text-xs">📦</span>
+                            <span className="text-xs text-muted-foreground">Feira/Bagagem</span>
+                          </div>
+                          <span className="text-xs font-bold text-orange-400">Inclusa</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {/* Caso não tenha preco_detalhes mas tenha preco_regra_aplicada */}
+                  {!activeRide.preco_detalhes && activeRide.preco_regra_aplicada && activeRide.preco_regra_aplicada.includes('+') && (
+                    <div className="flex items-center justify-center">
+                      <span className="text-[10px] text-purple-400 bg-purple-500/10 px-2 py-1 rounded">
+                        ⚡ Preço dinâmico aplicado
+                      </span>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

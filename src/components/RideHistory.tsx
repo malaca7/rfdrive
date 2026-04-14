@@ -88,11 +88,19 @@ const RideHistory: React.FC = () => {
                     </div>
                   )}
                   {ride.valor_estimado != null && (
-                    <div className="flex items-center gap-3">
+                    <div className="flex flex-wrap items-center gap-2">
                       <div className="flex items-center gap-1">
                         <DollarSign className="w-4 h-4 text-green-400 shrink-0" />
                         <span className="text-sm font-semibold text-green-400">R$ {Number(ride.valor_estimado).toFixed(2)}</span>
                       </div>
+                      {ride.preco_regra_aplicada && ride.preco_regra_aplicada.includes('+') && (
+                        <span className="text-[10px] text-purple-400 bg-purple-500/10 px-1.5 py-0.5 rounded">
+                          ⏰ {(ride.preco_detalhes as any)?.regra_horario || 'Preço dinâmico'}
+                        </span>
+                      )}
+                      {ride.tem_bagagem && (
+                        <span className="text-[10px] text-orange-400 bg-orange-500/10 px-1.5 py-0.5 rounded">📦 Bagagem</span>
+                      )}
                     </div>
                   )}
                 </div>
