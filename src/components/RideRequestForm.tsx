@@ -17,6 +17,7 @@ import { calculateRoute } from '@/lib/route-ai';
 import { calcularPreco, salvarHistoricoPreco } from '@/lib/pricing-engine';
 import { buscarPrecoTabela } from '@/lib/tabela-preco';
 import { usePrecoTabela, useAllLocations } from '@/hooks/usePrecoTabela';
+import { useDynamicAdjustment } from '@/hooks/useDynamicAdjustment';
 import { normalizeText } from '@/lib/tabela-preco';
 
 interface RouteEstimate {
@@ -46,6 +47,9 @@ const RideRequestForm: React.FC = () => {
 
   // ── Tabela de preço: lookup em tempo real (reativo) ──
   const precoTabela = usePrecoTabela(origem, destino);
+
+  // ── Regra de horário dinâmica (noturno, madrugada, etc.) ──
+  const dynamicAdj = useDynamicAdjustment();
 
   // ── Autocomplete: all locations bidirectional (reativo) ──
   const allLocations = useAllLocations();
@@ -194,6 +198,18 @@ const RideRequestForm: React.FC = () => {
           match_exato: tabelaResult.match_exato,
           fonte: 'TabelaRF',
         };
+        // Aplicar regra de horário (noturno, madrugada, etc.) ao preço tabelado
+        if (dynamicAdj) {
+          const precoBase = valor_estimado;
+          valor_estimado = dynamicAdj.aplicar(precoBase);
+          preco_regra_aplicada = `tabela_rf+${dynamicAdj.regra.nome}`;
+          preco_detalhes = {
+            ...preco_detalhes,
+            preco_base_tabela: precoBase,
+            ajuste_horario: dynamicAdj.label,
+            regra_horario: dynamicAdj.regra.nome,
+          };
+        }
       } else {
         // 2) Motor dinâmico: fallback
         try {
@@ -734,6 +750,19 @@ const RideRequestForm: React.FC = () => {
                       </p>
                     </div>
                   </div>
+                  {dynamicAdj && (
+                    <div className="flex items-center justify-between bg-purple-500/10 border border-purple-500/20 rounded-lg px-3 py-2">
+                      <div className="flex items-center gap-2">
+                        <Clock className="w-3.5 h-3.5 text-purple-400" />
+                        <span className="text-xs text-muted-foreground">{dynamicAdj.regra.nome}</span>
+                      </div>
+                      <span className="text-sm font-bold text-purple-400">
+                        {dynamicAdj.regra.tipo_ajuste === 'percentual'
+                          ? `+${dynamicAdj.regra.valor_ajuste}%`
+                          : `+R$ ${dynamicAdj.regra.valor_ajuste.toFixed(2)}`}
+                      </span>
+                    </div>
+                  )}
                   {temBagagem && (
                     <div className="flex items-center justify-between bg-orange-500/10 border border-orange-500/20 rounded-lg px-3 py-2">
                       <div className="flex items-center gap-2">
@@ -743,12 +772,19 @@ const RideRequestForm: React.FC = () => {
                       <span className="text-sm font-bold text-orange-400">R$ 5,00</span>
                     </div>
                   )}
-                  <div className="flex items-center justify-between border-t border-border pt-2">
-                    <span className="text-sm font-medium">Total</span>
-                    <span className={`text-lg font-bold ${precoTabela.estimado ? 'text-amber-400' : 'text-green-400'}`}>
-                      R$ {(precoTabela.valor + (temBagagem ? 5 : 0)).toFixed(2)}
-                    </span>
-                  </div>
+                  {(dynamicAdj || temBagagem) && (
+                    <div className="flex items-center justify-between border-t border-border pt-2">
+                      <span className="text-sm font-medium">Total</span>
+                      <span className={`text-lg font-bold ${precoTabela.estimado ? 'text-amber-400' : 'text-green-400'}`}>
+                        R$ {(() => {
+                          let total = precoTabela.valor;
+                          if (dynamicAdj) total = dynamicAdj.aplicar(total);
+                          if (temBagagem) total += 5;
+                          return total.toFixed(2);
+                        })()}
+                      </span>
+                    </div>
+                  )}
                 </div>
               </motion.div>
             )}

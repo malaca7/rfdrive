@@ -210,7 +210,7 @@ function findBestRoute(
 }
 
 // ── Find active time rules ──
-function findActiveTimeRules(regras: RegraHorario[], horario: string): RegraHorario | null {
+export function findActiveTimeRules(regras: RegraHorario[], horario: string): RegraHorario | null {
   // horario format: "HH:MM" or "HH:MM:SS"
   const time = horario.substring(0, 5); // "HH:MM"
 
@@ -230,11 +230,19 @@ function findActiveTimeRules(regras: RegraHorario[], horario: string): RegraHora
 }
 
 // ── Apply time adjustment ──
-function applyTimeAdjustment(precoBase: number, regra: RegraHorario): number {
+export function applyTimeAdjustment(precoBase: number, regra: RegraHorario): number {
   if (regra.tipo_ajuste === 'percentual') {
     return precoBase * (1 + regra.valor_ajuste / 100);
   }
   return precoBase + regra.valor_ajuste;
+}
+
+// ── Get current active time rule (loads data from cache/DB) ──
+export async function getActiveTimeRule(): Promise<RegraHorario | null> {
+  const { regras } = await loadData();
+  if (!regras.length) return null;
+  const now = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', hour12: false });
+  return findActiveTimeRules(regras, now);
 }
 
 // ══════════════════════════════════════════════════════════
