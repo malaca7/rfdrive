@@ -404,7 +404,7 @@ const AdminDashboard: React.FC = () => {
   const openEditUserDialog = (u: UserRecord) => {
     setSelectedUser(u);
     const derivedRoles = u.roles && u.roles.length > 0 ? u.roles : (
-      u.tipo === 'admin' ? ['cliente', 'admin'] :
+      u.tipo === 'admin' ? ['admin'] :
       u.tipo === 'motorista' ? ['motorista'] :
       ['cliente']
     );
@@ -451,10 +451,11 @@ const AdminDashboard: React.FC = () => {
 
   const handleSaveUser = () => {
     if (!selectedUser) return;
-    // Atualiza roles conforme tipo principal
     let roles: string[] = [];
     if (editUserForm.tipo === 'admin') {
-      roles = ['cliente', 'admin'];
+      roles = ['admin'];
+    } else if (editUserForm.tipo === 'motorista') {
+      roles = ['motorista'];
     } else {
       roles = ['cliente'];
     }
@@ -831,12 +832,13 @@ const AdminDashboard: React.FC = () => {
               <div className="space-y-3">
                 {filteredUsers.map((u, i) => {
                   const rideCount = rides?.filter(r => r.cliente_id === u.id || r.motorista_id === u.id).length || 0;
-                  // Badge de tipo: sempre mostra admin se tipo for admin
-                  const tipos: string[] = u.tipo === 'admin'
-                    ? ['admin', 'cliente']
-                    : u.tipo === 'motorista'
-                      ? ['motorista', 'cliente']
-                      : ['cliente'];
+                  const tipos: string[] = u.roles && u.roles.length > 0 
+                    ? u.roles 
+                    : u.tipo === 'admin' 
+                      ? ['admin'] 
+                      : u.tipo === 'motorista' 
+                        ? ['motorista'] 
+                        : ['cliente'];
                   return (
                     <motion.div key={u.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.02 }}>
                       <Card className={u.status === 'banido' ? 'border-red-500/30 bg-red-500/5' : ''}>

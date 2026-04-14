@@ -39,6 +39,7 @@ const RideRequestForm: React.FC = () => {
   const [ratingSubmitted, setRatingSubmitted] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [observacaoCliente, setObservacaoCliente] = useState('');
+  const [temBagagem, setTemBagagem] = useState(false);
   const destinoRef = useRef<HTMLInputElement>(null);
   const [showOrigemSuggestions, setShowOrigemSuggestions] = useState(false);
   const [showDestinoSuggestions, setShowDestinoSuggestions] = useState(false);
@@ -213,6 +214,12 @@ const RideRequestForm: React.FC = () => {
         }
       }
 
+      // Adicionar taxa de bagagem se aplicável
+      const taxaBagagem = temBagagem ? 5.00 : 0;
+      if (taxaBagagem > 0) {
+        valor_estimado = (valor_estimado || 0) + taxaBagagem;
+      }
+
       // Insert: try full payload, fallback to minimal if columns missing
       let corridaData: { id: string } | null = null;
       const obsCliente = observacaoCliente.trim() || null;
@@ -227,6 +234,7 @@ const RideRequestForm: React.FC = () => {
         preco_regra_aplicada,
         preco_detalhes,
         observacao_cliente: obsCliente,
+        tem_bagagem: temBagagem,
       };
 
       const { data: d1, error: e1 } = await supabase.from('corridas').insert(fullPayload).select('id').single();
@@ -263,6 +271,7 @@ const RideRequestForm: React.FC = () => {
       setOrigem('');
       setDestino('');
       setObservacaoCliente('');
+      setTemBagagem(false);
       setErrorMsg('');
     } catch (_e) {
       const msg = _e instanceof Error ? _e.message : 'Erro desconhecido';
@@ -305,7 +314,7 @@ const RideRequestForm: React.FC = () => {
     try {
       const { error } = await supabase
         .from('corridas')
-        .update({ status: 'cancelada' })
+        .update({ status: 'nao_realizada' })
         .eq('id', activeRide.id)
         .in('status', ['nova', 'aguardando_motorista']);
       if (error) throw error;
@@ -679,6 +688,21 @@ const RideRequestForm: React.FC = () => {
             />
           </div>
 
+          {/* Baggage checkbox */}
+          <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
+            <input
+              type="checkbox"
+              id="temBagagem"
+              checked={temBagagem}
+              onChange={(e) => setTemBagagem(e.target.checked)}
+              className="w-5 h-5 rounded border-border text-accent focus:ring-accent"
+            />
+            <label htmlFor="temBagagem" className="text-sm cursor-pointer">
+              <span className="font-medium">Levando Feira ou Bagagem?</span>
+              <span className="text-muted-foreground"> (+R$ 5,00)</span>
+            </label>
+          </div>
+
           {/* ── Price preview from table ── */}
           <AnimatePresence>
             {precoTabela && (
@@ -688,21 +712,42 @@ const RideRequestForm: React.FC = () => {
                 exit={{ opacity: 0, y: -8 }}
                 className={`${precoTabela.estimado ? 'bg-amber-500/10 border-amber-500/20' : 'bg-green-500/10 border-green-500/20'} border rounded-xl p-[4%]`}
               >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <TableProperties className={`w-4 h-4 ${precoTabela.estimado ? 'text-amber-400' : 'text-green-400'}`} />
-                    <div>
-                      <p className="text-[10px] text-muted-foreground">{precoTabela.estimado ? 'Preço estimado' : 'Preço tabelado'}</p>
-                      <p className={`text-[clamp(1.1rem,3.5vw,1.35rem)] font-bold ${precoTabela.estimado ? 'text-amber-400' : 'text-green-400'}`}>R$ {precoTabela.valor.toFixed(2)}</p>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <TableProperties className={`w-4 h-4 ${precoTabela.estimado ? 'text-amber-400' : 'text-green-400'}`} />
+                      <div>
+                        <p className="text-[10px] text-muted-foreground">
+                          {precoTabela.estimado ? 'Preço estimado' : 'Preço tabelado'}
+                        </p>
+                        <p className={`text-[clamp(1.1rem,3.5vw,1.35rem)] font-bold ${precoTabela.estimado ? 'text-amber-400' : 'text-green-400'}`}>
+                          R$ {precoTabela.valor.toFixed(2)}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-[10px] text-muted-foreground">
+                        {precoTabela.estimado ? 'Média via Centro do Cabo' : precoTabela.match_exato ? 'Correspondência exata' : 'Melhor correspondência'}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground truncate max-w-[160px]">
+                        {precoTabela.origem_tabela} → {precoTabela.destino_tabela}
+                      </p>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p className="text-[10px] text-muted-foreground">
-                      {precoTabela.estimado ? 'Média via Centro do Cabo' : precoTabela.match_exato ? 'Correspondência exata' : 'Melhor correspondência'}
-                    </p>
-                    <p className="text-[10px] text-muted-foreground truncate max-w-[160px]">
-                      {precoTabela.origem_tabela} → {precoTabela.destino_tabela}
-                    </p>
+                  {temBagagem && (
+                    <div className="flex items-center justify-between bg-orange-500/10 border border-orange-500/20 rounded-lg px-3 py-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-orange-400 text-xs">📦</span>
+                        <span className="text-xs text-muted-foreground">Taxa Feira/Bagagem</span>
+                      </div>
+                      <span className="text-sm font-bold text-orange-400">R$ 5,00</span>
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between border-t border-border pt-2">
+                    <span className="text-sm font-medium">Total</span>
+                    <span className={`text-lg font-bold ${precoTabela.estimado ? 'text-amber-400' : 'text-green-400'}`}>
+                      R$ {(precoTabela.valor + (temBagagem ? 5 : 0)).toFixed(2)}
+                    </span>
                   </div>
                 </div>
               </motion.div>

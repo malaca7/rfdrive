@@ -86,6 +86,7 @@ export type Database = {
           valor_estimado: number | null
           preco_regra_aplicada: string | null
           preco_detalhes: Record<string, unknown> | null
+          tem_bagagem: boolean | null
           created_at: string
         }
         Insert: {
@@ -113,12 +114,13 @@ export type Database = {
           valor_estimado?: number | null
           preco_regra_aplicada?: string | null
           preco_detalhes?: Record<string, unknown> | null
+          tem_bagagem?: boolean | null
           created_at?: string
         }
         Update: {
           id?: string
           cliente_id?: string
-          motorista_id?: string | null
+          motoristata?: string | null
           origem_texto?: string
           destino_texto?: string
           horario_estimado?: string | null
@@ -140,6 +142,7 @@ export type Database = {
           valor_estimado?: number | null
           preco_regra_aplicada?: string | null
           preco_detalhes?: Record<string, unknown> | null
+          tem_bagagem?: boolean | null
           created_at?: string
         }
         Relationships: []

@@ -14,7 +14,7 @@ import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
 const AppRoutes = () => {
-  const { user, activeScreen, loading } = useAuth();
+  const { user, activeScreen, loading, roles } = useAuth();
   useRealtimeSync();
 
   if (loading) {
@@ -33,12 +33,15 @@ const AppRoutes = () => {
     );
   }
 
+  const isAdmin = user.tipo === 'admin' || roles.includes('admin');
+  const effectiveScreen = isAdmin && activeScreen !== 'motorista' ? 'admin' : activeScreen;
+
   return (
     <Routes>
-      {activeScreen === 'admin' && <Route path="/" element={<AdminDashboard />} />}
-      {activeScreen === 'motorista' && <Route path="/" element={<DriverDashboard />} />}
-      {activeScreen === 'cliente' && <Route path="/" element={<ClientDashboard />} />}
-      {!activeScreen && <Route path="/" element={<ClientDashboard />} />}
+      {effectiveScreen === 'admin' && <Route path="/" element={<AdminDashboard />} />}
+      {effectiveScreen === 'motorista' && <Route path="/" element={<DriverDashboard />} />}
+      {effectiveScreen === 'cliente' && <Route path="/" element={<ClientDashboard />} />}
+      {!effectiveScreen && <Route path="/" element={<ClientDashboard />} />}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

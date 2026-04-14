@@ -59,7 +59,6 @@ function deriveRoles(tipo: string, dbRoles?: string[] | null): AppRole[] {
     if (tipo === 'motorista') {
       validRoles.add('motorista');
     } else if (tipo === 'admin') {
-      validRoles.add('cliente');
       validRoles.add('admin');
     } else {
       validRoles.add('cliente');
@@ -113,7 +112,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const hasRole = (r: AppRole) => roles.includes(r);
 
   const setActiveScreen = (s: ScreenKey) => {
-    if (availableScreens.includes(s)) {
+    const isAdmin = user?.tipo === 'admin' || roles.includes('admin');
+    const canAccess = availableScreens.includes(s) || (s === 'admin' && isAdmin);
+    if (canAccess) {
       setActiveScreenState(s);
       localStorage.setItem(SCREEN_KEY, s);
     }
@@ -121,14 +122,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Ensure activeScreen is valid for current user
   useEffect(() => {
-    if (user && !availableScreens.includes(activeScreen)) {
-      const defaultScreen = availableScreens.includes('admin') ? 'admin' :
-        availableScreens.includes('motorista') ? 'motorista' :
-        availableScreens.includes('cliente') ? 'cliente' : 'cliente';
-      setActiveScreenState(defaultScreen);
-      localStorage.setItem(SCREEN_KEY, defaultScreen);
+    if (user) {
+      const isAdmin = user.tipo === 'admin' || roles.includes('admin');
+      const allScreens = isAdmin ? [...availableScreens, 'admin'] : availableScreens;
+      if (!allScreens.includes(activeScreen as ScreenKey)) {
+        const defaultScreen = allScreens.includes('admin') ? 'admin' :
+          allScreens.includes('motorista') ? 'motorista' :
+          allScreens.includes('cliente') ? 'cliente' : 'cliente';
+        setActiveScreenState(defaultScreen);
+        localStorage.setItem(SCREEN_KEY, defaultScreen);
+      }
     }
-  }, [user, availableScreens, activeScreen]);
+  }, [user, availableScreens, activeScreen, roles]);
 
   useEffect(() => {
     if (user) {

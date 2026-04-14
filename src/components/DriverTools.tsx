@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
+import html2canvas from 'html2canvas';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -301,27 +302,68 @@ export const TripCalculator: React.FC<{
 // ═══════════════════════════════════════════════
 export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, completedCount }) => {
   const { toast } = useToast();
+  const badgeRef = useRef<HTMLDivElement>(null);
   const hasVehicle = profile.veiculo_marca || profile.veiculo_placa;
 
   const handleShare = async () => {
-    const text = [
-      `🚗 RF Drive - Motorista Credenciado`,
-      `👤 ${profile.nome}`,
-      `📱 ${profile.telefone}`,
-      hasVehicle ? `🚘 ${profile.veiculo_marca || ''} ${profile.veiculo_modelo || ''} - ${profile.veiculo_cor || ''} (${profile.veiculo_placa || ''})` : '',
-      avgRating ? `⭐ ${avgRating.avg}/5 (${avgRating.count} avaliações)` : '',
-      `✅ ${completedCount} corridas concluídas`,
-    ].filter(Boolean).join('\n');
-
+    if (!badgeRef.current) return;
+    
     try {
+      const canvas = await html2canvas(badgeRef.current, {
+        scale: 2,
+        backgroundColor: '#1a1a1a',
+        logging: false,
+      });
+      
+      const imageDataUrl = canvas.toDataURL('image/png');
+      
+      // Tentar compartilhar como imagem
       if (navigator.share) {
-        await navigator.share({ title: 'RF Drive - Crachá', text });
+        // Converter para blob para compartilhamento nativo
+        const response = await fetch(imageDataUrl);
+        const blob = await response.blob();
+        const file = new File([blob], 'cracha-rf-drive.png', { type: 'image/png' });
+        
+        try {
+          await navigator.share({
+            title: 'RF Drive - Crachá',
+            files: [file],
+          });
+          return;
+        } catch {
+          // Se compartilhamento de arquivos não funcionar, fallback para texto
+        }
+      }
+      
+      // Fallback: baixar imagem ou copiar para clipboard
+      const link = document.createElement('a');
+      link.href = imageDataUrl;
+      link.download = 'cracha-rf-drive.png';
+      link.click();
+      
+      toast({ title: 'Crachá baixado!' });
+    } catch {
+      // Fallback para texto se html2canvas falhar
+      const text = [
+        `🚗 RF Drive - Motorista Credenciado`,
+        `👤 ${profile.nome}`,
+        `📱 ${profile.telefone}`,
+        hasVehicle ? `🚘 ${profile.veiculo_marca || ''} ${profile.veiculo_modelo || ''} - ${profile.veiculo_cor || ''} (${profile.veiculo_placa || ''})` : '',
+        avgRating ? `⭐ ${avgRating.avg}/5 (${avgRating.count} avaliações)` : '',
+        `✅ ${completedCount} corridas concluídas`,
+      ].filter(Boolean).join('\n');
+
+      if (navigator.share) {
+        try {
+          await navigator.share({ title: 'RF Drive - Crachá', text });
+        } catch {
+          await navigator.clipboard.writeText(text);
+          toast({ title: 'Crachá copiado!' });
+        }
       } else {
         await navigator.clipboard.writeText(text);
         toast({ title: 'Crachá copiado!' });
       }
-    } catch {
-      /* user cancelled share */
     }
   };
 
