@@ -34,7 +34,7 @@ const AppRoutes = () => {
   }
 
   const isAdmin = user.tipo === 'admin' || roles.includes('admin');
-  const effectiveScreen = isAdmin && activeScreen !== 'motorista' ? 'admin' : activeScreen;
+  const effectiveScreen = isAdmin && activeScreen === 'admin' ? 'admin' : activeScreen;
 
   return (
     <Routes>

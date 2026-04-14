@@ -27,8 +27,7 @@ const SCREEN_CONFIG: Record<string, { label: string; icon: React.ReactNode; acti
 const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { profile, signOut, availableScreens, activeScreen, setActiveScreen, roles, user } = useAuth();
 
-  // Sempre mostra o menu se houver login
-  const ALL_SCREENS: Array<keyof typeof SCREEN_CONFIG> = ['cliente', 'motorista', 'admin'];
+  // Só mostra telas disponíveis (motorista só aparece com veículo cadastrado)
   const showNav = true;
 
   // Verificar se usuário é admin via tipo ou roles
@@ -55,7 +54,7 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             <div className="text-right mr-1">
               <p className="text-sm font-semibold truncate max-w-[120px]">{profile?.nome || ''}</p>
               {activeScreen && (
-                <p className="text-[10px] text-muted-foreground capitalize">{isAdmin ? 'admin' : activeScreen}</p>
+                <p className="text-[10px] text-muted-foreground capitalize">{activeScreen}</p>
               )}
             </div>
             <button
@@ -77,26 +76,23 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       {showNav && (
         <nav className="shrink-0 z-50 glass border-t border-border/40 safe-bottom">
           <div className="w-full px-[4%] flex items-stretch justify-around h-16">
-            {ALL_SCREENS.map(screen => {
+            {effectiveAvailableScreens.map(screen => {
               const cfg = SCREEN_CONFIG[screen];
               if (!cfg) return null;
               const isActive = screen === activeScreen;
-              const isEnabled = effectiveAvailableScreens.includes(screen);
               return (
                 <button
                   key={screen}
-                  onClick={() => isEnabled && setActiveScreen(screen)}
+                  onClick={() => setActiveScreen(screen)}
                   className={`
                     relative flex flex-col items-center justify-center gap-0.5 flex-1
                     transition-all duration-200
                     ${isActive ? cfg.activeClass : 'text-muted-foreground'}
-                    ${!isEnabled ? 'opacity-40 cursor-not-allowed pointer-events-none' : ''}
                   `}
-                  aria-disabled={!isEnabled}
-                  tabIndex={isEnabled ? 0 : -1}
-                  title={isEnabled ? cfg.label : 'Acesso não permitido'}
+                  tabIndex={0}
+                  title={cfg.label}
                 >
-                  {isActive && isEnabled && (
+                  {isActive && (
                     <motion.div
                       layoutId="nav-indicator"
                       className={`absolute top-0 left-[25%] right-[25%] h-[3px] rounded-b-full ${cfg.dotColor}`}
