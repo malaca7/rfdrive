@@ -1,10 +1,11 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   Car, Users, Star, DollarSign, CheckCircle, Clock, AlertTriangle,
   TrendingUp, MapPin, Calendar, Activity, Shield, XCircle, Eye,
-  FileText, UserCheck, Ban,
+  FileText, UserCheck, Ban, Filter, RotateCcw,
 } from 'lucide-react';
 
 type Ride = {
@@ -45,6 +46,43 @@ interface AdminStatsProps {
 }
 
 const AdminStatsDashboard: React.FC<AdminStatsProps> = ({ rides, users }) => {
+  const [periodo, setPeriodo] = useState<string>('todos');
+  const [statusFilter, setStatusFilter] = useState<string>('todos');
+  const [canalFilter, setCanalFilter] = useState<string>('todos');
+
+  // Filtered rides based on selected filters
+  const filteredRides = useMemo(() => {
+    let result = rides;
+
+    // Period filter
+    if (periodo !== 'todos') {
+      const now = new Date();
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      let cutoff: Date;
+      switch (periodo) {
+        case 'hoje': cutoff = today; break;
+        case '7dias': cutoff = new Date(today.getTime() - 7 * 86400000); break;
+        case '30dias': cutoff = new Date(today.getTime() - 30 * 86400000); break;
+        default: cutoff = new Date(0);
+      }
+      result = result.filter(r => new Date(r.created_at) >= cutoff);
+    }
+
+    // Status filter
+    if (statusFilter !== 'todos') {
+      result = result.filter(r => r.status === statusFilter);
+    }
+
+    // Canal filter
+    if (canalFilter !== 'todos') {
+      result = result.filter(r => r.canal_origem === canalFilter);
+    }
+
+    return result;
+  }, [rides, periodo, statusFilter, canalFilter]);
+
+  const hasFilters = periodo !== 'todos' || statusFilter !== 'todos' || canalFilter !== 'todos';
+
   const stats = useMemo(() => {
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -55,15 +93,15 @@ const AdminStatsDashboard: React.FC<AdminStatsProps> = ({ rides, users }) => {
     const byStatus = {
       nova: 0, aguardando_motorista: 0, aceita: 0, em_analise: 0, aprovada: 0, recusada: 0, nao_realizada: 0,
     };
-    rides.forEach(r => { if (r.status in byStatus) byStatus[r.status as keyof typeof byStatus]++; });
+    filteredRides.forEach(r => { if (r.status in byStatus) byStatus[r.status as keyof typeof byStatus]++; });
 
     // Time-based
-    const ridesToday = rides.filter(r => new Date(r.created_at) >= today);
-    const ridesWeek = rides.filter(r => new Date(r.created_at) >= weekAgo);
-    const ridesMonth = rides.filter(r => new Date(r.created_at) >= monthAgo);
+    const ridesToday = filteredRides.filter(r => new Date(r.created_at) >= today);
+    const ridesWeek = filteredRides.filter(r => new Date(r.created_at) >= weekAgo);
+    const ridesMonth = filteredRides.filter(r => new Date(r.created_at) >= monthAgo);
 
     // Revenue
-    const completedRides = rides.filter(r => r.status === 'aprovada' || r.status === 'em_analise');
+    const completedRides = filteredRides.filter(r => r.status === 'aprovada' || r.status === 'em_analise');
     const totalRevenue = completedRides.reduce((sum, r) => sum + (r.valor || r.valor_estimado || 0), 0);
     const revenueToday = ridesToday.filter(r => r.status === 'aprovada' || r.status === 'em_analise')
       .reduce((sum, r) => sum + (r.valor || r.valor_estimado || 0), 0);
@@ -77,7 +115,7 @@ const AdminStatsDashboard: React.FC<AdminStatsProps> = ({ rides, users }) => {
 
     // Driver stats
     const driverRideCount: Record<string, { nome: string; count: number; revenue: number; ratings: number[]; }> = {};
-    rides.forEach(r => {
+    filteredRides.forEach(r => {
       if (r.motorista_id && r.motorista) {
         if (!driverRideCount[r.motorista_id]) {
           driverRideCount[r.motorista_id] = { nome: r.motorista.nome, count: 0, revenue: 0, ratings: [] };
@@ -101,7 +139,7 @@ const AdminStatsDashboard: React.FC<AdminStatsProps> = ({ rides, users }) => {
 
     // Top routes
     const routeCount: Record<string, { origem: string; destino: string; count: number }> = {};
-    rides.forEach(r => {
+    filteredRides.forEach(r => {
       const key = `${r.origem_texto}→${r.destino_texto}`;
       if (!routeCount[key]) routeCount[key] = { origem: r.origem_texto, destino: r.destino_texto, count: 0 };
       routeCount[key].count++;
@@ -109,7 +147,7 @@ const AdminStatsDashboard: React.FC<AdminStatsProps> = ({ rides, users }) => {
     const topRoutes = Object.values(routeCount).sort((a, b) => b.count - a.count).slice(0, 5);
 
     // Avg rating
-    const allClientRatings = rides.filter(r => r.avaliacao_cliente).map(r => r.avaliacao_cliente!.nota);
+    const allClientRatings = filteredRides.filter(r => r.avaliacao_cliente).map(r => r.avaliacao_cliente!.nota);
     const avgClientRating = allClientRatings.length > 0
       ? allClientRatings.reduce((a, b) => a + b, 0) / allClientRatings.length : null;
 
@@ -119,7 +157,7 @@ const AdminStatsDashboard: React.FC<AdminStatsProps> = ({ rides, users }) => {
     ridesMonth.forEach(r => { ridesByDay[new Date(r.created_at).getDay()]++; });
 
     return {
-      total: rides.length,
+      total: filteredRides.length,
       byStatus,
       ridesToday: ridesToday.length,
       ridesWeek: ridesWeek.length,
@@ -141,7 +179,7 @@ const AdminStatsDashboard: React.FC<AdminStatsProps> = ({ rides, users }) => {
       completedCount: completedRides.length,
       cancelledCount: byStatus.recusada + byStatus.nao_realizada,
     };
-  }, [rides, users]);
+  }, [filteredRides, users]);
 
   // Simple bar for visual representation
   const Bar = ({ value, max, color }: { value: number; max: number; color: string }) => (
@@ -154,6 +192,73 @@ const AdminStatsDashboard: React.FC<AdminStatsProps> = ({ rides, users }) => {
 
   return (
     <div className="space-y-[3%]">
+      {/* ── Filtros ── */}
+      <Card>
+        <CardContent className="py-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-1.5 text-sm font-semibold text-muted-foreground">
+              <Filter className="w-4 h-4" />
+              Filtros
+            </div>
+
+            <Select value={periodo} onValueChange={setPeriodo}>
+              <SelectTrigger className="w-[130px] h-8 text-xs">
+                <SelectValue placeholder="Período" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todo Período</SelectItem>
+                <SelectItem value="hoje">Hoje</SelectItem>
+                <SelectItem value="7dias">Últimos 7 dias</SelectItem>
+                <SelectItem value="30dias">Últimos 30 dias</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-[150px] h-8 text-xs">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos Status</SelectItem>
+                <SelectItem value="nova">Nova</SelectItem>
+                <SelectItem value="aguardando_motorista">Aguardando</SelectItem>
+                <SelectItem value="aceita">Aceita</SelectItem>
+                <SelectItem value="em_analise">Em Análise</SelectItem>
+                <SelectItem value="aprovada">Aprovada</SelectItem>
+                <SelectItem value="recusada">Recusada</SelectItem>
+                <SelectItem value="nao_realizada">Não Realizada</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select value={canalFilter} onValueChange={setCanalFilter}>
+              <SelectTrigger className="w-[130px] h-8 text-xs">
+                <SelectValue placeholder="Canal" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos Canais</SelectItem>
+                <SelectItem value="whatsapp">WhatsApp</SelectItem>
+                <SelectItem value="app">App</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {hasFilters && (
+              <button
+                onClick={() => { setPeriodo('todos'); setStatusFilter('todos'); setCanalFilter('todos'); }}
+                className="flex items-center gap-1 text-xs text-muted-foreground hover:text-accent transition-colors"
+              >
+                <RotateCcw className="w-3 h-3" />
+                Limpar
+              </button>
+            )}
+
+            {hasFilters && (
+              <Badge variant="outline" className="ml-auto text-[10px] px-2 py-0.5">
+                {filteredRides.length} de {rides.length} corridas
+              </Badge>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
       {/* ── KPI Cards ── */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-[2%]">
         <Card className="border-green-500/20">
