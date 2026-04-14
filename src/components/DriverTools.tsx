@@ -1,5 +1,8 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useCallback } from 'react';
 import html2canvas from 'html2canvas';
+import Cropper, { Area } from 'react-easy-crop';
+import { supabase } from '@/integrations/supabase/client';
+import { useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -7,14 +10,45 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
+import {
   Calculator, MapPin, Navigation, DollarSign, Send, Check, Copy,
   Car, Phone, Star, User, Shield, Clock, MessageSquare, ChevronRight, TableProperties,
+  Camera, Loader2, ZoomIn, ZoomOut,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePrecoTabela, useAllLocations } from '@/hooks/usePrecoTabela';
 import { useDynamicAdjustment } from '@/hooks/useDynamicAdjustment';
 import { normalizeText } from '@/lib/tabela-preco';
 import { useToast } from '@/hooks/use-toast';
+
+// ── Crop helper: canvas-based crop to blob ──
+async function getCroppedBlob(imageSrc: string, crop: Area): Promise<Blob> {
+  const image = new Image();
+  image.crossOrigin = 'anonymous';
+  await new Promise<void>((resolve, reject) => {
+    image.onload = () => resolve();
+    image.onerror = reject;
+    image.src = imageSrc;
+  });
+  const canvas = document.createElement('canvas');
+  const size = 400;
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext('2d')!;
+  ctx.drawImage(image, crop.x, crop.y, crop.width, crop.height, 0, 0, size, size);
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => (blob ? resolve(blob) : reject(new Error('Canvas to blob failed'))),
+      'image/jpeg', 0.85,
+    );
+  });
+}
 
 // ═══════════════════════════════════════════════
 // Types
@@ -445,8 +479,75 @@ export const TripCalculator: React.FC<{
 // ═══════════════════════════════════════════════
 export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, completedCount }) => {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const badgeRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const hasVehicle = profile.veiculo_marca || profile.veiculo_placa;
+
+  // ── Avatar crop state ──
+  const [avatarUrl, setAvatarUrl] = useState(profile.avatar_url || '');
+  const [showCropDialog, setShowCropDialog] = useState(false);
+  const [rawImage, setRawImage] = useState<string | null>(null);
+  const [crop, setCrop] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [croppedArea, setCroppedArea] = useState<Area | null>(null);
+  const [uploading, setUploading] = useState(false);
+
+  const onCropComplete = useCallback((_: Area, croppedAreaPixels: Area) => {
+    setCroppedArea(croppedAreaPixels);
+  }, []);
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      toast({ title: 'Selecione uma imagem', variant: 'destructive' });
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      toast({ title: 'Imagem muito grande (máx. 10MB)', variant: 'destructive' });
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      setRawImage(reader.result as string);
+      setCrop({ x: 0, y: 0 });
+      setZoom(1);
+      setShowCropDialog(true);
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
+  const handleCropConfirm = async () => {
+    if (!rawImage || !croppedArea) return;
+    setUploading(true);
+    try {
+      const blob = await getCroppedBlob(rawImage, croppedArea);
+      const filePath = `avatars/${profile.id}.jpg`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, blob, { upsert: true, contentType: 'image/jpeg', cacheControl: '3600' });
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(filePath);
+      const publicUrl = `${urlData.publicUrl}?t=${Date.now()}`;
+      setAvatarUrl(publicUrl);
+
+      await supabase.from('users').update({ avatar_url: publicUrl }).eq('id', profile.id);
+      queryClient.invalidateQueries({ queryKey: ['driver-full-profile'] });
+
+      toast({ title: 'Foto atualizada!' });
+      setShowCropDialog(false);
+      setRawImage(null);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Erro ao enviar foto';
+      toast({ title: msg, variant: 'destructive' });
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const handleShare = async () => {
     if (!badgeRef.current) return;
@@ -501,148 +602,240 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
     }
   };
 
+  // Hidden file input
+  const fileInput = (
+    <input
+      ref={fileInputRef}
+      type="file"
+      accept="image/*"
+      className="hidden"
+      onChange={handleFileSelect}
+    />
+  );
+
   return (
-    <div className="space-y-3">
-      {/* ── Badge Card (captured as image) ── */}
-      <div
-        ref={badgeRef}
-        style={{
-          background: 'linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #111111 100%)',
-          borderRadius: '16px',
-          padding: '20px',
-          border: '1px solid #333',
-          fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
-        }}
-      >
-        {/* Top: Logo + Brand */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
-          <div style={{
-            width: '36px', height: '36px', borderRadius: '10px',
-            background: 'linear-gradient(135deg, #3b82f6, #6366f1)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            flexShrink: 0,
-          }}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2" />
-              <circle cx="7" cy="17" r="2" />
-              <circle cx="17" cy="17" r="2" />
-            </svg>
-          </div>
-          <div>
-            <div style={{ fontSize: '16px', fontWeight: '800', color: '#ffffff', letterSpacing: '-0.5px', lineHeight: '1.1' }}>
-              RF Drive
-            </div>
-            <div style={{ fontSize: '9px', fontWeight: '500', color: '#888', textTransform: 'uppercase' as const, letterSpacing: '1.5px' }}>
-              Motorista Credenciado
-            </div>
-          </div>
-        </div>
-
-        {/* Divider */}
-        <div style={{ height: '1px', background: 'linear-gradient(90deg, transparent, #333, transparent)', marginBottom: '14px' }} />
-
-        {/* Driver row */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '14px' }}>
-          <div style={{
-            width: '52px', height: '52px', borderRadius: '50%',
-            border: '2px solid #444', overflow: 'hidden',
-            background: '#222', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            flexShrink: 0,
-          }}>
-            {profile.avatar_url ? (
-              <img src={profile.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-            ) : (
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
-                <circle cx="12" cy="7" r="4" />
+    <>
+      {fileInput}
+      <div className="space-y-3">
+        {/* ── Badge Card (captured as image) ── */}
+        <div
+          ref={badgeRef}
+          style={{
+            background: 'linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #111111 100%)',
+            borderRadius: '16px',
+            padding: '20px',
+            border: '1px solid #333',
+            fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
+          }}
+        >
+          {/* Top: Logo + Brand */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
+            <div style={{
+              width: '36px', height: '36px', borderRadius: '10px',
+              background: 'linear-gradient(135deg, #3b82f6, #6366f1)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              flexShrink: 0,
+            }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2" />
+                <circle cx="7" cy="17" r="2" />
+                <circle cx="17" cy="17" r="2" />
               </svg>
-            )}
-          </div>
-          <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: '15px', fontWeight: '700', color: '#fff', lineHeight: '1.2' }}>
-              {profile.nome}
             </div>
-            <div style={{ fontSize: '11px', color: '#888', marginTop: '2px' }}>
-              {profile.telefone}
-            </div>
-          </div>
-        </div>
-
-        {/* Vehicle (compact) */}
-        {hasVehicle && (
-          <div style={{
-            background: '#1a1a1a', borderRadius: '10px', padding: '10px 12px',
-            border: '1px solid #2a2a2a', marginBottom: '12px',
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div>
-                <div style={{ fontSize: '12px', fontWeight: '600', color: '#ddd' }}>
-                  {[profile.veiculo_marca, profile.veiculo_modelo].filter(Boolean).join(' ')}
-                </div>
-                <div style={{ fontSize: '10px', color: '#777', marginTop: '1px' }}>
-                  {[profile.veiculo_cor, profile.veiculo_placa].filter(Boolean).join(' • ')}
-                </div>
+            <div>
+              <div style={{ fontSize: '16px', fontWeight: '800', color: '#ffffff', letterSpacing: '-0.5px', lineHeight: '1.1' }}>
+                RF Drive
               </div>
-              {profile.veiculo_placa && (
-                <div style={{
-                  background: '#222', border: '1px solid #444', borderRadius: '6px',
-                  padding: '3px 8px', fontSize: '11px', fontWeight: '700',
-                  color: '#fff', fontFamily: 'monospace', letterSpacing: '1px',
-                }}>
-                  {profile.veiculo_placa}
-                </div>
+              <div style={{ fontSize: '9px', fontWeight: '500', color: '#888', textTransform: 'uppercase' as const, letterSpacing: '1.5px' }}>
+                Motorista Credenciado
+              </div>
+            </div>
+          </div>
+
+          {/* Divider */}
+          <div style={{ height: '1px', background: 'linear-gradient(90deg, transparent, #333, transparent)', marginBottom: '14px' }} />
+
+          {/* Driver row */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '14px' }}>
+            <div style={{
+              width: '52px', height: '52px', borderRadius: '50%',
+              border: '2px solid #444', overflow: 'hidden',
+              background: '#222', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              flexShrink: 0,
+            }}>
+              {avatarUrl ? (
+                <img src={avatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              ) : (
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+                  <circle cx="12" cy="7" r="4" />
+                </svg>
               )}
             </div>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: '15px', fontWeight: '700', color: '#fff', lineHeight: '1.2' }}>
+                {profile.nome}
+              </div>
+              <div style={{ fontSize: '11px', color: '#888', marginTop: '2px' }}>
+                {profile.telefone}
+              </div>
+            </div>
           </div>
-        )}
 
-        {/* Stats row */}
-        <div style={{ display: 'flex', gap: '6px' }}>
-          <div style={{
-            flex: 1, background: '#0a1a0a', border: '1px solid #1a3a1a', borderRadius: '8px',
-            padding: '8px 0', textAlign: 'center' as const,
-          }}>
-            <div style={{ fontSize: '16px', fontWeight: '800', color: '#4ade80' }}>{completedCount}</div>
-            <div style={{ fontSize: '8px', color: '#6b7280', textTransform: 'uppercase' as const, letterSpacing: '0.5px' }}>corridas</div>
+          {/* Vehicle (compact) */}
+          {hasVehicle && (
+            <div style={{
+              background: '#1a1a1a', borderRadius: '10px', padding: '10px 12px',
+              border: '1px solid #2a2a2a', marginBottom: '12px',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div>
+                  <div style={{ fontSize: '12px', fontWeight: '600', color: '#ddd' }}>
+                    {[profile.veiculo_marca, profile.veiculo_modelo].filter(Boolean).join(' ')}
+                  </div>
+                  <div style={{ fontSize: '10px', color: '#777', marginTop: '1px' }}>
+                    {[profile.veiculo_cor, profile.veiculo_placa].filter(Boolean).join(' • ')}
+                  </div>
+                </div>
+                {profile.veiculo_placa && (
+                  <div style={{
+                    background: '#222', border: '1px solid #444', borderRadius: '6px',
+                    padding: '3px 8px', fontSize: '11px', fontWeight: '700',
+                    color: '#fff', fontFamily: 'monospace', letterSpacing: '1px',
+                  }}>
+                    {profile.veiculo_placa}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Stats row */}
+          <div style={{ display: 'flex', gap: '6px' }}>
+            <div style={{
+              flex: 1, background: '#0a1a0a', border: '1px solid #1a3a1a', borderRadius: '8px',
+              padding: '8px 0', textAlign: 'center' as const,
+            }}>
+              <div style={{ fontSize: '16px', fontWeight: '800', color: '#4ade80' }}>{completedCount}</div>
+              <div style={{ fontSize: '8px', color: '#6b7280', textTransform: 'uppercase' as const, letterSpacing: '0.5px' }}>corridas</div>
+            </div>
+            <div style={{
+              flex: 1, background: '#1a1a0a', border: '1px solid #3a3a1a', borderRadius: '8px',
+              padding: '8px 0', textAlign: 'center' as const,
+            }}>
+              <div style={{ fontSize: '16px', fontWeight: '800', color: '#facc15' }}>
+                {avgRating ? `${avgRating.avg}` : '—'}
+              </div>
+              <div style={{ fontSize: '8px', color: '#6b7280', textTransform: 'uppercase' as const, letterSpacing: '0.5px' }}>
+                {avgRating ? `${avgRating.count} aval.` : 'sem aval.'}
+              </div>
+            </div>
+            <div style={{
+              flex: 1, background: '#0a0a1a', border: '1px solid #1a1a3a', borderRadius: '8px',
+              padding: '8px 0', textAlign: 'center' as const,
+            }}>
+              <div style={{ fontSize: '12px', fontWeight: '700', color: profile.status === 'ativo' ? '#4ade80' : '#ef4444' }}>
+                {profile.status === 'ativo' ? '● Ativo' : '● ' + profile.status}
+              </div>
+              <div style={{ fontSize: '8px', color: '#6b7280', textTransform: 'uppercase' as const, letterSpacing: '0.5px' }}>status</div>
+            </div>
           </div>
-          <div style={{
-            flex: 1, background: '#1a1a0a', border: '1px solid #3a3a1a', borderRadius: '8px',
-            padding: '8px 0', textAlign: 'center' as const,
-          }}>
-            <div style={{ fontSize: '16px', fontWeight: '800', color: '#facc15' }}>
-              {avgRating ? `${avgRating.avg}` : '—'}
-            </div>
-            <div style={{ fontSize: '8px', color: '#6b7280', textTransform: 'uppercase' as const, letterSpacing: '0.5px' }}>
-              {avgRating ? `${avgRating.count} aval.` : 'sem aval.'}
-            </div>
-          </div>
-          <div style={{
-            flex: 1, background: '#0a0a1a', border: '1px solid #1a1a3a', borderRadius: '8px',
-            padding: '8px 0', textAlign: 'center' as const,
-          }}>
-            <div style={{ fontSize: '12px', fontWeight: '700', color: profile.status === 'ativo' ? '#4ade80' : '#ef4444' }}>
-              {profile.status === 'ativo' ? '● Ativo' : '● ' + profile.status}
-            </div>
-            <div style={{ fontSize: '8px', color: '#6b7280', textTransform: 'uppercase' as const, letterSpacing: '0.5px' }}>status</div>
+
+          {/* Bottom ID */}
+          <div style={{ marginTop: '10px', textAlign: 'center' as const }}>
+            <span style={{ fontSize: '8px', color: '#555', fontFamily: 'monospace', letterSpacing: '1px' }}>
+              ID {profile.id.slice(0, 8).toUpperCase()}
+            </span>
           </div>
         </div>
 
-        {/* Bottom ID */}
-        <div style={{ marginTop: '10px', textAlign: 'center' as const }}>
-          <span style={{ fontSize: '8px', color: '#555', fontFamily: 'monospace', letterSpacing: '1px' }}>
-            ID {profile.id.slice(0, 8).toUpperCase()}
-          </span>
+        {/* Action buttons */}
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            className="flex-1 h-11 rounded-xl gap-2 font-semibold"
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <Camera className="w-4 h-4" />
+            {avatarUrl ? 'Trocar Foto' : 'Adicionar Foto'}
+          </Button>
+          <Button
+            className="flex-1 h-11 rounded-xl gap-2 font-semibold"
+            onClick={handleShare}
+          >
+            <Send className="w-4 h-4" />
+            Compartilhar
+          </Button>
         </div>
       </div>
 
-      {/* Share button */}
-      <Button
-        className="w-full h-11 rounded-xl gap-2 font-semibold"
-        onClick={handleShare}
-      >
-        <Send className="w-4 h-4" />
-        Compartilhar Crachá
-      </Button>
-    </div>
+      {/* ── Crop Dialog ── */}
+      <Dialog open={showCropDialog} onOpenChange={setShowCropDialog}>
+        <DialogContent className="max-w-md p-0 overflow-hidden">
+          <DialogHeader className="p-4 pb-0">
+            <DialogTitle className="flex items-center gap-2 text-base">
+              <Camera className="w-5 h-5 text-accent" />
+              Recortar Foto
+            </DialogTitle>
+            <DialogDescription>
+              Arraste e ajuste o zoom para enquadrar seu rosto
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="relative w-full aspect-square bg-black">
+            {rawImage && (
+              <Cropper
+                image={rawImage}
+                crop={crop}
+                zoom={zoom}
+                aspect={1}
+                cropShape="round"
+                showGrid={false}
+                onCropChange={setCrop}
+                onZoomChange={setZoom}
+                onCropComplete={onCropComplete}
+              />
+            )}
+          </div>
+
+          {/* Zoom control */}
+          <div className="flex items-center gap-3 px-4 pb-2">
+            <ZoomOut className="w-4 h-4 text-muted-foreground shrink-0" />
+            <input
+              type="range"
+              min={1}
+              max={3}
+              step={0.05}
+              value={zoom}
+              onChange={e => setZoom(Number(e.target.value))}
+              className="flex-1 h-2 accent-accent"
+            />
+            <ZoomIn className="w-4 h-4 text-muted-foreground shrink-0" />
+          </div>
+
+          <div className="flex gap-2 p-4 pt-0">
+            <Button
+              variant="outline"
+              className="flex-1 rounded-xl"
+              onClick={() => { setShowCropDialog(false); setRawImage(null); }}
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleCropConfirm}
+              disabled={uploading}
+              className="flex-1 rounded-xl bg-green-600 hover:bg-green-700 text-white font-semibold"
+            >
+              {uploading ? (
+                <Loader2 className="w-4 h-4 animate-spin mr-1" />
+              ) : (
+                <Check className="w-4 h-4 mr-1" />
+              )}
+              Aplicar
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
