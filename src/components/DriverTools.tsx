@@ -8,9 +8,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
 import {
   Calculator, MapPin, Navigation, DollarSign, Send, Check, Copy,
-  Car, Phone, Star, User, Shield, Clock, MessageSquare, ChevronRight,
+  Car, Phone, Star, User, Shield, Clock, MessageSquare, ChevronRight, TableProperties,
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { usePrecoTabela, useAllLocations } from '@/hooks/usePrecoTabela';
+import { useDynamicAdjustment } from '@/hooks/useDynamicAdjustment';
 import { normalizeText } from '@/lib/tabela-preco';
 import { useToast } from '@/hooks/use-toast';
 
@@ -51,7 +53,9 @@ export const TripCalculator: React.FC<{
   const [clienteNome, setClienteNome] = useState('');
   const [clienteTelefone, setClienteTelefone] = useState('');
   const [observacao, setObservacao] = useState('');
+  const [temBagagem, setTemBagagem] = useState(false);
   const [copied, setCopied] = useState(false);
+  const destinoRef = useRef<HTMLInputElement>(null);
 
   const filteredOrigens = useMemo(() => {
     if (!origem.trim()) return allLocations;
@@ -66,6 +70,15 @@ export const TripCalculator: React.FC<{
   }, [destino, allLocations]);
 
   const preco = usePrecoTabela(origem, destino);
+  const dynamicAdj = useDynamicAdjustment();
+
+  const totalValue = useMemo(() => {
+    if (!preco) return 0;
+    let total = preco.valor;
+    if (dynamicAdj) total = dynamicAdj.aplicar(total);
+    if (temBagagem) total += 5;
+    return Math.round(total * 100) / 100;
+  }, [preco, dynamicAdj, temBagagem]);
 
   const quoteMensagem = useMemo(() => {
     if (!preco || !origem.trim() || !destino.trim()) return '';
@@ -74,15 +87,17 @@ export const TripCalculator: React.FC<{
       ``,
       `📍 *Origem:* ${origem.trim()}`,
       `📍 *Destino:* ${destino.trim()}`,
-      `💰 *Valor:* R$ ${preco.valor.toFixed(2)}`,
+      `💰 *Valor:* R$ ${totalValue.toFixed(2)}`,
       preco.estimado ? `_(valor estimado)_` : '',
-      ``,
     ];
+    if (dynamicAdj) lines.push(`⏰ ${dynamicAdj.label}`);
+    if (temBagagem) lines.push(`📦 Taxa feira/bagagem: +R$ 5,00`);
+    lines.push(``);
     if (clienteNome.trim()) lines.push(`👤 *Cliente:* ${clienteNome.trim()}`);
     if (observacao.trim()) lines.push(`📝 *Obs:* ${observacao.trim()}`);
     lines.push(``, `_Consulta feita pela Tabela RF Drive_`);
     return lines.filter(Boolean).join('\n');
-  }, [preco, origem, destino, clienteNome, observacao]);
+  }, [preco, origem, destino, clienteNome, observacao, totalValue, dynamicAdj, temBagagem]);
 
   const handleCopy = async () => {
     if (!quoteMensagem) return;
@@ -107,7 +122,7 @@ export const TripCalculator: React.FC<{
 
   const handleSendQuote = () => {
     if (!preco) return;
-    onSendQuote?.({ origem: origem.trim(), destino: destino.trim(), valor: preco.valor, mensagem: quoteMensagem });
+    onSendQuote?.({ origem: origem.trim(), destino: destino.trim(), valor: totalValue, mensagem: quoteMensagem });
     toast({ title: 'Orçamento enviado!' });
   };
 
@@ -117,103 +132,182 @@ export const TripCalculator: React.FC<{
     setClienteNome('');
     setClienteTelefone('');
     setObservacao('');
+    setTemBagagem(false);
   };
 
   return (
-    <div className="space-y-4">
-      {/* Origem */}
-      <Card>
-        <CardContent className="py-4 space-y-4">
-          <h3 className="text-sm font-semibold flex items-center gap-2">
-            <Calculator className="w-4 h-4 text-accent" />
-            Calcular Viagem
-          </h3>
-
-          <div className="space-y-3">
-            {/* Origem */}
-            <div className="relative">
-              <div className="flex items-center gap-2 mb-1">
-                <div className="w-2.5 h-2.5 rounded-full bg-green-500" />
-                <label className="text-xs font-medium">Origem</label>
-              </div>
-              <Input
-                value={origem}
-                onChange={e => { setOrigem(e.target.value); setShowOrigemSugg(true); }}
-                onFocus={() => setShowOrigemSugg(true)}
-                onBlur={() => setTimeout(() => setShowOrigemSugg(false), 200)}
-                placeholder="Digite a origem..."
-              />
-              {showOrigemSugg && filteredOrigens.length > 0 && origem.trim() && (
-                <div className="absolute z-20 top-full mt-1 w-full bg-card border rounded-lg shadow-lg max-h-40 overflow-y-auto">
-                  {filteredOrigens.slice(0, 8).map(loc => (
-                    <button
-                      key={loc}
-                      className="w-full text-left px-3 py-2 text-sm hover:bg-muted/50 transition-colors"
-                      onMouseDown={() => { setOrigem(loc); setShowOrigemSugg(false); }}
-                    >
-                      <MapPin className="w-3 h-3 inline mr-1.5 text-green-400" />{loc}
-                    </button>
-                  ))}
-                </div>
-              )}
+    <div className="space-y-[3%]">
+      <Card className="rounded-2xl">
+        <CardContent className="pt-[5%] pb-[4%] px-[4%] space-y-[3.5%]">
+          <div className="text-center space-y-1">
+            <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-accent/10 mx-auto">
+              <Calculator className="w-6 h-6 text-accent" />
             </div>
-
-            {/* Destino */}
-            <div className="relative">
-              <div className="flex items-center gap-2 mb-1">
-                <div className="w-2.5 h-2.5 rounded-full bg-accent" />
-                <label className="text-xs font-medium">Destino</label>
-              </div>
-              <Input
-                value={destino}
-                onChange={e => { setDestino(e.target.value); setShowDestinoSugg(true); }}
-                onFocus={() => setShowDestinoSugg(true)}
-                onBlur={() => setTimeout(() => setShowDestinoSugg(false), 200)}
-                placeholder="Digite o destino..."
-              />
-              {showDestinoSugg && filteredDestinos.length > 0 && destino.trim() && (
-                <div className="absolute z-20 top-full mt-1 w-full bg-card border rounded-lg shadow-lg max-h-40 overflow-y-auto">
-                  {filteredDestinos.slice(0, 8).map(loc => (
-                    <button
-                      key={loc}
-                      className="w-full text-left px-3 py-2 text-sm hover:bg-muted/50 transition-colors"
-                      onMouseDown={() => { setDestino(loc); setShowDestinoSugg(false); }}
-                    >
-                      <Navigation className="w-3 h-3 inline mr-1.5 text-accent" />{loc}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
+            <h2 className="text-[clamp(1.1rem,3.5vw,1.35rem)] font-bold">Calcular Viagem</h2>
+            <p className="text-xs text-muted-foreground">
+              Consulte o valor e envie o orçamento
+            </p>
           </div>
 
-          {/* Result */}
-          {preco && (
-            <div className="bg-green-500/10 border border-green-500/20 rounded-xl p-4 text-center space-y-1">
-              <p className="text-xs text-muted-foreground">Valor da corrida</p>
-              <p className="text-[clamp(1.5rem,5vw,2rem)] font-extrabold text-green-400">
-                R$ {preco.valor.toFixed(2)}
-              </p>
-              {preco.estimado && (
-                <Badge variant="outline" className="text-[10px] text-yellow-400 border-yellow-500/30">
-                  Valor estimado (via hub)
-                </Badge>
-              )}
-              {!preco.match_exato && !preco.estimado && (
-                <Badge variant="outline" className="text-[10px] text-blue-400 border-blue-500/30">
-                  Match aproximado
-                </Badge>
-              )}
-              <div className="flex items-center justify-center gap-1 text-[10px] text-muted-foreground pt-1">
-                <MapPin className="w-2.5 h-2.5" /> {preco.origem_tabela}
-                <ChevronRight className="w-3 h-3" />
-                <Navigation className="w-2.5 h-2.5" /> {preco.destino_tabela}
+          {/* Origem */}
+          <div className="space-y-1.5 relative">
+            <label className="text-sm font-medium flex items-center gap-2">
+              <div className="w-2.5 h-2.5 rounded-full bg-green-500" />
+              Origem
+            </label>
+            <Input
+              value={origem}
+              onChange={e => { setOrigem(e.target.value); setShowOrigemSugg(true); }}
+              onFocus={() => setShowOrigemSugg(true)}
+              onBlur={() => setTimeout(() => setShowOrigemSugg(false), 200)}
+              onKeyDown={e => { if (e.key === 'Enter') { setShowOrigemSugg(false); destinoRef.current?.focus(); } }}
+              placeholder="De onde sai?"
+              className="h-12 text-base"
+            />
+            {showOrigemSugg && filteredOrigens.length > 0 && origem.trim() && (
+              <div className="absolute z-50 w-full mt-1 bg-background border border-border rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                {filteredOrigens.slice(0, 15).map(loc => (
+                  <button
+                    key={loc}
+                    type="button"
+                    className="w-full text-left px-3 py-2 text-sm hover:bg-accent/10 transition-colors"
+                    onMouseDown={e => e.preventDefault()}
+                    onClick={() => { setOrigem(loc); setShowOrigemSugg(false); destinoRef.current?.focus(); }}
+                  >
+                    {loc}
+                  </button>
+                ))}
               </div>
-              {preco.regiao && (
-                <p className="text-[10px] text-muted-foreground">Região: {preco.regiao}</p>
-              )}
-            </div>
-          )}
+            )}
+          </div>
+
+          {/* Destino */}
+          <div className="space-y-1.5 relative">
+            <label className="text-sm font-medium flex items-center gap-2">
+              <div className="w-2.5 h-2.5 rounded-full bg-accent" />
+              Destino
+            </label>
+            <Input
+              ref={destinoRef}
+              value={destino}
+              onChange={e => { setDestino(e.target.value); setShowDestinoSugg(true); }}
+              onFocus={() => setShowDestinoSugg(true)}
+              onBlur={() => setTimeout(() => setShowDestinoSugg(false), 200)}
+              placeholder="Para onde vai?"
+              className="h-12 text-base"
+            />
+            {showDestinoSugg && filteredDestinos.length > 0 && destino.trim() && (
+              <div className="absolute z-50 w-full mt-1 bg-background border border-border rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                {filteredDestinos.slice(0, 15).map(loc => (
+                  <button
+                    key={loc}
+                    type="button"
+                    className="w-full text-left px-3 py-2 text-sm hover:bg-accent/10 transition-colors"
+                    onMouseDown={e => e.preventDefault()}
+                    onClick={() => { setDestino(loc); setShowDestinoSugg(false); }}
+                  >
+                    {loc}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Observação */}
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium flex items-center gap-2">
+              <MessageSquare className="w-3.5 h-3.5 text-muted-foreground" />
+              Observação <span className="text-xs text-muted-foreground font-normal">(opcional)</span>
+            </label>
+            <Textarea
+              value={observacao}
+              onChange={e => setObservacao(e.target.value)}
+              placeholder="Horário, ponto de referência..."
+              className="resize-none text-sm min-h-[60px]"
+              rows={2}
+            />
+          </div>
+
+          {/* Bagagem */}
+          <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
+            <input
+              type="checkbox"
+              id="temBagagemCalc"
+              checked={temBagagem}
+              onChange={e => setTemBagagem(e.target.checked)}
+              className="w-5 h-5 rounded border-border text-accent focus:ring-accent"
+            />
+            <label htmlFor="temBagagemCalc" className="text-sm cursor-pointer">
+              <span className="font-medium">Feira ou Bagagem?</span>
+              <span className="text-muted-foreground"> (+R$ 5,00)</span>
+            </label>
+          </div>
+
+          {/* Price preview */}
+          <AnimatePresence>
+            {preco && (
+              <motion.div
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                className={`${preco.estimado ? 'bg-amber-500/10 border-amber-500/20' : 'bg-green-500/10 border-green-500/20'} border rounded-xl p-[4%]`}
+              >
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <TableProperties className={`w-4 h-4 ${preco.estimado ? 'text-amber-400' : 'text-green-400'}`} />
+                      <div>
+                        <p className="text-[10px] text-muted-foreground">
+                          {preco.estimado ? 'Preço estimado' : 'Preço tabelado'}
+                        </p>
+                        <p className={`text-[clamp(1.1rem,3.5vw,1.35rem)] font-bold ${preco.estimado ? 'text-amber-400' : 'text-green-400'}`}>
+                          R$ {preco.valor.toFixed(2)}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-[10px] text-muted-foreground">
+                        {preco.estimado ? 'Média via Centro do Cabo' : preco.match_exato ? 'Correspondência exata' : 'Melhor correspondência'}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground truncate max-w-[160px]">
+                        {preco.origem_tabela} → {preco.destino_tabela}
+                      </p>
+                    </div>
+                  </div>
+                  {dynamicAdj && (
+                    <div className="flex items-center justify-between bg-purple-500/10 border border-purple-500/20 rounded-lg px-3 py-2">
+                      <div className="flex items-center gap-2">
+                        <Clock className="w-3.5 h-3.5 text-purple-400" />
+                        <span className="text-xs text-muted-foreground">{dynamicAdj.regra.nome}</span>
+                      </div>
+                      <span className="text-sm font-bold text-purple-400">
+                        {dynamicAdj.regra.tipo_ajuste === 'percentual'
+                          ? `+${dynamicAdj.regra.valor_ajuste}%`
+                          : `+R$ ${dynamicAdj.regra.valor_ajuste.toFixed(2)}`}
+                      </span>
+                    </div>
+                  )}
+                  {temBagagem && (
+                    <div className="flex items-center justify-between bg-orange-500/10 border border-orange-500/20 rounded-lg px-3 py-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-orange-400 text-xs">📦</span>
+                        <span className="text-xs text-muted-foreground">Taxa Feira/Bagagem</span>
+                      </div>
+                      <span className="text-sm font-bold text-orange-400">R$ 5,00</span>
+                    </div>
+                  )}
+                  {(dynamicAdj || temBagagem) && (
+                    <div className="flex items-center justify-between border-t border-border pt-2">
+                      <span className="text-sm font-medium">Total</span>
+                      <span className={`text-lg font-bold ${preco.estimado ? 'text-amber-400' : 'text-green-400'}`}>
+                        R$ {totalValue.toFixed(2)}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {!preco && origem.trim() && destino.trim() && (
             <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 text-center">
@@ -223,7 +317,7 @@ export const TripCalculator: React.FC<{
           )}
 
           {(origem || destino) && (
-            <Button variant="ghost" size="sm" className="text-xs" onClick={handleClear}>
+            <Button variant="ghost" size="sm" className="text-xs w-full" onClick={handleClear}>
               Limpar campos
             </Button>
           )}
@@ -231,68 +325,75 @@ export const TripCalculator: React.FC<{
       </Card>
 
       {/* Send Quote */}
-      {preco && (
-        <Card>
-          <CardContent className="py-4 space-y-3">
-            <h3 className="text-sm font-semibold flex items-center gap-2">
-              <Send className="w-4 h-4 text-blue-400" />
-              Enviar Orçamento
-            </h3>
+      <AnimatePresence>
+        {preco && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 8 }}
+          >
+            <Card className="rounded-2xl">
+              <CardContent className="pt-[5%] pb-[4%] px-[4%] space-y-[3.5%]">
+                <div className="text-center space-y-1">
+                  <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-blue-500/10 mx-auto">
+                    <Send className="w-5 h-5 text-blue-400" />
+                  </div>
+                  <h3 className="text-sm font-bold">Enviar Orçamento</h3>
+                </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-xs font-medium mb-1 block">Nome do cliente</label>
-                <Input
-                  value={clienteNome}
-                  onChange={e => setClienteNome(e.target.value)}
-                  placeholder="Opcional"
-                />
-              </div>
-              <div>
-                <label className="text-xs font-medium mb-1 block">Telefone</label>
-                <Input
-                  value={clienteTelefone}
-                  onChange={e => setClienteTelefone(e.target.value)}
-                  placeholder="(81) 9xxxx-xxxx"
-                />
-              </div>
-            </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium flex items-center gap-2">
+                      <User className="w-3.5 h-3.5 text-muted-foreground" />
+                      Cliente
+                    </label>
+                    <Input
+                      value={clienteNome}
+                      onChange={e => setClienteNome(e.target.value)}
+                      placeholder="Nome (opcional)"
+                      className="h-10"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium flex items-center gap-2">
+                      <Phone className="w-3.5 h-3.5 text-muted-foreground" />
+                      Telefone
+                    </label>
+                    <Input
+                      value={clienteTelefone}
+                      onChange={e => setClienteTelefone(e.target.value)}
+                      placeholder="(81) 9xxxx-xxxx"
+                      className="h-10"
+                    />
+                  </div>
+                </div>
 
-            <div>
-              <label className="text-xs font-medium mb-1 block">Observação</label>
-              <Textarea
-                value={observacao}
-                onChange={e => setObservacao(e.target.value)}
-                placeholder="Horário, ponto de referência..."
-                rows={2}
-                className="resize-none"
-              />
-            </div>
+                {/* Preview */}
+                <div className="bg-muted/30 rounded-xl p-3 text-xs whitespace-pre-wrap font-mono leading-relaxed max-h-40 overflow-y-auto">
+                  {quoteMensagem}
+                </div>
 
-            {/* Preview */}
-            <div className="bg-muted/30 rounded-lg p-3 text-xs whitespace-pre-wrap font-mono leading-relaxed">
-              {quoteMensagem}
-            </div>
-
-            <div className="flex gap-2">
-              <Button
-                variant="outline" className="flex-1 gap-1.5 text-xs"
-                onClick={handleCopy}
-              >
-                {copied ? <Check className="w-3.5 h-3.5 text-green-400" /> : <Copy className="w-3.5 h-3.5" />}
-                {copied ? 'Copiado!' : 'Copiar'}
-              </Button>
-              <Button
-                className="flex-1 gap-1.5 text-xs bg-green-600 hover:bg-green-700"
-                onClick={handleWhatsApp}
-              >
-                <MessageSquare className="w-3.5 h-3.5" />
-                WhatsApp
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline" className="flex-1 gap-1.5 h-11 rounded-xl font-semibold"
+                    onClick={handleCopy}
+                  >
+                    {copied ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
+                    {copied ? 'Copiado!' : 'Copiar'}
+                  </Button>
+                  <Button
+                    className="flex-1 gap-1.5 h-11 rounded-xl font-semibold bg-green-600 hover:bg-green-700 text-white shadow-lg shadow-green-600/20"
+                    onClick={handleWhatsApp}
+                  >
+                    <MessageSquare className="w-4 h-4" />
+                    WhatsApp
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
