@@ -18,7 +18,7 @@ import {
 import {
   Calculator, MapPin, Navigation, DollarSign, Send, Check, Copy,
   Car, Phone, Star, User, Shield, Clock, MessageSquare, ChevronRight, TableProperties,
-  Camera, Loader2, ZoomIn, ZoomOut,
+  Camera, Loader2, ZoomIn, ZoomOut, AlertTriangle,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePrecoTabela, useAllLocations } from '@/hooks/usePrecoTabela';
@@ -127,6 +127,16 @@ export const TripCalculator: React.FC<{
     const minima = configTarifas?.tarifa_minima ?? 0;
     if (minima > 0 && total < minima) total = minima;
     return Math.round(total * 100) / 100;
+  }, [preco, dynamicAdj, temBagagem, taxaBagagemValor, configTarifas]);
+
+  const isTarifaMinima = useMemo(() => {
+    if (!preco) return false;
+    const minima = configTarifas?.tarifa_minima ?? 0;
+    if (minima <= 0) return false;
+    let total = preco.valor;
+    if (dynamicAdj) total = dynamicAdj.aplicar(total);
+    if (temBagagem) total += taxaBagagemValor;
+    return total < minima;
   }, [preco, dynamicAdj, temBagagem, taxaBagagemValor, configTarifas]);
 
   const quoteMensagem = useMemo(() => {
@@ -363,6 +373,12 @@ export const TripCalculator: React.FC<{
                       </span>
                     </div>
                   )}
+                  {isTarifaMinima && (
+                    <div className="flex items-center gap-2 bg-yellow-500/10 border border-yellow-500/20 rounded-lg px-3 py-2">
+                      <AlertTriangle className="w-3.5 h-3.5 text-yellow-400 shrink-0" />
+                      <span className="text-xs text-yellow-400">Tarifa mínima aplicada (R$ {(configTarifas?.tarifa_minima ?? 0).toFixed(2)})</span>
+                    </div>
+                  )}
                 </div>
               </motion.div>
             )}
@@ -457,6 +473,12 @@ export const TripCalculator: React.FC<{
                     <span className="text-sm font-semibold">Total</span>
                     <span className="text-lg font-bold text-green-400">R$ {totalValue.toFixed(2)}</span>
                   </div>
+                  {isTarifaMinima && (
+                    <div className="flex items-center gap-2 mt-1">
+                      <AlertTriangle className="w-3 h-3 text-yellow-400 shrink-0" />
+                      <span className="text-[10px] text-yellow-400">Tarifa mínima aplicada</span>
+                    </div>
+                  )}
                 </div>
 
                 {/* Preview WhatsApp */}

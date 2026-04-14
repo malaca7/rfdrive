@@ -9,7 +9,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   MapPin, Navigation, Loader2, Check, CheckCircle, Clock,
-  Edit3, X, DollarSign, Route, Car, Star, Send, TableProperties, MessageSquare, Phone, Zap,
+  Edit3, X, DollarSign, Route, Car, Star, Send, TableProperties, MessageSquare, Phone, Zap, AlertTriangle,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import StarRating from '@/components/StarRating';
@@ -970,6 +970,24 @@ const RideRequestForm: React.FC = () => {
                       </span>
                     </div>
                   )}
+                  {/* Sinalização de tarifa mínima */}
+                  {(() => {
+                    const minima = configTarifas?.tarifa_minima ?? 0;
+                    if (minima <= 0) return null;
+                    let total = precoDinamico
+                      ? ((!precoDinamico.regra_horario && dynamicAdj) ? dynamicAdj.aplicar(precoDinamico.preco_final) : precoDinamico.preco_final)
+                      : precoTabela
+                        ? (dynamicAdj ? dynamicAdj.aplicar(precoTabela.valor) : precoTabela.valor)
+                        : 0;
+                    if (temBagagem) total += (configTarifas?.taxa_bagagem ?? 5);
+                    if (total > 0 && total < minima) return (
+                      <div className="flex items-center gap-2 bg-yellow-500/10 border border-yellow-500/20 rounded-lg px-3 py-2">
+                        <AlertTriangle className="w-3.5 h-3.5 text-yellow-400 shrink-0" />
+                        <span className="text-xs text-yellow-400">Tarifa mínima aplicada (R$ {minima.toFixed(2)})</span>
+                      </div>
+                    );
+                    return null;
+                  })()}
                 </div>
               </motion.div>
             )}

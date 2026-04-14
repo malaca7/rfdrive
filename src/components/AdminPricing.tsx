@@ -144,9 +144,7 @@ const TarifasTab: React.FC<{
   const { toast } = useToast();
   const [form, setForm] = useState({
     tarifa_minima: '',
-    tarifa_base_km: '',
     taxa_bagagem: '',
-    bandeirada: '',
   });
   const [hasChanges, setHasChanges] = useState(false);
 
@@ -155,9 +153,7 @@ const TarifasTab: React.FC<{
     if (config) {
       setForm({
         tarifa_minima: String(config.tarifa_minima ?? 0),
-        tarifa_base_km: String(config.tarifa_base_km ?? 0),
         taxa_bagagem: String(config.taxa_bagagem ?? 5),
-        bandeirada: String(config.bandeirada ?? 0),
       });
       setHasChanges(false);
     }
@@ -172,9 +168,7 @@ const TarifasTab: React.FC<{
     mutationFn: async () => {
       const payload = {
         tarifa_minima: parseFloat(form.tarifa_minima) || 0,
-        tarifa_base_km: parseFloat(form.tarifa_base_km) || 0,
         taxa_bagagem: parseFloat(form.taxa_bagagem) || 0,
-        bandeirada: parseFloat(form.bandeirada) || 0,
         updated_at: new Date().toISOString(),
       };
 
@@ -208,26 +202,6 @@ const TarifasTab: React.FC<{
       placeholder: '0.00',
       color: 'text-green-400',
       bgColor: 'bg-green-500/10 border-green-500/20',
-    },
-    {
-      key: 'bandeirada',
-      label: 'Bandeirada',
-      desc: 'Taxa fixa cobrada no início de cada corrida (somada ao preço da rota).',
-      icon: <Zap className="w-4 h-4" />,
-      prefix: 'R$',
-      placeholder: '0.00',
-      color: 'text-yellow-400',
-      bgColor: 'bg-yellow-500/10 border-yellow-500/20',
-    },
-    {
-      key: 'tarifa_base_km',
-      label: 'Tarifa por Km',
-      desc: 'Valor cobrado por quilômetro rodado (usado quando não há preço fixo de rota).',
-      icon: <Map className="w-4 h-4" />,
-      prefix: 'R$/km',
-      placeholder: '0.00',
-      color: 'text-blue-400',
-      bgColor: 'bg-blue-500/10 border-blue-500/20',
     },
     {
       key: 'taxa_bagagem',
@@ -285,35 +259,23 @@ const TarifasTab: React.FC<{
       <Card className="bg-muted/30">
         <CardContent className="py-4">
           <p className="text-xs text-muted-foreground font-medium mb-3">PREVIEW DO CÁLCULO</p>
-          <div className="grid grid-cols-2 gap-3 text-xs">
-            <div className="space-y-1">
-              <p className="text-muted-foreground">Corrida exemplo: Rota R$ 15,00</p>
-              <div className="space-y-0.5 text-muted-foreground">
-                <div className="flex justify-between">
-                  <span>Bandeirada</span>
-                  <span>+ R$ {(parseFloat(form.bandeirada) || 0).toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Base</span>
-                  <span>R$ {(15 + (parseFloat(form.bandeirada) || 0)).toFixed(2)}</span>
-                </div>
-                <Separator className="my-1" />
-                <div className="flex justify-between font-semibold text-foreground">
-                  <span>Total estimado</span>
-                  <span>R$ {Math.max(15 + (parseFloat(form.bandeirada) || 0), parseFloat(form.tarifa_minima) || 0).toFixed(2)}</span>
-                </div>
+          <div className="space-y-2 text-xs">
+            <div className="space-y-1 text-muted-foreground">
+              <div className="flex justify-between">
+                <span>Corrida exemplo: Rota</span>
+                <span>R$ 15,00</span>
               </div>
-            </div>
-            <div className="space-y-1">
-              <p className="text-muted-foreground">Se for menor que mínima:</p>
-              <div className="flex items-center gap-2 mt-2">
-                <AlertTriangle className="w-3.5 h-3.5 text-yellow-400" />
-                <span className="text-yellow-400 font-medium">
-                  {(parseFloat(form.tarifa_minima) || 0) > 0
-                    ? `Cobra no mínimo R$ ${(parseFloat(form.tarifa_minima) || 0).toFixed(2)}`
-                    : 'Sem tarifa mínima definida'}
-                </span>
+              <Separator className="my-1" />
+              <div className="flex justify-between font-semibold text-foreground">
+                <span>Total estimado</span>
+                <span>R$ {Math.max(15, parseFloat(form.tarifa_minima) || 0).toFixed(2)}</span>
               </div>
+              {(parseFloat(form.tarifa_minima) || 0) > 15 && (
+                <div className="flex items-center gap-2 mt-2">
+                  <AlertTriangle className="w-3.5 h-3.5 text-yellow-400" />
+                  <span className="text-yellow-400 font-medium">Tarifa mínima aplicada: R$ {(parseFloat(form.tarifa_minima) || 0).toFixed(2)}</span>
+                </div>
+              )}
             </div>
           </div>
         </CardContent>
