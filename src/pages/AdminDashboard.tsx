@@ -451,10 +451,18 @@ const AdminDashboard: React.FC = () => {
 
   const handleSaveUser = () => {
     if (!selectedUser) return;
+    // Atualiza roles conforme tipo principal
+    let roles: string[] = [];
+    if (editUserForm.tipo === 'admin') {
+      roles = ['cliente', 'admin'];
+    } else {
+      roles = ['cliente'];
+    }
     const updates: Record<string, unknown> = {
       nome: editUserForm.nome.trim(),
       telefone: editUserForm.telefone.trim(),
       tipo: editUserForm.tipo,
+      roles,
       status: editUserForm.status,
       ativo: editUserForm.status === 'ativo',
     };
