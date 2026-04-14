@@ -451,25 +451,43 @@ const AdminDashboard: React.FC = () => {
 
   const handleSaveUser = () => {
     if (!selectedUser) return;
-    let roles: string[] = [];
-    if (editUserForm.tipo === 'admin') {
-      roles = ['admin'];
-    } else if (editUserForm.tipo === 'motorista') {
-      roles = ['motorista'];
-    } else {
-      roles = ['cliente'];
+    const updates: Record<string, unknown> = {};
+
+    // Só envia campos que realmente mudaram
+    if (editUserForm.nome.trim() !== selectedUser.nome) {
+      updates.nome = editUserForm.nome.trim();
     }
-    const updates: Record<string, unknown> = {
-      nome: editUserForm.nome.trim(),
-      telefone: editUserForm.telefone.trim(),
-      tipo: editUserForm.tipo,
-      roles,
-      status: editUserForm.status,
-      ativo: editUserForm.status === 'ativo',
-    };
+    if (editUserForm.telefone.trim() !== selectedUser.telefone) {
+      updates.telefone = editUserForm.telefone.trim();
+    }
+    if (editUserForm.status !== selectedUser.status) {
+      updates.status = editUserForm.status;
+      updates.ativo = editUserForm.status === 'ativo';
+    }
     if (editUserForm.senha.trim()) {
       updates.senha = editUserForm.senha.trim();
     }
+
+    // Veículo — só envia campos que mudaram
+    if ((editUserForm.veiculo_marca || '') !== (selectedUser.veiculo_marca || '')) {
+      updates.veiculo_marca = editUserForm.veiculo_marca || null;
+    }
+    if ((editUserForm.veiculo_modelo || '') !== (selectedUser.veiculo_modelo || '')) {
+      updates.veiculo_modelo = editUserForm.veiculo_modelo || null;
+    }
+    if ((editUserForm.veiculo_cor || '') !== (selectedUser.veiculo_cor || '')) {
+      updates.veiculo_cor = editUserForm.veiculo_cor || null;
+    }
+    if ((editUserForm.veiculo_placa || '') !== (selectedUser.veiculo_placa || '')) {
+      updates.veiculo_placa = editUserForm.veiculo_placa || null;
+    }
+
+    // Não altera tipo nem roles — preserva o que está no banco
+    if (Object.keys(updates).length === 0) {
+      toast({ title: 'Nenhuma alteração detectada' });
+      return;
+    }
+
     updateUserMutation.mutate({ userId: selectedUser.id, updates });
   };
 
@@ -532,21 +550,21 @@ const AdminDashboard: React.FC = () => {
         </div>
 
         <Tabs defaultValue="dashboard">
-          <TabsList className="w-full mb-[3%] h-12 p-1 bg-muted/50 rounded-2xl">
-            <TabsTrigger value="dashboard" className="flex-1 gap-1.5 rounded-xl h-full text-xs font-semibold data-[state=active]:shadow-md">
-              <Activity className="w-3.5 h-3.5" /> Dashboard
+          <TabsList className="w-full mb-[3%] h-auto min-h-[48px] p-1 bg-muted/50 rounded-2xl flex flex-wrap gap-1">
+            <TabsTrigger value="dashboard" className="flex-1 min-w-[80px] gap-1 rounded-xl h-10 text-[11px] sm:text-xs font-semibold data-[state=active]:shadow-md">
+              <Activity className="w-3.5 h-3.5 shrink-0" /> <span className="hidden xs:inline">Dashboard</span><span className="xs:hidden">Stats</span>
             </TabsTrigger>
-            <TabsTrigger value="solicitacoes" className="flex-1 gap-1.5 rounded-xl h-full text-xs font-semibold data-[state=active]:shadow-md">
-              <Car className="w-3.5 h-3.5" /> Corridas ({stats.total})
+            <TabsTrigger value="solicitacoes" className="flex-1 min-w-[80px] gap-1 rounded-xl h-10 text-[11px] sm:text-xs font-semibold data-[state=active]:shadow-md">
+              <Car className="w-3.5 h-3.5 shrink-0" /> Corridas
             </TabsTrigger>
-            <TabsTrigger value="usuarios" className="flex-1 gap-1.5 rounded-xl h-full text-xs font-semibold data-[state=active]:shadow-md">
-              <Users className="w-3.5 h-3.5" /> Usuários ({stats.totalUsers})
+            <TabsTrigger value="usuarios" className="flex-1 min-w-[80px] gap-1 rounded-xl h-10 text-[11px] sm:text-xs font-semibold data-[state=active]:shadow-md">
+              <Users className="w-3.5 h-3.5 shrink-0" /> Usuários
             </TabsTrigger>
-            <TabsTrigger value="motoristas" className="flex-1 gap-1.5 rounded-xl h-full text-xs font-semibold data-[state=active]:shadow-md">
-              <Car className="w-3.5 h-3.5" /> Motoristas ({stats.motoristas})
+            <TabsTrigger value="motoristas" className="flex-1 min-w-[80px] gap-1 rounded-xl h-10 text-[11px] sm:text-xs font-semibold data-[state=active]:shadow-md">
+              <Car className="w-3.5 h-3.5 shrink-0" /> Motoristas
             </TabsTrigger>
-            <TabsTrigger value="precificacao" className="flex-1 gap-1.5 rounded-xl h-full text-xs font-semibold data-[state=active]:shadow-md">
-              <DollarSign className="w-3.5 h-3.5" /> Preços
+            <TabsTrigger value="precificacao" className="flex-1 min-w-[80px] gap-1 rounded-xl h-10 text-[11px] sm:text-xs font-semibold data-[state=active]:shadow-md">
+              <DollarSign className="w-3.5 h-3.5 shrink-0" /> Preços
             </TabsTrigger>
           </TabsList>
 
@@ -1211,15 +1229,13 @@ const AdminDashboard: React.FC = () => {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label className="text-xs">Tipo Principal</Label>
-                <Select value={editUserForm.tipo} onValueChange={(v) => setEditUserForm(f => ({ ...f, tipo: v as 'cliente' | 'motorista' | 'admin' }))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="cliente">👤 Cliente</SelectItem>
-                    <SelectItem value="motorista">🚗 Motorista</SelectItem>
-                    <SelectItem value="admin">🛡️ Admin</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Label className="text-xs">Tipo / Cargos</Label>
+                <div className="flex items-center gap-2 h-10 px-3 rounded-md border bg-muted/30 text-sm">
+                  <span className="capitalize">{editUserForm.tipo}</span>
+                  {editUserForm.roles.length > 0 && (
+                    <span className="text-muted-foreground text-xs">({editUserForm.roles.join(', ')})</span>
+                  )}
+                </div>
               </div>
               <div>
                 <Label className="text-xs">Status</Label>
