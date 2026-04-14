@@ -194,12 +194,21 @@ const DriverDashboard: React.FC = () => {
   const { data: fullProfile } = useQuery({
     queryKey: ['driver-full-profile', user?.id],
     queryFn: async () => {
+      // Try with avatar_url first; fall back without it if column doesn't exist yet
       const { data, error } = await supabase
         .from('users')
         .select('id, nome, telefone, tipo, status, veiculo_marca, veiculo_modelo, veiculo_cor, veiculo_placa, avatar_url')
         .eq('id', user!.id)
         .single();
-      if (error) throw error;
+      if (error) {
+        const { data: fallback, error: err2 } = await supabase
+          .from('users')
+          .select('id, nome, telefone, tipo, status, veiculo_marca, veiculo_modelo, veiculo_cor, veiculo_placa')
+          .eq('id', user!.id)
+          .single();
+        if (err2) throw err2;
+        return { ...fallback, avatar_url: null };
+      }
       return data;
     },
     enabled: !!user,
