@@ -341,15 +341,28 @@ const AdminDashboard: React.FC = () => {
         const { error } = await supabase.from('corridas').delete().eq('id', id);
         if (error) throw error;
       } else {
-        // Delete user's rides first, then the user
-        const { data: userRides } = await supabase.from('corridas').select('id').eq('cliente_id', id);
-        if (userRides && userRides.length > 0) {
-          for (const ride of userRides) {
+        // 1. Remove aprovações feitas por este admin
+        await supabase.from('aprovacoes').delete().eq('admin_id', id);
+
+        // 2. Remove avaliações do usuário (como cliente ou motorista)
+        await supabase.from('avaliacoes').delete().eq('cliente_id', id);
+        await supabase.from('avaliacoes').delete().eq('motorista_id', id);
+
+        // 3. Remove corridas como cliente (e seus registros dependentes)
+        const { data: clientRides } = await supabase.from('corridas').select('id').eq('cliente_id', id);
+        if (clientRides && clientRides.length > 0) {
+          for (const ride of clientRides) {
             await supabase.from('aprovacoes').delete().eq('solicitacao_id', ride.id);
             await supabase.from('avaliacoes').delete().eq('corrida_id', ride.id);
             await supabase.from('historico_precos').delete().eq('corrida_id', ride.id);
           }
+          await supabase.from('corridas').delete().eq('cliente_id', id);
         }
+
+        // 4. Desvincula corridas como motorista (SET NULL em vez de deletar)
+        await supabase.from('corridas').update({ motorista_id: null }).eq('motorista_id', id);
+
+        // 5. Finalmente, deleta o usuário
         const { error } = await supabase.from('users').delete().eq('id', id);
         if (error) throw error;
       }
@@ -1154,15 +1167,6 @@ const AdminDashboard: React.FC = () => {
                   value={editRideForm.valor_estimado}
                   onChange={(e) => setEditRideForm(f => ({ ...f, valor_estimado: e.target.value }))}
                   placeholder="0.00"
-                />
-              </div>
-              <div>
-                <Label className="text-xs">Distância (km)</Label>
-                <Input
-                  type="number" step="0.1" min="0"
-                  value={editRideForm.distancia_km}
-                  onChange={(e) => setEditRideForm(f => ({ ...f, distancia_km: e.target.value }))}
-                  placeholder="0.0"
                 />
               </div>
               <div>

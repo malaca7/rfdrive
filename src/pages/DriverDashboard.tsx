@@ -533,14 +533,9 @@ const DriverDashboard: React.FC = () => {
                 <span className="text-xs text-muted-foreground">{ride.horario_estimado}</span>
               </div>
             )}
-            {(ride.distancia_km != null || ride.valor_estimado != null) && (
+            {ride.valor_estimado != null && (
               <div className="flex items-center gap-3 bg-muted/50 rounded-lg px-3 py-2">
-                {ride.distancia_km != null && (
-                  <span className="text-xs font-semibold text-accent">{Number(ride.distancia_km).toFixed(1)} km</span>
-                )}
-                {ride.valor_estimado != null && (
-                  <span className="text-xs font-semibold text-green-400">R$ {Number(ride.valor_estimado).toFixed(2)}</span>
-                )}
+                <span className="text-xs font-semibold text-green-400">R$ {Number(ride.valor_estimado).toFixed(2)}</span>
               </div>
             )}
           </div>
@@ -702,36 +697,36 @@ const DriverDashboard: React.FC = () => {
         )}
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="w-full mb-[4%] h-12 p-1 bg-muted/50 rounded-2xl">
-            <TabsTrigger value="disponiveis" className="flex-1 gap-1.5 text-xs rounded-xl h-full font-semibold data-[state=active]:shadow-md">
-              <Car className="w-3.5 h-3.5" />
-              Disponíveis
+          <TabsList className="w-full mb-[4%] h-auto min-h-[48px] p-1 bg-muted/50 rounded-2xl flex flex-wrap gap-1">
+            <TabsTrigger value="disponiveis" className="flex-1 min-w-[70px] gap-1 text-[11px] sm:text-xs rounded-xl h-10 font-semibold data-[state=active]:shadow-md">
+              <Car className="w-3.5 h-3.5 shrink-0" />
+              <span className="truncate">Disponíveis</span>
               {pendingCount > 0 && (
-                <span className="ml-1 inline-flex items-center justify-center w-5 h-5 rounded-full gradient-accent text-accent-foreground text-[10px] font-bold">
+                <span className="ml-0.5 inline-flex items-center justify-center w-5 h-5 rounded-full gradient-accent text-accent-foreground text-[10px] font-bold shrink-0">
                   {pendingCount}
                 </span>
               )}
             </TabsTrigger>
-            <TabsTrigger value="ativas" className="flex-1 gap-1.5 text-xs rounded-xl h-full font-semibold data-[state=active]:shadow-md">
-              <Navigation className="w-3.5 h-3.5" />
-              Ativas
+            <TabsTrigger value="ativas" className="flex-1 min-w-[70px] gap-1 text-[11px] sm:text-xs rounded-xl h-10 font-semibold data-[state=active]:shadow-md">
+              <Navigation className="w-3.5 h-3.5 shrink-0" />
+              <span className="truncate">Ativas</span>
               {activeCount > 0 && (
-                <span className="ml-1 inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-600 text-white text-[10px] font-bold">
+                <span className="ml-0.5 inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-600 text-white text-[10px] font-bold shrink-0">
                   {activeCount}
                 </span>
               )}
             </TabsTrigger>
-            <TabsTrigger value="historico" className="flex-1 gap-1.5 text-xs rounded-xl h-full font-semibold data-[state=active]:shadow-md">
-              <History className="w-3.5 h-3.5" />
-              Histórico
+            <TabsTrigger value="historico" className="flex-1 min-w-[70px] gap-1 text-[11px] sm:text-xs rounded-xl h-10 font-semibold data-[state=active]:shadow-md">
+              <History className="w-3.5 h-3.5 shrink-0" />
+              <span className="truncate">Histórico</span>
             </TabsTrigger>
-            <TabsTrigger value="calcular" className="flex-1 gap-1.5 text-xs rounded-xl h-full font-semibold data-[state=active]:shadow-md">
-              <Calculator className="w-3.5 h-3.5" />
-              Calcular
+            <TabsTrigger value="calcular" className="flex-1 min-w-[70px] gap-1 text-[11px] sm:text-xs rounded-xl h-10 font-semibold data-[state=active]:shadow-md">
+              <Calculator className="w-3.5 h-3.5 shrink-0" />
+              <span className="truncate">Calcular</span>
             </TabsTrigger>
-            <TabsTrigger value="cracha" className="flex-1 gap-1.5 text-xs rounded-xl h-full font-semibold data-[state=active]:shadow-md">
-              <IdCard className="w-3.5 h-3.5" />
-              Crachá
+            <TabsTrigger value="cracha" className="flex-1 min-w-[70px] gap-1 text-[11px] sm:text-xs rounded-xl h-10 font-semibold data-[state=active]:shadow-md">
+              <IdCard className="w-3.5 h-3.5 shrink-0" />
+              <span className="truncate">Crachá</span>
             </TabsTrigger>
           </TabsList>
 

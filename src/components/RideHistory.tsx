@@ -87,20 +87,12 @@ const RideHistory: React.FC = () => {
                       <span className="text-sm text-muted-foreground">{ride.horario_estimado}</span>
                     </div>
                   )}
-                  {(ride.distancia_km != null || ride.valor_estimado != null) && (
+                  {ride.valor_estimado != null && (
                     <div className="flex items-center gap-3">
-                      {ride.distancia_km != null && (
-                        <div className="flex items-center gap-1">
-                          <Route className="w-4 h-4 text-accent shrink-0" />
-                          <span className="text-sm font-medium text-accent">{ride.distancia_km} km</span>
-                        </div>
-                      )}
-                      {ride.valor_estimado != null && (
-                        <div className="flex items-center gap-1">
-                          <DollarSign className="w-4 h-4 text-green-400 shrink-0" />
-                          <span className="text-sm font-semibold text-green-400">R$ {Number(ride.valor_estimado).toFixed(2)}</span>
-                        </div>
-                      )}
+                      <div className="flex items-center gap-1">
+                        <DollarSign className="w-4 h-4 text-green-400 shrink-0" />
+                        <span className="text-sm font-semibold text-green-400">R$ {Number(ride.valor_estimado).toFixed(2)}</span>
+                      </div>
                     </div>
                   )}
                 </div>
