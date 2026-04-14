@@ -105,21 +105,12 @@ const AdminPricing: React.FC = () => {
   return (
     <div className="space-y-4">
       <Tabs defaultValue="tarifas">
-        <TabsList className="w-full grid grid-cols-5">
+        <TabsList className="w-full grid grid-cols-2">
           <TabsTrigger value="tarifas" className="gap-1 text-xs">
             <Tag className="w-3.5 h-3.5" /> Tarifas
           </TabsTrigger>
-          <TabsTrigger value="localidades" className="gap-1 text-xs">
-            <TreePine className="w-3.5 h-3.5" /> Localidades
-          </TabsTrigger>
-          <TabsTrigger value="precos" className="gap-1 text-xs">
-            <DollarSign className="w-3.5 h-3.5" /> Preços
-          </TabsTrigger>
           <TabsTrigger value="horarios" className="gap-1 text-xs">
             <Clock className="w-3.5 h-3.5" /> Horários
-          </TabsTrigger>
-          <TabsTrigger value="simulador" className="gap-1 text-xs">
-            <Calculator className="w-3.5 h-3.5" /> Simulador
           </TabsTrigger>
         </TabsList>
 
@@ -127,12 +118,6 @@ const AdminPricing: React.FC = () => {
           <TarifasTab config={configTarifas ?? null} loading={loadingConfig} onRefresh={refreshAll} />
         </TabsContent>
 
-        <TabsContent value="localidades">
-          <LocalidadesTab localidades={localidades} loading={loadingLoc} onRefresh={refreshAll} />
-        </TabsContent>
-        <TabsContent value="precos">
-          <PrecosTab precos={precosRotas} localidades={localidades} loading={loadingPrecos} onRefresh={refreshAll} />
-        </TabsContent>
         <TabsContent value="horarios">
           {regrasError ? (
             <div className="p-6 text-center space-y-2">
@@ -142,9 +127,6 @@ const AdminPricing: React.FC = () => {
           ) : (
             <HorariosTab regras={regrasHorario} loading={loadingRegras} onRefresh={refreshAll} />
           )}
-        </TabsContent>
-        <TabsContent value="simulador">
-          <SimuladorTab localidades={localidades} />
         </TabsContent>
       </Tabs>
     </div>
@@ -937,6 +919,11 @@ const PrecosTab: React.FC<{
 // ══════════════════════════════════════════════════════════
 // TAB 3: REGRAS DE HORÁRIO
 // ══════════════════════════════════════════════════════════
+const PRESET_COLORS = [
+  '#f97316', '#ef4444', '#eab308', '#22c55e', '#3b82f6', '#8b5cf6',
+  '#ec4899', '#14b8a6', '#f43f5e', '#06b6d4', '#a855f7', '#84cc16',
+];
+
 const HorariosTab: React.FC<{
   regras: RegraHorarioRow[];
   loading: boolean;
@@ -946,24 +933,24 @@ const HorariosTab: React.FC<{
   const [showDialog, setShowDialog] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState({
-    nome: '', hora_inicio: '', hora_fim: '', valor_ajuste: '',
+    nome: '', hora_inicio: '', hora_fim: '', tipo_ajuste: 'percentual' as 'percentual' | 'fixo', valor_ajuste: '', cor: '#f97316',
   });
   const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; nome: string } | null>(null);
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      // Ensure HH:MM:SS format for PostgreSQL TIME columns
       const fmtTime = (t: string) => {
         const parts = t.split(':');
         if (parts.length === 2) return `${parts[0]}:${parts[1]}:00`;
-        return t; // already HH:MM:SS
+        return t;
       };
       const payload: Record<string, unknown> = {
         nome: form.nome.trim(),
         hora_inicio: fmtTime(form.hora_inicio),
         hora_fim: fmtTime(form.hora_fim),
-        tipo_ajuste: 'percentual',
+        tipo_ajuste: form.tipo_ajuste,
         valor_ajuste: parseFloat(form.valor_ajuste) || 0,
+        cor: form.cor,
         ativo: true,
       };
       if (editingId) {
@@ -1006,7 +993,7 @@ const HorariosTab: React.FC<{
   });
 
   const resetForm = () => {
-    setForm({ nome: '', hora_inicio: '', hora_fim: '', valor_ajuste: '' });
+    setForm({ nome: '', hora_inicio: '', hora_fim: '', tipo_ajuste: 'percentual', valor_ajuste: '', cor: '#f97316' });
     setEditingId(null);
   };
 
@@ -1016,12 +1003,15 @@ const HorariosTab: React.FC<{
       nome: r.nome,
       hora_inicio: r.hora_inicio.substring(0, 5),
       hora_fim: r.hora_fim.substring(0, 5),
+      tipo_ajuste: (r as any).tipo_ajuste || 'percentual',
       valor_ajuste: String(r.valor_ajuste),
+      cor: (r as any).cor || '#f97316',
     });
     setShowDialog(true);
   };
 
-  // Timeline visual (24h bar)
+  const getRuleColor = (r: RegraHorarioRow) => (r as any).cor || '#f97316';
+
   const timelineHours = Array.from({ length: 24 }, (_, i) => i);
 
   return (
@@ -1038,38 +1028,68 @@ const HorariosTab: React.FC<{
         </Button>
       </div>
 
-      {/* Timeline */}
+      {/* Timeline 24h com cores */}
       {regras.length > 0 && (
         <Card>
           <CardContent className="py-4">
             <p className="text-xs text-muted-foreground mb-3 font-medium">TIMELINE 24H</p>
             <div className="relative">
+              {/* Hour labels */}
               <div className="flex text-[8px] text-muted-foreground mb-1">
                 {timelineHours.filter((_, i) => i % 3 === 0).map(h => (
                   <div key={h} style={{ width: `${100 / 8}%` }} className="text-center">{String(h).padStart(2, '0')}h</div>
                 ))}
               </div>
-              <div className="h-2 bg-muted rounded-full relative overflow-hidden">
+              {/* Stacked bars per rule */}
+              <div className="space-y-1">
                 {regras.filter(r => r.ativo).map(r => {
+                  const color = getRuleColor(r);
                   const start = parseInt(r.hora_inicio.substring(0, 2)) + parseInt(r.hora_inicio.substring(3, 5)) / 60;
                   const end = parseInt(r.hora_fim.substring(0, 2)) + parseInt(r.hora_fim.substring(3, 5)) / 60;
+                  const label = (r as any).tipo_ajuste === 'fixo'
+                    ? `+R$${r.valor_ajuste.toFixed(2)}`
+                    : `+${r.valor_ajuste}%`;
 
-                  if (start <= end) {
-                    return (
-                      <div key={r.id} className="absolute h-full bg-accent/60 rounded-full" title={r.nome}
-                        style={{ left: `${(start / 24) * 100}%`, width: `${((end - start) / 24) * 100}%` }} />
-                    );
-                  }
-                  // Overnight
                   return (
-                    <React.Fragment key={r.id}>
-                      <div className="absolute h-full bg-accent/60 rounded-full" title={r.nome}
-                        style={{ left: `${(start / 24) * 100}%`, width: `${((24 - start) / 24) * 100}%` }} />
-                      <div className="absolute h-full bg-accent/60 rounded-full" title={r.nome}
-                        style={{ left: '0%', width: `${(end / 24) * 100}%` }} />
-                    </React.Fragment>
+                    <div key={r.id} className="h-5 bg-muted/40 rounded relative overflow-hidden group">
+                      {start <= end ? (
+                        <div
+                          className="absolute h-full rounded flex items-center justify-center"
+                          title={`${r.nome}: ${r.hora_inicio.substring(0, 5)}–${r.hora_fim.substring(0, 5)} (${label})`}
+                          style={{ left: `${(start / 24) * 100}%`, width: `${((end - start) / 24) * 100}%`, backgroundColor: color }}
+                        >
+                          <span className="text-[8px] font-bold text-white drop-shadow-sm truncate px-1">
+                            {r.nome} {label}
+                          </span>
+                        </div>
+                      ) : (
+                        <>
+                          <div
+                            className="absolute h-full rounded-l flex items-center justify-end"
+                            title={`${r.nome}: ${r.hora_inicio.substring(0, 5)}–${r.hora_fim.substring(0, 5)} (${label})`}
+                            style={{ left: `${(start / 24) * 100}%`, width: `${((24 - start) / 24) * 100}%`, backgroundColor: color }}
+                          >
+                            <span className="text-[8px] font-bold text-white drop-shadow-sm truncate px-1">{r.nome} {label}</span>
+                          </div>
+                          <div
+                            className="absolute h-full rounded-r"
+                            title={`${r.nome} (cont.)`}
+                            style={{ left: '0%', width: `${(end / 24) * 100}%`, backgroundColor: color }}
+                          />
+                        </>
+                      )}
+                    </div>
                   );
                 })}
+              </div>
+              {/* Legend */}
+              <div className="flex flex-wrap gap-2 mt-3">
+                {regras.filter(r => r.ativo).map(r => (
+                  <div key={r.id} className="flex items-center gap-1">
+                    <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: getRuleColor(r) }} />
+                    <span className="text-[9px] text-muted-foreground">{r.nome}</span>
+                  </div>
+                ))}
               </div>
             </div>
           </CardContent>
@@ -1088,41 +1108,48 @@ const HorariosTab: React.FC<{
         </Card>
       ) : (
         <div className="space-y-2">
-          {regras.map((r, i) => (
-            <motion.div key={r.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.02 }}>
-              <Card className={!r.ativo ? 'opacity-50' : ''}>
-                <CardContent className="py-3">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <Clock className="w-4 h-4 text-accent" />
-                        <span className="font-medium text-sm">{r.nome}</span>
+          {regras.map((r, i) => {
+            const color = getRuleColor(r);
+            const isFix = (r as any).tipo_ajuste === 'fixo';
+            return (
+              <motion.div key={r.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.02 }}>
+                <Card className={!r.ativo ? 'opacity-50' : ''} style={{ borderLeft: `3px solid ${color}` }}>
+                  <CardContent className="py-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: color }} />
+                          <span className="font-medium text-sm">{r.nome}</span>
+                        </div>
+                        <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
+                          <span>{r.hora_inicio.substring(0, 5)} – {r.hora_fim.substring(0, 5)}</span>
+                          <Badge variant="outline" className="text-[10px]" style={{ color, borderColor: `${color}50` }}>
+                            {isFix ? `+R$${r.valor_ajuste.toFixed(2)}` : `+${r.valor_ajuste}%`}
+                          </Badge>
+                          <Badge variant="outline" className="text-[10px] text-muted-foreground">
+                            {isFix ? 'Valor fixo' : 'Percentual'}
+                          </Badge>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
-                        <span>{r.hora_inicio.substring(0, 5)} – {r.hora_fim.substring(0, 5)}</span>
-                        <Badge variant="outline" className="text-[10px] text-yellow-400 border-yellow-500/30">
-                          +{r.valor_ajuste}%
-                        </Badge>
+                      <div className="flex items-center gap-1">
+                        <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => openEdit(r)}>
+                          <Pencil className="w-3 h-3" />
+                        </Button>
+                        <Button size="sm" variant="ghost" className="h-7 w-7 p-0"
+                          onClick={() => toggleAtivoMutation.mutate({ id: r.id, ativo: !r.ativo })}>
+                          {r.ativo ? <ToggleRight className="w-3.5 h-3.5 text-green-400" /> : <ToggleLeft className="w-3.5 h-3.5" />}
+                        </Button>
+                        <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-red-400"
+                          onClick={() => setDeleteConfirm({ id: r.id, nome: r.nome })}>
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
                       </div>
                     </div>
-                    <div className="flex items-center gap-1">
-                      <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => openEdit(r)}>
-                        <Pencil className="w-3 h-3" />
-                      </Button>
-                      <Button size="sm" variant="ghost" className="h-7 w-7 p-0"
-                        onClick={() => toggleAtivoMutation.mutate({ id: r.id, ativo: !r.ativo })}>
-                        {r.ativo ? <ToggleRight className="w-3.5 h-3.5 text-green-400" /> : <ToggleLeft className="w-3.5 h-3.5" />}
-                      </Button>
-                      <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-red-400"
-                        onClick={() => setDeleteConfirm({ id: r.id, nome: r.nome })}>
-                        <Trash2 className="w-3 h-3" />
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          ))}
+                  </CardContent>
+                </Card>
+              </motion.div>
+            );
+          })}
         </div>
       )}
 
@@ -1150,20 +1177,70 @@ const HorariosTab: React.FC<{
                 <Input type="time" value={form.hora_fim} onChange={e => setForm(f => ({ ...f, hora_fim: e.target.value }))} />
               </div>
             </div>
+            {/* Tipo de ajuste */}
             <div>
-              <Label className="text-xs">Percentual de Ajuste (%)</Label>
+              <Label className="text-xs">Tipo de Ajuste</Label>
+              <div className="flex gap-2 mt-1">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={form.tipo_ajuste === 'percentual' ? 'default' : 'outline'}
+                  className="flex-1 gap-1"
+                  onClick={() => setForm(f => ({ ...f, tipo_ajuste: 'percentual' }))}
+                >
+                  % Percentual
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={form.tipo_ajuste === 'fixo' ? 'default' : 'outline'}
+                  className="flex-1 gap-1"
+                  onClick={() => setForm(f => ({ ...f, tipo_ajuste: 'fixo' }))}
+                >
+                  R$ Valor Fixo
+                </Button>
+              </div>
+            </div>
+            <div>
+              <Label className="text-xs">
+                {form.tipo_ajuste === 'fixo' ? 'Valor de Ajuste (R$)' : 'Percentual de Ajuste (%)'}
+              </Label>
               <Input type="number" step="0.01" value={form.valor_ajuste}
                 onChange={e => setForm(f => ({ ...f, valor_ajuste: e.target.value }))}
-                placeholder="Ex: 20 (para +20%)" />
+                placeholder={form.tipo_ajuste === 'fixo' ? 'Ex: 5.00' : 'Ex: 20'} />
               <p className="text-[10px] text-muted-foreground mt-1">
-                O valor será acrescido como porcentagem sobre o preço base da corrida.
+                {form.tipo_ajuste === 'fixo'
+                  ? 'O valor em R$ será adicionado ao preço base da corrida.'
+                  : 'O valor será acrescido como porcentagem sobre o preço base da corrida.'}
               </p>
             </div>
+            {/* Color picker */}
+            <div>
+              <Label className="text-xs">Cor na Timeline</Label>
+              <div className="flex flex-wrap gap-2 mt-1.5">
+                {PRESET_COLORS.map(c => (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => setForm(f => ({ ...f, cor: c }))}
+                    className="w-7 h-7 rounded-full border-2 transition-transform hover:scale-110"
+                    style={{
+                      backgroundColor: c,
+                      borderColor: form.cor === c ? '#fff' : 'transparent',
+                      boxShadow: form.cor === c ? `0 0 0 2px ${c}` : 'none',
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+            {/* Preview */}
             {form.hora_inicio && form.hora_fim && form.valor_ajuste && (
-              <div className="bg-accent/10 border border-accent/20 rounded-lg p-3 text-sm">
-                <Zap className="w-3.5 h-3.5 inline mr-1 text-accent" />
+              <div className="rounded-lg p-3 text-sm border" style={{ backgroundColor: `${form.cor}15`, borderColor: `${form.cor}40` }}>
+                <Zap className="w-3.5 h-3.5 inline mr-1" style={{ color: form.cor }} />
                 Preview: <strong>{form.nome || 'Regra'}</strong> das {form.hora_inicio} às {form.hora_fim}{' '}
-                → <strong>+{form.valor_ajuste}%</strong> sobre o valor da corrida
+                → <strong style={{ color: form.cor }}>
+                  {form.tipo_ajuste === 'fixo' ? `+R$${parseFloat(form.valor_ajuste || '0').toFixed(2)}` : `+${form.valor_ajuste}%`}
+                </strong> sobre o valor da corrida
               </div>
             )}
           </div>

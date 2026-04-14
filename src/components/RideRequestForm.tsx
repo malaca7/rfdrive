@@ -282,6 +282,12 @@ const RideRequestForm: React.FC = () => {
         valor_estimado = (valor_estimado || 0) + taxaBagagem;
       }
 
+      // Aplicar tarifa mínima global
+      const tarifaMinima = configTarifas?.tarifa_minima ?? 0;
+      if (tarifaMinima > 0 && valor_estimado != null && valor_estimado < tarifaMinima) {
+        valor_estimado = tarifaMinima;
+      }
+
       // Insert: try full payload, fallback to minimal if columns missing
       let corridaData: { id: string } | null = null;
       const obsCliente = observacaoCliente.trim() || null;
@@ -957,6 +963,8 @@ const RideRequestForm: React.FC = () => {
                               ? (dynamicAdj ? dynamicAdj.aplicar(precoTabela.valor) : precoTabela.valor)
                               : 0;
                           if (temBagagem) total += (configTarifas?.taxa_bagagem ?? 5);
+                          const minima = configTarifas?.tarifa_minima ?? 0;
+                          if (minima > 0 && total < minima) total = minima;
                           return total.toFixed(2);
                         })()}
                       </span>

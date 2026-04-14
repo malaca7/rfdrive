@@ -32,9 +32,9 @@ GRANT ALL ON config_tarifas TO anon, authenticated;
 -- Realtime
 ALTER PUBLICATION supabase_realtime ADD TABLE config_tarifas;
 
--- Forçar regras_horario para apenas percentual
+-- Permitir tipo_ajuste percentual ou fixo
 ALTER TABLE regras_horario DROP CONSTRAINT IF EXISTS regras_horario_tipo_ajuste_check;
-ALTER TABLE regras_horario ADD CONSTRAINT regras_horario_tipo_ajuste_check CHECK (tipo_ajuste = 'percentual');
+ALTER TABLE regras_horario ADD CONSTRAINT regras_horario_tipo_ajuste_check CHECK (tipo_ajuste IN ('percentual', 'fixo'));
 
--- Atualizar regras fixas existentes para percentual (converter valor fixo em ~0%)
-UPDATE regras_horario SET tipo_ajuste = 'percentual' WHERE tipo_ajuste = 'fixo';
+-- Adicionar coluna de cor para timeline
+ALTER TABLE regras_horario ADD COLUMN IF NOT EXISTS cor TEXT DEFAULT '#f97316';

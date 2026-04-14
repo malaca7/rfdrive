@@ -32,8 +32,9 @@ export interface RegraHorario {
   nome: string;
   hora_inicio: string;
   hora_fim: string;
-  tipo_ajuste: 'percentual';
+  tipo_ajuste: 'percentual' | 'fixo';
   valor_ajuste: number;
+  cor: string | null;
   ativo: boolean;
 }
 
@@ -253,8 +254,11 @@ export function findActiveTimeRules(regras: RegraHorario[], horario: string): Re
   return null;
 }
 
-// ── Apply time adjustment (percentual only) ──
+// ── Apply time adjustment (percentual or fixo) ──
 export function applyTimeAdjustment(precoBase: number, regra: RegraHorario): number {
+  if (regra.tipo_ajuste === 'fixo') {
+    return precoBase + regra.valor_ajuste;
+  }
   return precoBase * (1 + regra.valor_ajuste / 100);
 }
 
@@ -341,7 +345,9 @@ export async function calcularPreco(
 
   if (regraHorario) {
     precoFinal = applyTimeAdjustment(precoBase, regraHorario);
-    ajusteAplicado = `+${regraHorario.valor_ajuste}% ${regraHorario.nome}`;
+    ajusteAplicado = regraHorario.tipo_ajuste === 'fixo'
+      ? `+R$${regraHorario.valor_ajuste.toFixed(2)} ${regraHorario.nome}`
+      : `+${regraHorario.valor_ajuste}% ${regraHorario.nome}`;
   }
 
   // Ensure minimum price from route

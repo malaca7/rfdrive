@@ -200,7 +200,7 @@ const DriverDashboard: React.FC = () => {
       // Try with avatar_url first; fall back without it if column doesn't exist yet
       const { data, error } = await supabase
         .from('users')
-        .select('id, nome, telefone, tipo, status, veiculo_marca, veiculo_modelo, veiculo_cor, veiculo_placa, avatar_url')
+        .select('id, nome, telefone, tipo, status, veiculo_marca, veiculo_modelo, veiculo_cor, veiculo_placa, avatar_url, veiculo_foto')
         .eq('id', user!.id)
         .single();
       if (error) {

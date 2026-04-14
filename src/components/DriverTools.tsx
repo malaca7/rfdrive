@@ -28,7 +28,7 @@ import { getConfigTarifas, type ConfigTarifas } from '@/lib/pricing-engine';
 import { useToast } from '@/hooks/use-toast';
 
 // ── Crop helper: canvas-based crop to blob ──
-async function getCroppedBlob(imageSrc: string, crop: Area): Promise<Blob> {
+async function getCroppedBlob(imageSrc: string, crop: Area, outputSize = 400): Promise<Blob> {
   const image = new Image();
   image.crossOrigin = 'anonymous';
   await new Promise<void>((resolve, reject) => {
@@ -37,15 +37,17 @@ async function getCroppedBlob(imageSrc: string, crop: Area): Promise<Blob> {
     image.src = imageSrc;
   });
   const canvas = document.createElement('canvas');
-  const size = 400;
-  canvas.width = size;
-  canvas.height = size;
+  const aspect = crop.width / crop.height;
+  const w = outputSize;
+  const h = Math.round(outputSize / aspect);
+  canvas.width = w;
+  canvas.height = h;
   const ctx = canvas.getContext('2d')!;
-  ctx.drawImage(image, crop.x, crop.y, crop.width, crop.height, 0, 0, size, size);
+  ctx.drawImage(image, crop.x, crop.y, crop.width, crop.height, 0, 0, w, h);
   return new Promise((resolve, reject) => {
     canvas.toBlob(
       (blob) => (blob ? resolve(blob) : reject(new Error('Canvas to blob failed'))),
-      'image/jpeg', 0.85,
+      'image/png', 1,
     );
   });
 }
@@ -60,6 +62,7 @@ interface DriverProfile {
   tipo: string;
   status: string;
   avatar_url?: string | null;
+  veiculo_foto?: string | null;
   veiculo_marca?: string | null;
   veiculo_modelo?: string | null;
   veiculo_cor?: string | null;
@@ -120,8 +123,11 @@ export const TripCalculator: React.FC<{
     let total = preco.valor;
     if (dynamicAdj) total = dynamicAdj.aplicar(total);
     if (temBagagem) total += taxaBagagemValor;
+    // Aplicar tarifa mínima
+    const minima = configTarifas?.tarifa_minima ?? 0;
+    if (minima > 0 && total < minima) total = minima;
     return Math.round(total * 100) / 100;
-  }, [preco, dynamicAdj, temBagagem, taxaBagagemValor]);
+  }, [preco, dynamicAdj, temBagagem, taxaBagagemValor, configTarifas]);
 
   const quoteMensagem = useMemo(() => {
     if (!preco || !origem.trim() || !destino.trim()) return '';
@@ -504,6 +510,11 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
   const [zoom, setZoom] = useState(1);
   const [croppedArea, setCroppedArea] = useState<Area | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [cropTarget, setCropTarget] = useState<'avatar' | 'car'>('avatar');
+
+  // ── Car photo state ──
+  const carFileInputRef = useRef<HTMLInputElement>(null);
+  const [carPhotoUrl, setCarPhotoUrl] = useState(profile.veiculo_foto || '');
 
   const onCropComplete = useCallback((_: Area, croppedAreaPixels: Area) => {
     setCroppedArea(croppedAreaPixels);
@@ -525,6 +536,30 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
       setRawImage(reader.result as string);
       setCrop({ x: 0, y: 0 });
       setZoom(1);
+      setCropTarget('avatar');
+      setShowCropDialog(true);
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
+  const handleCarFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      toast({ title: 'Selecione uma imagem', variant: 'destructive' });
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      toast({ title: 'Imagem muito grande (máx. 10MB)', variant: 'destructive' });
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      setRawImage(reader.result as string);
+      setCrop({ x: 0, y: 0 });
+      setZoom(1);
+      setCropTarget('car');
       setShowCropDialog(true);
     };
     reader.readAsDataURL(file);
@@ -535,22 +570,43 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
     if (!rawImage || !croppedArea) return;
     setUploading(true);
     try {
-      const blob = await getCroppedBlob(rawImage, croppedArea);
-      const filePath = `avatars/${profile.id}.jpg`;
+      if (cropTarget === 'car') {
+        // Car photo upload (landscape, PNG for transparency)
+        const blob = await getCroppedBlob(rawImage, croppedArea, 800);
+        const filePath = `veiculos/${profile.id}.png`;
 
-      const { error: uploadError } = await supabase.storage
-        .from('avatars')
-        .upload(filePath, blob, { upsert: true, contentType: 'image/jpeg', cacheControl: '3600' });
-      if (uploadError) throw uploadError;
+        const { error: uploadError } = await supabase.storage
+          .from('avatars')
+          .upload(filePath, blob, { upsert: true, contentType: 'image/png', cacheControl: '3600' });
+        if (uploadError) throw uploadError;
 
-      const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(filePath);
-      const publicUrl = `${urlData.publicUrl}?t=${Date.now()}`;
-      setAvatarUrl(publicUrl);
+        const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(filePath);
+        const publicUrl = `${urlData.publicUrl}?t=${Date.now()}`;
+        setCarPhotoUrl(publicUrl);
 
-      await supabase.from('users').update({ avatar_url: publicUrl }).eq('id', profile.id);
-      queryClient.invalidateQueries({ queryKey: ['driver-full-profile'] });
+        await supabase.from('users').update({ veiculo_foto: publicUrl }).eq('id', profile.id);
+        queryClient.invalidateQueries({ queryKey: ['driver-full-profile'] });
 
-      toast({ title: 'Foto atualizada!' });
+        toast({ title: 'Foto do veículo atualizada!' });
+      } else {
+        // Avatar upload (square, JPEG)
+        const blob = await getCroppedBlob(rawImage, croppedArea);
+        const filePath = `avatars/${profile.id}.jpg`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('avatars')
+          .upload(filePath, blob, { upsert: true, contentType: 'image/jpeg', cacheControl: '3600' });
+        if (uploadError) throw uploadError;
+
+        const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(filePath);
+        const publicUrl = `${urlData.publicUrl}?t=${Date.now()}`;
+        setAvatarUrl(publicUrl);
+
+        await supabase.from('users').update({ avatar_url: publicUrl }).eq('id', profile.id);
+        queryClient.invalidateQueries({ queryKey: ['driver-full-profile'] });
+
+        toast({ title: 'Foto atualizada!' });
+      }
       setShowCropDialog(false);
       setRawImage(null);
     } catch (err) {
@@ -615,15 +671,24 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
     }
   };
 
-  // Hidden file input
+  // Hidden file inputs
   const fileInput = (
-    <input
-      ref={fileInputRef}
-      type="file"
-      accept="image/*"
-      className="hidden"
-      onChange={handleFileSelect}
-    />
+    <>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={handleFileSelect}
+      />
+      <input
+        ref={carFileInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={handleCarFileSelect}
+      />
+    </>
   );
 
   return (
@@ -719,23 +784,40 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
             {hasVehicle && (
               <div style={{ marginBottom: '12px' }}>
                 {/* Large car image */}
-                <div style={{
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  background: 'radial-gradient(ellipse at center, rgba(212,175,55,0.06) 0%, transparent 70%)',
-                  borderRadius: '12px',
-                  padding: '8px 0',
-                  marginBottom: '10px',
-                }}>
-                  <img
-                    src={`https://cdn.imagin.studio/getimage?customer=hrjavascript-mastery&make=${encodeURIComponent(profile.veiculo_marca || '')}&modelFamily=${encodeURIComponent(profile.veiculo_modelo || '')}&paintId=pspc0001&angle=01&width=800`}
-                    alt=""
-                    crossOrigin="anonymous"
-                    style={{
-                      width: '100%', maxHeight: '140px', objectFit: 'contain',
-                      filter: 'brightness(1.15) drop-shadow(0 4px 16px rgba(212,175,55,0.25))',
-                    }}
-                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                  />
+                <div
+                  style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    background: 'radial-gradient(ellipse at center, rgba(212,175,55,0.06) 0%, transparent 70%)',
+                    borderRadius: '12px',
+                    padding: '8px 0',
+                    marginBottom: '10px',
+                    minHeight: '120px',
+                    cursor: 'pointer',
+                    position: 'relative' as const,
+                  }}
+                >
+                  {carPhotoUrl ? (
+                    <img
+                      src={carPhotoUrl}
+                      alt=""
+                      crossOrigin="anonymous"
+                      style={{
+                        width: '100%', maxHeight: '160px', objectFit: 'contain',
+                        filter: 'drop-shadow(0 4px 16px rgba(212,175,55,0.25))',
+                      }}
+                    />
+                  ) : (
+                    <img
+                      src={`https://cdn.imagin.studio/getimage?customer=hrjavascript-mastery&make=${encodeURIComponent(profile.veiculo_marca || '')}&modelFamily=${encodeURIComponent(profile.veiculo_modelo || '')}&paintId=pspc0001&angle=01&width=800`}
+                      alt=""
+                      crossOrigin="anonymous"
+                      style={{
+                        width: '100%', maxHeight: '140px', objectFit: 'contain',
+                        filter: 'brightness(1.15) drop-shadow(0 4px 16px rgba(212,175,55,0.25))',
+                      }}
+                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                    />
+                  )}
                 </div>
                 {/* Info + plate row */}
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
@@ -837,7 +919,15 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
             onClick={() => fileInputRef.current?.click()}
           >
             <Camera className="w-4 h-4" />
-            {avatarUrl ? 'Trocar Foto' : 'Adicionar Foto'}
+            {avatarUrl ? 'Trocar Foto' : 'Minha Foto'}
+          </Button>
+          <Button
+            variant="outline"
+            className="flex-1 h-11 rounded-xl gap-2 font-semibold"
+            onClick={() => carFileInputRef.current?.click()}
+          >
+            <Car className="w-4 h-4" />
+            {carPhotoUrl ? 'Trocar Carro' : 'Foto Carro'}
           </Button>
           <Button
             className="flex-1 h-11 rounded-xl gap-2 font-semibold"
@@ -855,10 +945,10 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
           <DialogHeader className="p-4 pb-0">
             <DialogTitle className="flex items-center gap-2 text-base">
               <Camera className="w-5 h-5 text-accent" />
-              Recortar Foto
+              {cropTarget === 'car' ? 'Recortar Foto do Carro' : 'Recortar Foto'}
             </DialogTitle>
             <DialogDescription>
-              Arraste e ajuste o zoom para enquadrar seu rosto
+              {cropTarget === 'car' ? 'Ajuste para enquadrar o veículo' : 'Arraste e ajuste o zoom para enquadrar seu rosto'}
             </DialogDescription>
           </DialogHeader>
 
