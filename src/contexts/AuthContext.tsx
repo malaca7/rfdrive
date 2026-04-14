@@ -34,6 +34,11 @@ interface AuthContextType {
 const STORAGE_KEY = 'localizzou_user';
 const SCREEN_KEY = 'localizzou_screen';
 
+/** Strip phone to digits only for consistent DB storage/lookup */
+function normalizePhone(phone: string): string {
+  return phone.replace(/\D/g, '');
+}
+
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const useAuth = () => {
@@ -156,16 +161,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signUp = async (telefone: string, password: string, nome: string) => {
     setLoading(true);
     try {
+      const phone = normalizePhone(telefone);
       const { data: exists } = await supabase
         .from('users')
         .select('id')
-        .eq('telefone', telefone)
+        .eq('telefone', phone)
         .maybeSingle();
       if (exists) throw new Error('Telefone já cadastrado.');
 
       const { data, error } = await supabase
         .from('users')
-        .insert({ telefone, senha: password, nome, tipo: 'cliente' as const, status: 'ativo' as const })
+        .insert({ telefone: phone, senha: password, nome, tipo: 'cliente' as const, status: 'ativo' as const })
         .select()
         .single();
       if (error) throw new Error(error.message);
@@ -186,12 +192,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signIn = async (telefone: string, password: string): Promise<boolean> => {
     setLoading(true);
     try {
-      const { data } = await supabase
+      const phone = normalizePhone(telefone);
+
+      // Try normalized (digits-only) first, then formatted as fallback
+      let { data } = await supabase
         .from('users')
         .select('*')
-        .eq('telefone', telefone)
+        .eq('telefone', phone)
         .eq('senha', password)
         .maybeSingle();
+
+      // Fallback: try with original formatted phone for legacy entries
+      if (!data) {
+        const res = await supabase
+          .from('users')
+          .select('*')
+          .eq('telefone', telefone)
+          .eq('senha', password)
+          .maybeSingle();
+        data = res.data;
+
+        // If found with formatted phone, normalize it in DB for future logins
+        if (data) {
+          await supabase.from('users').update({ telefone: phone }).eq('id', data.id);
+          data.telefone = phone;
+        }
+      }
       if (!data) return false;
 
       if (data.status === 'banido') return false;
