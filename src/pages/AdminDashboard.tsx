@@ -1210,10 +1210,11 @@ const AdminDashboard: React.FC = () => {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label className="text-xs">Tipo Principal</Label>
-                <Select value={editUserForm.tipo} onValueChange={(v) => setEditUserForm(f => ({ ...f, tipo: v }))}>
+                <Select value={editUserForm.tipo} onValueChange={(v) => setEditUserForm(f => ({ ...f, tipo: v as 'cliente' | 'motorista' | 'admin' }))}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="cliente">👤 Cliente</SelectItem>
+                    <SelectItem value="motorista">🚗 Motorista</SelectItem>
                     <SelectItem value="admin">🛡️ Admin</SelectItem>
                   </SelectContent>
                 </Select>
