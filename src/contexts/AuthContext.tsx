@@ -12,6 +12,7 @@ interface UserData {
   tipo: AppRole;
   roles: AppRole[];
   status: string;
+  veiculo_placa?: string | null;
 }
 
 interface AuthContextType {
@@ -72,10 +73,11 @@ function deriveRoles(tipo: string, dbRoles?: string[] | null): AppRole[] {
 }
 
 // Determine which screens a user can access
-function getAvailableScreens(roles: AppRole[]): ScreenKey[] {
+function getAvailableScreens(roles: AppRole[], user?: UserData | null): ScreenKey[] {
   const screens: ScreenKey[] = [];
   if (roles.includes('cliente')) screens.push('cliente');
-  if (roles.includes('motorista')) screens.push('motorista');
+  // Motorista screen requires role + vehicle registered
+  if (roles.includes('motorista') && user?.veiculo_placa) screens.push('motorista');
   if (roles.includes('admin')) screens.push('admin');
   // Fallback
   if (screens.length === 0) screens.push('cliente');
@@ -106,7 +108,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(false);
 
   const roles = user ? deriveRoles(user.tipo, user.roles) : [];
-  const availableScreens = getAvailableScreens(roles);
+  const availableScreens = getAvailableScreens(roles, user);
 
   const hasRole = (r: AppRole) => roles.includes(r);
 
@@ -157,6 +159,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser({
         ...userData,
         roles: deriveRoles(userData.tipo, userData.roles),
+        veiculo_placa: userData.veiculo_placa || null,
       } as UserData);
       setRole('cliente');
       setActiveScreen('cliente');
@@ -180,16 +183,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       const userData = data as any;
       const derivedRoles = deriveRoles(userData.tipo, userData.roles);
-      setUser({
-        ...userData,
+      const userObj: UserData = {
+        id: userData.id,
+        nome: userData.nome,
+        telefone: userData.telefone,
+        tipo: userData.tipo,
         roles: derivedRoles,
-      } as UserData);
+        status: userData.status,
+        veiculo_placa: userData.veiculo_placa || null,
+      };
+      setUser(userObj);
       setRole(userData.tipo as AppRole);
 
-      // Set default screen to highest privilege
-      const defaultScreen = derivedRoles.includes('admin') ? 'admin' :
-        derivedRoles.includes('motorista') ? 'motorista' :
-        derivedRoles.includes('cliente') ? 'cliente' : 'cliente';
+      // Set default screen to highest privilege (respects vehicle check)
+      const screens = getAvailableScreens(derivedRoles, userObj);
+      const defaultScreen = screens.includes('admin') ? 'admin' :
+        screens.includes('motorista') ? 'motorista' :
+        screens.includes('cliente') ? 'cliente' : 'cliente';
       setActiveScreen(defaultScreen);
 
       return true;
