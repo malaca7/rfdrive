@@ -621,20 +621,35 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
         <div
           ref={badgeRef}
           style={{
-            background: 'linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #111111 100%)',
+            background: 'linear-gradient(145deg, #0c0c0c 0%, #141414 40%, #1a1810 100%)',
             borderRadius: '16px',
             padding: '20px',
-            border: '1px solid #333',
+            border: '1px solid #3a3020',
             fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
+            position: 'relative' as const,
+            overflow: 'hidden',
           }}
         >
+          {/* Gold corner accents */}
+          <div style={{
+            position: 'absolute', top: 0, left: 0, width: '60px', height: '60px',
+            background: 'linear-gradient(135deg, rgba(212,175,55,0.15) 0%, transparent 60%)',
+            borderRadius: '16px 0 0 0',
+          }} />
+          <div style={{
+            position: 'absolute', bottom: 0, right: 0, width: '60px', height: '60px',
+            background: 'linear-gradient(315deg, rgba(212,175,55,0.12) 0%, transparent 60%)',
+            borderRadius: '0 0 16px 0',
+          }} />
+
           {/* Top: Logo + Brand */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px', position: 'relative' as const }}>
             <div style={{
-              width: '36px', height: '36px', borderRadius: '10px',
-              background: 'linear-gradient(135deg, #3b82f6, #6366f1)',
+              width: '38px', height: '38px', borderRadius: '10px',
+              background: 'linear-gradient(135deg, #f97316, #ea580c)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               flexShrink: 0,
+              boxShadow: '0 2px 8px rgba(249,115,22,0.3)',
             }}>
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2" />
@@ -643,30 +658,31 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
               </svg>
             </div>
             <div>
-              <div style={{ fontSize: '16px', fontWeight: '800', color: '#ffffff', letterSpacing: '-0.5px', lineHeight: '1.1' }}>
+              <div style={{ fontSize: '17px', fontWeight: '800', color: '#ffffff', letterSpacing: '-0.5px', lineHeight: '1.1' }}>
                 RF Drive
               </div>
-              <div style={{ fontSize: '9px', fontWeight: '500', color: '#888', textTransform: 'uppercase' as const, letterSpacing: '1.5px' }}>
+              <div style={{ fontSize: '9px', fontWeight: '600', color: '#d4af37', textTransform: 'uppercase' as const, letterSpacing: '2px' }}>
                 Motorista Credenciado
               </div>
             </div>
           </div>
 
-          {/* Divider */}
-          <div style={{ height: '1px', background: 'linear-gradient(90deg, transparent, #333, transparent)', marginBottom: '14px' }} />
+          {/* Gold divider */}
+          <div style={{ height: '1px', background: 'linear-gradient(90deg, transparent, #d4af37, #b8941f, transparent)', marginBottom: '14px', opacity: 0.5 }} />
 
           {/* Driver row */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '14px' }}>
             <div style={{
-              width: '52px', height: '52px', borderRadius: '50%',
-              border: '2px solid #444', overflow: 'hidden',
-              background: '#222', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              width: '56px', height: '56px', borderRadius: '50%',
+              border: '2px solid #d4af37', overflow: 'hidden',
+              background: '#1a1a1a', display: 'flex', alignItems: 'center', justifyContent: 'center',
               flexShrink: 0,
+              boxShadow: '0 0 12px rgba(212,175,55,0.15)',
             }}>
               {avatarUrl ? (
                 <img src={avatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               ) : (
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#d4af37" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
                   <circle cx="12" cy="7" r="4" />
                 </svg>
@@ -676,7 +692,7 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
               <div style={{ fontSize: '15px', fontWeight: '700', color: '#fff', lineHeight: '1.2' }}>
                 {profile.nome}
               </div>
-              <div style={{ fontSize: '11px', color: '#888', marginTop: '2px' }}>
+              <div style={{ fontSize: '11px', color: '#a0a0a0', marginTop: '2px' }}>
                 {profile.telefone}
               </div>
             </div>
@@ -685,23 +701,23 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
           {/* Vehicle (compact) */}
           {hasVehicle && (
             <div style={{
-              background: '#1a1a1a', borderRadius: '10px', padding: '10px 12px',
-              border: '1px solid #2a2a2a', marginBottom: '12px',
+              background: 'rgba(212,175,55,0.04)', borderRadius: '10px', padding: '10px 12px',
+              border: '1px solid rgba(212,175,55,0.15)', marginBottom: '12px',
             }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div>
-                  <div style={{ fontSize: '12px', fontWeight: '600', color: '#ddd' }}>
+                  <div style={{ fontSize: '12px', fontWeight: '600', color: '#e0e0e0' }}>
                     {[profile.veiculo_marca, profile.veiculo_modelo].filter(Boolean).join(' ')}
                   </div>
-                  <div style={{ fontSize: '10px', color: '#777', marginTop: '1px' }}>
+                  <div style={{ fontSize: '10px', color: '#888', marginTop: '1px' }}>
                     {[profile.veiculo_cor, profile.veiculo_placa].filter(Boolean).join(' • ')}
                   </div>
                 </div>
                 {profile.veiculo_placa && (
                   <div style={{
-                    background: '#222', border: '1px solid #444', borderRadius: '6px',
+                    background: '#1a1a1a', border: '1px solid #d4af37', borderRadius: '6px',
                     padding: '3px 8px', fontSize: '11px', fontWeight: '700',
-                    color: '#fff', fontFamily: 'monospace', letterSpacing: '1px',
+                    color: '#d4af37', fontFamily: 'monospace', letterSpacing: '1px',
                   }}>
                     {profile.veiculo_placa}
                   </div>
@@ -713,39 +729,42 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
           {/* Stats row */}
           <div style={{ display: 'flex', gap: '6px' }}>
             <div style={{
-              flex: 1, background: '#0a1a0a', border: '1px solid #1a3a1a', borderRadius: '8px',
+              flex: 1, background: 'rgba(212,175,55,0.05)', border: '1px solid rgba(212,175,55,0.12)', borderRadius: '8px',
               padding: '8px 0', textAlign: 'center' as const,
             }}>
-              <div style={{ fontSize: '16px', fontWeight: '800', color: '#4ade80' }}>{completedCount}</div>
-              <div style={{ fontSize: '8px', color: '#6b7280', textTransform: 'uppercase' as const, letterSpacing: '0.5px' }}>corridas</div>
+              <div style={{ fontSize: '16px', fontWeight: '800', color: '#d4af37' }}>{completedCount}</div>
+              <div style={{ fontSize: '8px', color: '#777', textTransform: 'uppercase' as const, letterSpacing: '0.5px' }}>corridas</div>
             </div>
             <div style={{
-              flex: 1, background: '#1a1a0a', border: '1px solid #3a3a1a', borderRadius: '8px',
+              flex: 1, background: 'rgba(212,175,55,0.05)', border: '1px solid rgba(212,175,55,0.12)', borderRadius: '8px',
               padding: '8px 0', textAlign: 'center' as const,
             }}>
               <div style={{ fontSize: '16px', fontWeight: '800', color: '#facc15' }}>
                 {avgRating ? `${avgRating.avg}` : '—'}
               </div>
-              <div style={{ fontSize: '8px', color: '#6b7280', textTransform: 'uppercase' as const, letterSpacing: '0.5px' }}>
+              <div style={{ fontSize: '8px', color: '#777', textTransform: 'uppercase' as const, letterSpacing: '0.5px' }}>
                 {avgRating ? `${avgRating.count} aval.` : 'sem aval.'}
               </div>
             </div>
             <div style={{
-              flex: 1, background: '#0a0a1a', border: '1px solid #1a1a3a', borderRadius: '8px',
+              flex: 1, background: 'rgba(212,175,55,0.05)', border: '1px solid rgba(212,175,55,0.12)', borderRadius: '8px',
               padding: '8px 0', textAlign: 'center' as const,
             }}>
               <div style={{ fontSize: '12px', fontWeight: '700', color: profile.status === 'ativo' ? '#4ade80' : '#ef4444' }}>
                 {profile.status === 'ativo' ? '● Ativo' : '● ' + profile.status}
               </div>
-              <div style={{ fontSize: '8px', color: '#6b7280', textTransform: 'uppercase' as const, letterSpacing: '0.5px' }}>status</div>
+              <div style={{ fontSize: '8px', color: '#777', textTransform: 'uppercase' as const, letterSpacing: '0.5px' }}>status</div>
             </div>
           </div>
 
-          {/* Bottom ID */}
-          <div style={{ marginTop: '10px', textAlign: 'center' as const }}>
-            <span style={{ fontSize: '8px', color: '#555', fontFamily: 'monospace', letterSpacing: '1px' }}>
-              ID {profile.id.slice(0, 8).toUpperCase()}
-            </span>
+          {/* Bottom gold line + ID */}
+          <div style={{ marginTop: '12px' }}>
+            <div style={{ height: '1px', background: 'linear-gradient(90deg, transparent, rgba(212,175,55,0.3), transparent)', marginBottom: '8px' }} />
+            <div style={{ textAlign: 'center' as const }}>
+              <span style={{ fontSize: '8px', color: '#6b6040', fontFamily: 'monospace', letterSpacing: '1.5px' }}>
+                ID {profile.id.slice(0, 8).toUpperCase()}
+              </span>
+            </div>
           </div>
         </div>
 
