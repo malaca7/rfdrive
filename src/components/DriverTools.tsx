@@ -623,13 +623,32 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
           style={{
             background: 'linear-gradient(145deg, #0c0c0c 0%, #141414 40%, #1a1810 100%)',
             borderRadius: '16px',
-            padding: '20px',
             border: '1px solid #3a3020',
             fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
             position: 'relative' as const,
             overflow: 'hidden',
           }}
         >
+          {/* ── Car background image (large, behind everything) ── */}
+          {hasVehicle && (
+            <div style={{
+              position: 'absolute' as const, top: 0, left: 0, width: '100%', height: '100%',
+              display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+              pointerEvents: 'none' as const,
+            }}>
+              <img
+                src={`https://cdn.imagin.studio/getimage?customer=hrjavascript-mastery&make=${encodeURIComponent(profile.veiculo_marca || '')}&modelFamily=${encodeURIComponent(profile.veiculo_modelo || '')}&paintId=pspc0001&angle=01&width=600`}
+                alt=""
+                crossOrigin="anonymous"
+                style={{
+                  width: '110%', maxHeight: '70%', objectFit: 'contain', objectPosition: 'center bottom',
+                  opacity: 0.18, filter: 'brightness(1.2)',
+                }}
+                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+              />
+            </div>
+          )}
+
           {/* Gold corner accents */}
           <div style={{
             position: 'absolute', top: 0, left: 0, width: '60px', height: '60px',
@@ -642,188 +661,157 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
             borderRadius: '0 0 16px 0',
           }} />
 
-          {/* Top: Logo + Brand */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px', position: 'relative' as const }}>
-            <div style={{
-              width: '38px', height: '38px', borderRadius: '10px',
-              background: 'linear-gradient(135deg, #f97316, #ea580c)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              flexShrink: 0,
-              boxShadow: '0 2px 8px rgba(249,115,22,0.3)',
-            }}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2" />
-                <circle cx="7" cy="17" r="2" />
-                <circle cx="17" cy="17" r="2" />
-              </svg>
-            </div>
-            <div>
-              <div style={{ fontSize: '17px', fontWeight: '800', color: '#ffffff', letterSpacing: '-0.5px', lineHeight: '1.1' }}>
-                RF Drive
-              </div>
-              <div style={{ fontSize: '9px', fontWeight: '600', color: '#d4af37', textTransform: 'uppercase' as const, letterSpacing: '2px' }}>
-                Motorista Credenciado
-              </div>
-            </div>
-          </div>
+          {/* Content wrapper (above background) */}
+          <div style={{ position: 'relative' as const, zIndex: 1, padding: '20px' }}>
 
-          {/* Gold divider */}
-          <div style={{ height: '1px', background: 'linear-gradient(90deg, transparent, #d4af37, #b8941f, transparent)', marginBottom: '14px', opacity: 0.5 }} />
-
-          {/* Driver row */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '14px' }}>
-            <div style={{
-              width: '56px', height: '56px', borderRadius: '50%',
-              border: '2px solid #d4af37', overflow: 'hidden',
-              background: '#1a1a1a', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              flexShrink: 0,
-              boxShadow: '0 0 12px rgba(212,175,55,0.15)',
-            }}>
-              {avatarUrl ? (
-                <img src={avatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-              ) : (
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#d4af37" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
-                  <circle cx="12" cy="7" r="4" />
+            {/* Top: Logo + Brand */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
+              <div style={{
+                width: '38px', height: '38px', borderRadius: '10px',
+                background: 'linear-gradient(135deg, #f97316, #ea580c)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                flexShrink: 0,
+                boxShadow: '0 2px 8px rgba(249,115,22,0.3)',
+              }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2" />
+                  <circle cx="7" cy="17" r="2" />
+                  <circle cx="17" cy="17" r="2" />
                 </svg>
-              )}
-            </div>
-            <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: '15px', fontWeight: '700', color: '#fff', lineHeight: '1.2' }}>
-                {profile.nome}
               </div>
-              <div style={{ fontSize: '11px', color: '#a0a0a0', marginTop: '2px' }}>
-                {profile.telefone}
+              <div>
+                <div style={{ fontSize: '17px', fontWeight: '800', color: '#ffffff', letterSpacing: '-0.5px', lineHeight: '1.1' }}>
+                  RF Drive
+                </div>
+                <div style={{ fontSize: '9px', fontWeight: '600', color: '#d4af37', textTransform: 'uppercase' as const, letterSpacing: '2px' }}>
+                  Motorista Credenciado
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Vehicle photo + info */}
-          {hasVehicle && (
-            <div style={{
-              background: 'rgba(212,175,55,0.04)', borderRadius: '12px', padding: '12px',
-              border: '1px solid rgba(212,175,55,0.15)', marginBottom: '12px',
-            }}>
-              {/* Car photo from imagin.studio */}
-              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '8px' }}>
-                <div style={{
-                  width: '180px', height: '90px', borderRadius: '8px', overflow: 'hidden',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  background: 'rgba(0,0,0,0.3)',
-                }}>
-                  <img
-                    src={`https://cdn.imagin.studio/getimage?customer=hrjavascript-mastery&make=${encodeURIComponent(profile.veiculo_marca || '')}&modelFamily=${encodeURIComponent(profile.veiculo_modelo || '')}&paintId=pspc0001&angle=01`}
-                    alt={`${profile.veiculo_marca} ${profile.veiculo_modelo}`}
-                    style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; (e.target as HTMLImageElement).nextElementSibling && ((e.target as HTMLImageElement).parentElement!.querySelector('.car-fallback') as HTMLElement)?.style.setProperty('display', 'flex'); }}
-                  />
-                  <div className="car-fallback" style={{ display: 'none', width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center', position: 'absolute' as const }}>
-                    <svg width="60" height="36" viewBox="0 0 120 72" fill="none">
-                      <path d="M20 44 L30 24 C32 20 36 18 40 18 L80 18 C84 18 88 20 90 24 L100 44" stroke="#d4af37" strokeWidth="2" fill="rgba(212,175,55,0.08)" strokeLinejoin="round"/>
-                      <rect x="10" y="44" width="100" height="18" rx="4" stroke="#d4af37" strokeWidth="2" fill="rgba(212,175,55,0.06)"/>
-                      <circle cx="30" cy="62" r="9" stroke="#d4af37" strokeWidth="2" fill="#1a1a1a"/>
-                      <circle cx="90" cy="62" r="9" stroke="#d4af37" strokeWidth="2" fill="#1a1a1a"/>
-                    </svg>
-                  </div>
+            {/* Gold divider */}
+            <div style={{ height: '1px', background: 'linear-gradient(90deg, transparent, #d4af37, #b8941f, transparent)', marginBottom: '14px', opacity: 0.5 }} />
+
+            {/* Driver row */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '14px' }}>
+              <div style={{
+                width: '56px', height: '56px', borderRadius: '50%',
+                border: '2px solid #d4af37', overflow: 'hidden',
+                background: '#1a1a1a', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                flexShrink: 0,
+                boxShadow: '0 0 12px rgba(212,175,55,0.15)',
+              }}>
+                {avatarUrl ? (
+                  <img src={avatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                ) : (
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#d4af37" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+                    <circle cx="12" cy="7" r="4" />
+                  </svg>
+                )}
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: '15px', fontWeight: '700', color: '#fff', lineHeight: '1.2' }}>
+                  {profile.nome}
+                </div>
+                <div style={{ fontSize: '11px', color: '#a0a0a0', marginTop: '2px' }}>
+                  {profile.telefone}
                 </div>
               </div>
-              <div style={{ textAlign: 'center' as const }}>
-                <div style={{ fontSize: '13px', fontWeight: '700', color: '#e8e8e8', lineHeight: '1.2' }}>
-                  {[profile.veiculo_marca, profile.veiculo_modelo].filter(Boolean).join(' ')}
+            </div>
+
+            {/* Vehicle info + Mercosul plate */}
+            {hasVehicle && (
+              <div style={{ marginBottom: '12px' }}>
+                <div style={{ textAlign: 'center' as const, marginBottom: '10px' }}>
+                  <div style={{ fontSize: '13px', fontWeight: '700', color: '#e8e8e8', lineHeight: '1.2' }}>
+                    {[profile.veiculo_marca, profile.veiculo_modelo].filter(Boolean).join(' ')}
+                  </div>
+                  {profile.veiculo_cor && (
+                    <div style={{ fontSize: '10px', color: '#999', marginTop: '2px' }}>
+                      {profile.veiculo_cor}
+                    </div>
+                  )}
                 </div>
-                {profile.veiculo_cor && (
-                  <div style={{ fontSize: '10px', color: '#999', marginTop: '2px' }}>
-                    {profile.veiculo_cor}
+
+                {/* Mercosul plate */}
+                {profile.veiculo_placa && (
+                  <div style={{ display: 'flex', justifyContent: 'center' }}>
+                    <div style={{
+                      width: '160px',
+                      background: '#ffffff',
+                      borderRadius: '6px',
+                      border: '2px solid #ccc',
+                      overflow: 'hidden',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
+                    }}>
+                      {/* Blue top strip (Mercosul) */}
+                      <div style={{
+                        background: 'linear-gradient(90deg, #003399, #0044aa)',
+                        height: '18px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '4px',
+                        padding: '0 8px',
+                      }}>
+                        <div style={{
+                          width: '12px', height: '8px', borderRadius: '1px',
+                          background: '#009c3b', position: 'relative' as const, overflow: 'hidden', flexShrink: 0,
+                        }}>
+                          <div style={{
+                            position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%) rotate(0deg)',
+                            width: '10px', height: '6px',
+                            background: '#ffdf00',
+                            clipPath: 'polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)',
+                          }} />
+                        </div>
+                        <span style={{ fontSize: '7px', fontWeight: '700', color: '#ffffff', letterSpacing: '1px' }}>
+                          BRASIL
+                        </span>
+                      </div>
+                      <div style={{ padding: '4px 0 6px', textAlign: 'center' as const }}>
+                        <span style={{
+                          fontSize: '28px', fontWeight: '900', color: '#1a1a1a',
+                          fontFamily: "'FE-Schrift', 'Roboto Condensed', 'Arial Narrow', monospace",
+                          letterSpacing: '3px', lineHeight: '1',
+                        }}>
+                          {profile.veiculo_placa}
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
+            )}
 
-              {/* Mercosul plate */}
-              {profile.veiculo_placa && (
-                <div style={{ display: 'flex', justifyContent: 'center' }}>
-                  <div style={{
-                    width: '160px',
-                    background: '#ffffff',
-                    borderRadius: '6px',
-                    border: '2px solid #ccc',
-                    overflow: 'hidden',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
-                  }}>
-                    {/* Blue top strip (Mercosul) */}
-                    <div style={{
-                      background: 'linear-gradient(90deg, #003399, #0044aa)',
-                      height: '18px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '4px',
-                      padding: '0 8px',
-                    }}>
-                      {/* BR flag mini */}
-                      <div style={{
-                        width: '12px', height: '8px', borderRadius: '1px',
-                        background: '#009c3b', position: 'relative' as const, overflow: 'hidden', flexShrink: 0,
-                      }}>
-                        <div style={{
-                          position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%) rotate(0deg)',
-                          width: '10px', height: '6px',
-                          background: '#ffdf00',
-                          clipPath: 'polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)',
-                        }} />
-                      </div>
-                      <span style={{ fontSize: '7px', fontWeight: '700', color: '#ffffff', letterSpacing: '1px' }}>
-                        BRASIL
-                      </span>
-                    </div>
-                    {/* Plate characters */}
-                    <div style={{
-                      padding: '4px 0 6px',
-                      textAlign: 'center' as const,
-                    }}>
-                      <span style={{
-                        fontSize: '28px',
-                        fontWeight: '900',
-                        color: '#1a1a1a',
-                        fontFamily: "'FE-Schrift', 'Roboto Condensed', 'Arial Narrow', monospace",
-                        letterSpacing: '3px',
-                        lineHeight: '1',
-                      }}>
-                        {profile.veiculo_placa}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              )}
+            {/* Status badge */}
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '4px' }}>
+              <div style={{
+                background: profile.status === 'ativo' ? 'rgba(74,222,128,0.1)' : 'rgba(239,68,68,0.1)',
+                border: `1px solid ${profile.status === 'ativo' ? 'rgba(74,222,128,0.3)' : 'rgba(239,68,68,0.3)'}`,
+                borderRadius: '20px',
+                padding: '4px 16px',
+                fontSize: '11px',
+                fontWeight: '700',
+                color: profile.status === 'ativo' ? '#4ade80' : '#ef4444',
+                letterSpacing: '0.5px',
+              }}>
+                {profile.status === 'ativo' ? '● Ativo' : '● ' + profile.status}
+              </div>
             </div>
-          )}
 
-          {/* Status badge */}
-          <div style={{
-            display: 'flex', justifyContent: 'center', marginBottom: '4px',
-          }}>
-            <div style={{
-              background: profile.status === 'ativo' ? 'rgba(74,222,128,0.1)' : 'rgba(239,68,68,0.1)',
-              border: `1px solid ${profile.status === 'ativo' ? 'rgba(74,222,128,0.3)' : 'rgba(239,68,68,0.3)'}`,
-              borderRadius: '20px',
-              padding: '4px 16px',
-              fontSize: '11px',
-              fontWeight: '700',
-              color: profile.status === 'ativo' ? '#4ade80' : '#ef4444',
-              letterSpacing: '0.5px',
-            }}>
-              {profile.status === 'ativo' ? '● Ativo' : '● ' + profile.status}
+            {/* Bottom gold line + ID */}
+            <div style={{ marginTop: '10px' }}>
+              <div style={{ height: '1px', background: 'linear-gradient(90deg, transparent, rgba(212,175,55,0.3), transparent)', marginBottom: '8px' }} />
+              <div style={{ textAlign: 'center' as const }}>
+                <span style={{ fontSize: '8px', color: '#6b6040', fontFamily: 'monospace', letterSpacing: '1.5px' }}>
+                  ID {profile.id.slice(0, 8).toUpperCase()}
+                </span>
+              </div>
             </div>
-          </div>
 
-          {/* Bottom gold line + ID */}
-          <div style={{ marginTop: '10px' }}>
-            <div style={{ height: '1px', background: 'linear-gradient(90deg, transparent, rgba(212,175,55,0.3), transparent)', marginBottom: '8px' }} />
-            <div style={{ textAlign: 'center' as const }}>
-              <span style={{ fontSize: '8px', color: '#6b6040', fontFamily: 'monospace', letterSpacing: '1.5px' }}>
-                ID {profile.id.slice(0, 8).toUpperCase()}
-              </span>
-            </div>
-          </div>
+          </div>{/* end content wrapper */}
         </div>
 
         {/* Action buttons */}
