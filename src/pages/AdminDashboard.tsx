@@ -23,6 +23,7 @@ import AppShell from '@/components/AppShell';
 import AdminPricing from '@/components/AdminPricing';
 import AdminTabelaPrecos from '@/components/AdminTabelaPrecos';
 import AdminStatsDashboard from '@/components/AdminStatsDashboard';
+import AdminMotoristas from '@/components/AdminMotoristas';
 import { motion } from 'framer-motion';
 import {
   MapPin, Navigation, Clock, CheckCircle, XCircle,
@@ -536,6 +537,9 @@ const AdminDashboard: React.FC = () => {
             <TabsTrigger value="usuarios" className="flex-1 gap-1.5 rounded-xl h-full text-xs font-semibold data-[state=active]:shadow-md">
               <Users className="w-3.5 h-3.5" /> Usuários ({stats.totalUsers})
             </TabsTrigger>
+            <TabsTrigger value="motoristas" className="flex-1 gap-1.5 rounded-xl h-full text-xs font-semibold data-[state=active]:shadow-md">
+              <Car className="w-3.5 h-3.5" /> Motoristas ({stats.motoristas})
+            </TabsTrigger>
             <TabsTrigger value="precificacao" className="flex-1 gap-1.5 rounded-xl h-full text-xs font-semibold data-[state=active]:shadow-md">
               <DollarSign className="w-3.5 h-3.5" /> Preços
             </TabsTrigger>
@@ -912,6 +916,11 @@ const AdminDashboard: React.FC = () => {
                 })}
               </div>
             )}
+          </TabsContent>
+
+          {/* ═══════════════════════════════ MOTORISTAS TAB ═══════════════════════════════ */}
+          <TabsContent value="motoristas">
+            <AdminMotoristas users={users || []} rides={rides || []} loading={loadingUsers || loadingRides} />
           </TabsContent>
 
           {/* ═══════════════════════════════ PRECIFICAÇÃO TAB ═══════════════════════════════ */}
