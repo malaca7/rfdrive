@@ -248,12 +248,17 @@ export function applyTimeAdjustment(precoBase: number, regra: RegraHorario): num
   return precoBase + regra.valor_ajuste;
 }
 
+// ── Get current time as "HH:MM" (24h) reliably across all browsers ──
+function getCurrentTime24h(): string {
+  const now = new Date();
+  return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+}
+
 // ── Get current active time rule (loads data from cache/DB) ──
 export async function getActiveTimeRule(): Promise<RegraHorario | null> {
   const { regras } = await loadData();
   if (!regras.length) return null;
-  const now = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', hour12: false });
-  return findActiveTimeRules(regras, now);
+  return findActiveTimeRules(regras, getCurrentTime24h());
 }
 
 // ══════════════════════════════════════════════════════════
@@ -293,7 +298,7 @@ export async function calcularPreco(
   const precoBase = rota.preco_fixo ?? rota.preco_minimo ?? 0;
 
   // Determine current time
-  const now = horario || new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', hour12: false });
+  const now = horario || getCurrentTime24h();
 
   // Find active time rule
   const regraHorario = findActiveTimeRules(regras, now);

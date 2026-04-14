@@ -195,18 +195,24 @@ const RideRequestForm: React.FC = () => {
       }
 
       // 1) Motor dinâmico: prioridade máxima (usa localidades + precos_rotas + regras_horario do admin)
+      let motorDinamicoAplicouRegra = false;
       try {
-        const precoDinamico = await calcularPreco(o, d);
-        if (precoDinamico) {
-          valor_estimado = precoDinamico.preco_final;
-          preco_regra_aplicada = precoDinamico.origem_regra;
+        const precoDinamicoResult = await calcularPreco(o, d);
+        if (precoDinamicoResult) {
+          valor_estimado = precoDinamicoResult.preco_final;
+          preco_regra_aplicada = precoDinamicoResult.origem_regra;
+          motorDinamicoAplicouRegra = !!precoDinamicoResult.regra_horario;
           preco_detalhes = {
-            preco_base: precoDinamico.preco_base,
-            ajuste: precoDinamico.ajuste_aplicado,
-            fallback: precoDinamico.fallback_usado,
-            origem_loc: precoDinamico.origem_localidade?.nome,
-            destino_loc: precoDinamico.destino_localidade?.nome,
+            preco_base: precoDinamicoResult.preco_base,
+            ajuste: precoDinamicoResult.ajuste_aplicado,
+            fallback: precoDinamicoResult.fallback_usado,
+            origem_loc: precoDinamicoResult.origem_localidade?.nome,
+            destino_loc: precoDinamicoResult.destino_localidade?.nome,
           };
+          if (precoDinamicoResult.regra_horario) {
+            preco_regra_aplicada += `+${precoDinamicoResult.regra_horario.nome}`;
+            preco_detalhes.regra_horario = precoDinamicoResult.regra_horario.nome;
+          }
         }
       } catch {
         // dynamic engine is optional
@@ -225,19 +231,20 @@ const RideRequestForm: React.FC = () => {
             match_exato: tabelaResult.match_exato,
             fonte: 'TabelaRF',
           };
-          // Aplicar regra de horário (noturno, madrugada, etc.) ao preço tabelado
-          if (dynamicAdj) {
-            const precoBase = valor_estimado;
-            valor_estimado = dynamicAdj.aplicar(precoBase);
-            preco_regra_aplicada = `tabela_rf+${dynamicAdj.regra.nome}`;
-            preco_detalhes = {
-              ...preco_detalhes,
-              preco_base_tabela: precoBase,
-              ajuste_horario: dynamicAdj.label,
-              regra_horario: dynamicAdj.regra.nome,
-            };
-          }
         }
+      }
+
+      // 3) Aplicar regra de horário dinâmica se nenhuma fonte já a aplicou
+      if (dynamicAdj && valor_estimado != null && !motorDinamicoAplicouRegra) {
+        const precoBase = valor_estimado;
+        valor_estimado = dynamicAdj.aplicar(precoBase);
+        preco_regra_aplicada = `${preco_regra_aplicada || 'route_ai'}+${dynamicAdj.regra.nome}`;
+        preco_detalhes = {
+          ...preco_detalhes,
+          preco_base_antes_ajuste: precoBase,
+          ajuste_horario: dynamicAdj.label,
+          regra_horario: dynamicAdj.regra.nome,
+        };
       }
 
       // Adicionar taxa de bagagem se aplicável
@@ -756,33 +763,48 @@ const RideRequestForm: React.FC = () => {
                               Preço dinâmico
                             </p>
                             <p className="text-[clamp(1.1rem,3.5vw,1.35rem)] font-bold text-blue-400">
-                              R$ {precoDinamico.preco_final.toFixed(2)}
+                              R$ {(() => {
+                                let v = precoDinamico.preco_final;
+                                // Se o motor não aplicou regra horária mas existe dynamicAdj, aplicar
+                                if (!precoDinamico.regra_horario && dynamicAdj) v = dynamicAdj.aplicar(v);
+                                return v.toFixed(2);
+                              })()}
                             </p>
                           </div>
                         </div>
                         <div className="text-right">
                           <p className="text-[10px] text-muted-foreground">
-                            {precoDinamico.regra_horario ? `${precoDinamico.ajuste_aplicado}` : 'Sem ajuste horário'}
+                            {precoDinamico.regra_horario
+                              ? precoDinamico.ajuste_aplicado
+                              : dynamicAdj
+                                ? dynamicAdj.label
+                                : 'Sem ajuste horário'}
                           </p>
                           <p className="text-[10px] text-muted-foreground truncate max-w-[160px]">
                             {precoDinamico.origem_localidade?.nome} → {precoDinamico.destino_localidade?.nome}
                           </p>
                         </div>
                       </div>
-                      {precoDinamico.regra_horario && (
+                      {(precoDinamico.regra_horario || dynamicAdj) && (
                         <div className="flex items-center justify-between bg-purple-500/10 border border-purple-500/20 rounded-lg px-3 py-2">
                           <div className="flex items-center gap-2">
                             <Clock className="w-3.5 h-3.5 text-purple-400" />
-                            <span className="text-xs text-muted-foreground">{precoDinamico.regra_horario.nome}</span>
+                            <span className="text-xs text-muted-foreground">
+                              {precoDinamico.regra_horario?.nome || dynamicAdj?.regra.nome}
+                            </span>
                           </div>
                           <span className="text-sm font-bold text-purple-400">
-                            {precoDinamico.regra_horario.tipo_ajuste === 'percentual'
-                              ? `+${precoDinamico.regra_horario.valor_ajuste}%`
-                              : `+R$ ${precoDinamico.regra_horario.valor_ajuste.toFixed(2)}`}
+                            {(() => {
+                              const regra = precoDinamico.regra_horario || dynamicAdj?.regra;
+                              if (!regra) return '';
+                              return regra.tipo_ajuste === 'percentual'
+                                ? `+${regra.valor_ajuste}%`
+                                : `+R$ ${regra.valor_ajuste.toFixed(2)}`;
+                            })()}
                           </span>
                         </div>
                       )}
-                      {precoDinamico.preco_base !== precoDinamico.preco_final && (
+                      {(precoDinamico.preco_base !== precoDinamico.preco_final || (!precoDinamico.regra_horario && dynamicAdj)) && (
                         <div className="flex items-center justify-between text-xs text-muted-foreground">
                           <span>Base</span>
                           <span className="line-through">R$ {precoDinamico.preco_base.toFixed(2)}</span>
@@ -855,7 +877,7 @@ const RideRequestForm: React.FC = () => {
                       }`}>
                         R$ {(() => {
                           let total = precoDinamico
-                            ? precoDinamico.preco_final
+                            ? ((!precoDinamico.regra_horario && dynamicAdj) ? dynamicAdj.aplicar(precoDinamico.preco_final) : precoDinamico.preco_final)
                             : precoTabela
                               ? (dynamicAdj ? dynamicAdj.aplicar(precoTabela.valor) : precoTabela.valor)
                               : 0;
