@@ -9,12 +9,12 @@ import { Card, CardContent } from '@/components/ui/card';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   MapPin, Navigation, Loader2, Check, CheckCircle, Clock,
-  Edit3, X, DollarSign, Route, Car, Star, Send, TableProperties, MessageSquare, Phone,
+  Edit3, X, DollarSign, Route, Car, Star, Send, TableProperties, MessageSquare, Phone, Zap,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import StarRating from '@/components/StarRating';
 import { calculateRoute } from '@/lib/route-ai';
-import { calcularPreco, salvarHistoricoPreco } from '@/lib/pricing-engine';
+import { calcularPreco, salvarHistoricoPreco, type PricingResult } from '@/lib/pricing-engine';
 import { buscarPrecoTabela } from '@/lib/tabela-preco';
 import { usePrecoTabela, useAllLocations } from '@/hooks/usePrecoTabela';
 import { useDynamicAdjustment } from '@/hooks/useDynamicAdjustment';
@@ -50,6 +50,16 @@ const RideRequestForm: React.FC = () => {
 
   // ── Regra de horário dinâmica (noturno, madrugada, etc.) ──
   const dynamicAdj = useDynamicAdjustment();
+
+  // ── Motor dinâmico: preço reativo via localidades + precos_rotas + regras_horario ──
+  const origemTrim = origem.trim();
+  const destinoTrim = destino.trim();
+  const { data: precoDinamico } = useQuery<PricingResult | null>({
+    queryKey: ['preco-dinamico', origemTrim, destinoTrim],
+    queryFn: () => calcularPreco(origemTrim, destinoTrim),
+    enabled: !!origemTrim && !!destinoTrim,
+    staleTime: 30_000,
+  });
 
   // ── Autocomplete: all locations bidirectional (reativo) ──
   const allLocations = useAllLocations();
@@ -186,47 +196,49 @@ const RideRequestForm: React.FC = () => {
         // route calc is optional
       }
 
-      // 1) Tabela oficial RF: prioridade máxima
-      const tabelaResult = buscarPrecoTabela(o, d);
-      if (tabelaResult) {
-        valor_estimado = tabelaResult.valor;
-        preco_regra_aplicada = 'tabela_rf';
-        preco_detalhes = {
-          origem_tabela: tabelaResult.origem_tabela,
-          destino_tabela: tabelaResult.destino_tabela,
-          regiao: tabelaResult.regiao,
-          match_exato: tabelaResult.match_exato,
-          fonte: 'TabelaRF',
-        };
-        // Aplicar regra de horário (noturno, madrugada, etc.) ao preço tabelado
-        if (dynamicAdj) {
-          const precoBase = valor_estimado;
-          valor_estimado = dynamicAdj.aplicar(precoBase);
-          preco_regra_aplicada = `tabela_rf+${dynamicAdj.regra.nome}`;
+      // 1) Motor dinâmico: prioridade máxima (usa localidades + precos_rotas + regras_horario do admin)
+      try {
+        const precoDinamico = await calcularPreco(o, d);
+        if (precoDinamico) {
+          valor_estimado = precoDinamico.preco_final;
+          preco_regra_aplicada = precoDinamico.origem_regra;
           preco_detalhes = {
-            ...preco_detalhes,
-            preco_base_tabela: precoBase,
-            ajuste_horario: dynamicAdj.label,
-            regra_horario: dynamicAdj.regra.nome,
+            preco_base: precoDinamico.preco_base,
+            ajuste: precoDinamico.ajuste_aplicado,
+            fallback: precoDinamico.fallback_usado,
+            origem_loc: precoDinamico.origem_localidade?.nome,
+            destino_loc: precoDinamico.destino_localidade?.nome,
           };
         }
-      } else {
-        // 2) Motor dinâmico: fallback
-        try {
-          const precoDinamico = await calcularPreco(o, d);
-          if (precoDinamico) {
-            valor_estimado = precoDinamico.preco_final;
-            preco_regra_aplicada = precoDinamico.origem_regra;
+      } catch {
+        // dynamic engine is optional
+      }
+
+      // 2) Tabela oficial RF: fallback se motor dinâmico não encontrou
+      if (!preco_regra_aplicada) {
+        const tabelaResult = buscarPrecoTabela(o, d);
+        if (tabelaResult) {
+          valor_estimado = tabelaResult.valor;
+          preco_regra_aplicada = 'tabela_rf';
+          preco_detalhes = {
+            origem_tabela: tabelaResult.origem_tabela,
+            destino_tabela: tabelaResult.destino_tabela,
+            regiao: tabelaResult.regiao,
+            match_exato: tabelaResult.match_exato,
+            fonte: 'TabelaRF',
+          };
+          // Aplicar regra de horário (noturno, madrugada, etc.) ao preço tabelado
+          if (dynamicAdj) {
+            const precoBase = valor_estimado;
+            valor_estimado = dynamicAdj.aplicar(precoBase);
+            preco_regra_aplicada = `tabela_rf+${dynamicAdj.regra.nome}`;
             preco_detalhes = {
-              preco_base: precoDinamico.preco_base,
-              ajuste: precoDinamico.ajuste_aplicado,
-              fallback: precoDinamico.fallback_usado,
-              origem_loc: precoDinamico.origem_localidade?.nome,
-              destino_loc: precoDinamico.destino_localidade?.nome,
+              ...preco_detalhes,
+              preco_base_tabela: precoBase,
+              ajuste_horario: dynamicAdj.label,
+              regra_horario: dynamicAdj.regra.nome,
             };
           }
-        } catch {
-          // fallback silencioso
         }
       }
 
@@ -719,50 +731,115 @@ const RideRequestForm: React.FC = () => {
             </label>
           </div>
 
-          {/* ── Price preview from table ── */}
+          {/* ── Price preview: dinâmico > tabela RF ── */}
           <AnimatePresence>
-            {precoTabela && (
+            {(precoDinamico || precoTabela) && (
               <motion.div
                 initial={{ opacity: 0, y: -8 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -8 }}
-                className={`${precoTabela.estimado ? 'bg-amber-500/10 border-amber-500/20' : 'bg-green-500/10 border-green-500/20'} border rounded-xl p-[4%]`}
+                className={`${
+                  precoDinamico
+                    ? 'bg-blue-500/10 border-blue-500/20'
+                    : precoTabela?.estimado
+                      ? 'bg-amber-500/10 border-amber-500/20'
+                      : 'bg-green-500/10 border-green-500/20'
+                } border rounded-xl p-[4%]`}
               >
                 <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <TableProperties className={`w-4 h-4 ${precoTabela.estimado ? 'text-amber-400' : 'text-green-400'}`} />
-                      <div>
-                        <p className="text-[10px] text-muted-foreground">
-                          {precoTabela.estimado ? 'Preço estimado' : 'Preço tabelado'}
-                        </p>
-                        <p className={`text-[clamp(1.1rem,3.5vw,1.35rem)] font-bold ${precoTabela.estimado ? 'text-amber-400' : 'text-green-400'}`}>
-                          R$ {precoTabela.valor.toFixed(2)}
-                        </p>
+                  {precoDinamico ? (
+                    /* ── Preço do motor dinâmico (prioridade) ── */
+                    <>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Zap className="w-4 h-4 text-blue-400" />
+                          <div>
+                            <p className="text-[10px] text-muted-foreground">
+                              Preço dinâmico
+                            </p>
+                            <p className="text-[clamp(1.1rem,3.5vw,1.35rem)] font-bold text-blue-400">
+                              R$ {precoDinamico.preco_final.toFixed(2)}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-[10px] text-muted-foreground">
+                            {precoDinamico.regra_horario ? `${precoDinamico.ajuste_aplicado}` : 'Sem ajuste horário'}
+                          </p>
+                          <p className="text-[10px] text-muted-foreground truncate max-w-[160px]">
+                            {precoDinamico.origem_localidade?.nome} → {precoDinamico.destino_localidade?.nome}
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-[10px] text-muted-foreground">
-                        {precoTabela.estimado ? 'Média via Centro do Cabo' : precoTabela.match_exato ? 'Correspondência exata' : 'Melhor correspondência'}
-                      </p>
-                      <p className="text-[10px] text-muted-foreground truncate max-w-[160px]">
-                        {precoTabela.origem_tabela} → {precoTabela.destino_tabela}
-                      </p>
-                    </div>
-                  </div>
-                  {dynamicAdj && (
-                    <div className="flex items-center justify-between bg-purple-500/10 border border-purple-500/20 rounded-lg px-3 py-2">
-                      <div className="flex items-center gap-2">
-                        <Clock className="w-3.5 h-3.5 text-purple-400" />
-                        <span className="text-xs text-muted-foreground">{dynamicAdj.regra.nome}</span>
+                      {precoDinamico.regra_horario && (
+                        <div className="flex items-center justify-between bg-purple-500/10 border border-purple-500/20 rounded-lg px-3 py-2">
+                          <div className="flex items-center gap-2">
+                            <Clock className="w-3.5 h-3.5 text-purple-400" />
+                            <span className="text-xs text-muted-foreground">{precoDinamico.regra_horario.nome}</span>
+                          </div>
+                          <span className="text-sm font-bold text-purple-400">
+                            {precoDinamico.regra_horario.tipo_ajuste === 'percentual'
+                              ? `+${precoDinamico.regra_horario.valor_ajuste}%`
+                              : `+R$ ${precoDinamico.regra_horario.valor_ajuste.toFixed(2)}`}
+                          </span>
+                        </div>
+                      )}
+                      {precoDinamico.preco_base !== precoDinamico.preco_final && (
+                        <div className="flex items-center justify-between text-xs text-muted-foreground">
+                          <span>Base</span>
+                          <span className="line-through">R$ {precoDinamico.preco_base.toFixed(2)}</span>
+                        </div>
+                      )}
+                    </>
+                  ) : precoTabela ? (
+                    /* ── Preço da tabela RF (fallback) ── */
+                    <>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <TableProperties className={`w-4 h-4 ${precoTabela.estimado ? 'text-amber-400' : 'text-green-400'}`} />
+                          <div>
+                            <p className="text-[10px] text-muted-foreground">
+                              {precoTabela.estimado ? 'Preço estimado' : 'Preço tabelado'}
+                            </p>
+                            <p className={`text-[clamp(1.1rem,3.5vw,1.35rem)] font-bold ${precoTabela.estimado ? 'text-amber-400' : 'text-green-400'}`}>
+                              R$ {(() => {
+                                let v = precoTabela.valor;
+                                if (dynamicAdj) v = dynamicAdj.aplicar(v);
+                                return v.toFixed(2);
+                              })()}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-[10px] text-muted-foreground">
+                            {precoTabela.estimado ? 'Média via Centro do Cabo' : precoTabela.match_exato ? 'Correspondência exata' : 'Melhor correspondência'}
+                          </p>
+                          <p className="text-[10px] text-muted-foreground truncate max-w-[160px]">
+                            {precoTabela.origem_tabela} → {precoTabela.destino_tabela}
+                          </p>
+                        </div>
                       </div>
-                      <span className="text-sm font-bold text-purple-400">
-                        {dynamicAdj.regra.tipo_ajuste === 'percentual'
-                          ? `+${dynamicAdj.regra.valor_ajuste}%`
-                          : `+R$ ${dynamicAdj.regra.valor_ajuste.toFixed(2)}`}
-                      </span>
-                    </div>
-                  )}
+                      {dynamicAdj && (
+                        <div className="flex items-center justify-between bg-purple-500/10 border border-purple-500/20 rounded-lg px-3 py-2">
+                          <div className="flex items-center gap-2">
+                            <Clock className="w-3.5 h-3.5 text-purple-400" />
+                            <span className="text-xs text-muted-foreground">{dynamicAdj.regra.nome}</span>
+                          </div>
+                          <span className="text-sm font-bold text-purple-400">
+                            {dynamicAdj.regra.tipo_ajuste === 'percentual'
+                              ? `+${dynamicAdj.regra.valor_ajuste}%`
+                              : `+R$ ${dynamicAdj.regra.valor_ajuste.toFixed(2)}`}
+                          </span>
+                        </div>
+                      )}
+                      {dynamicAdj && (
+                        <div className="flex items-center justify-between text-xs text-muted-foreground">
+                          <span>Base</span>
+                          <span className="line-through">R$ {precoTabela.valor.toFixed(2)}</span>
+                        </div>
+                      )}
+                    </>
+                  ) : null}
                   {temBagagem && (
                     <div className="flex items-center justify-between bg-orange-500/10 border border-orange-500/20 rounded-lg px-3 py-2">
                       <div className="flex items-center gap-2">
@@ -772,13 +849,18 @@ const RideRequestForm: React.FC = () => {
                       <span className="text-sm font-bold text-orange-400">R$ 5,00</span>
                     </div>
                   )}
-                  {(dynamicAdj || temBagagem) && (
+                  {temBagagem && (
                     <div className="flex items-center justify-between border-t border-border pt-2">
                       <span className="text-sm font-medium">Total</span>
-                      <span className={`text-lg font-bold ${precoTabela.estimado ? 'text-amber-400' : 'text-green-400'}`}>
+                      <span className={`text-lg font-bold ${
+                        precoDinamico ? 'text-blue-400' : precoTabela?.estimado ? 'text-amber-400' : 'text-green-400'
+                      }`}>
                         R$ {(() => {
-                          let total = precoTabela.valor;
-                          if (dynamicAdj) total = dynamicAdj.aplicar(total);
+                          let total = precoDinamico
+                            ? precoDinamico.preco_final
+                            : precoTabela
+                              ? (dynamicAdj ? dynamicAdj.aplicar(precoTabela.valor) : precoTabela.valor)
+                              : 0;
                           if (temBagagem) total += 5;
                           return total.toFixed(2);
                         })()}
