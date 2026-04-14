@@ -15,7 +15,7 @@ import { useToast } from '@/hooks/use-toast';
 import StarRating from '@/components/StarRating';
 import { calculateRoute } from '@/lib/route-ai';
 import { calcularPreco, salvarHistoricoPreco, getConfigTarifas, getActiveTimeRule, applyTimeAdjustment, invalidatePricingCache, type PricingResult, type ConfigTarifas } from '@/lib/pricing-engine';
-import { buscarPrecoTabela } from '@/lib/tabela-preco';
+import { buscarPrecoTabela, syncCacheFromSupabase } from '@/lib/tabela-preco';
 import { usePrecoTabela, useAllLocations } from '@/hooks/usePrecoTabela';
 import { useDynamicAdjustment } from '@/hooks/useDynamicAdjustment';
 import { normalizeText } from '@/lib/tabela-preco';
@@ -65,7 +65,7 @@ const RideRequestForm: React.FC = () => {
     queryKey: ['preco-dinamico', origemTrim, destinoTrim],
     queryFn: () => calcularPreco(origemTrim, destinoTrim),
     enabled: !!origemTrim && !!destinoTrim,
-    staleTime: 30_000,
+    staleTime: 10_000,
   });
 
   // ── Autocomplete: all locations bidirectional (reativo) ──
@@ -227,6 +227,7 @@ const RideRequestForm: React.FC = () => {
 
       // 2) Tabela oficial RF: fallback se motor dinâmico não encontrou
       if (!preco_regra_aplicada) {
+        await syncCacheFromSupabase(); // Garantir dados frescos da tabela
         const tabelaResult = buscarPrecoTabela(o, d);
         if (tabelaResult) {
           valor_estimado = tabelaResult.valor;

@@ -28,7 +28,7 @@ import {
 import StarRating from '@/components/StarRating';
 import { TripCalculator, DriverBadge } from '@/components/DriverTools';
 import { useToast } from '@/hooks/use-toast';
-import { buscarPrecoTabela, normalizeText } from '@/lib/tabela-preco';
+import { buscarPrecoTabela, normalizeText, syncCacheFromSupabase } from '@/lib/tabela-preco';
 import { usePrecoTabela, useAllLocations } from '@/hooks/usePrecoTabela';
 
 type Corrida = {
@@ -295,17 +295,24 @@ const DriverDashboard: React.FC = () => {
   });
 
   const editAddressMutation = useMutation({
-    mutationFn: async ({ rideId, origem, destino }: { rideId: string; origem: string; destino: string }) => {
-      const tabelaResult = buscarPrecoTabela(origem, destino);
+    mutationFn: async ({ rideId, origem, destino, precoReativo }: { rideId: string; origem: string; destino: string; precoReativo: number | null }) => {
       const updates: Record<string, unknown> = {
         origem_editada: origem,
         destino_editado: destino,
         edicao_pendente: true,
         edicao_aprovada: null,
       };
-      if (tabelaResult) {
-        updates.valor_estimado = tabelaResult.valor;
-        updates.valor = tabelaResult.valor;
+      // Usar preço reativo (do hook) se disponível, senão buscar fresco
+      if (precoReativo != null) {
+        updates.valor_estimado = precoReativo;
+        updates.valor = precoReativo;
+      } else {
+        await syncCacheFromSupabase();
+        const tabelaResult = buscarPrecoTabela(origem, destino);
+        if (tabelaResult) {
+          updates.valor_estimado = tabelaResult.valor;
+          updates.valor = tabelaResult.valor;
+        }
       }
       const { error } = await supabase
         .from('corridas')
@@ -375,16 +382,8 @@ const DriverDashboard: React.FC = () => {
 
   const openConcluirDialog = (ride: Corrida) => {
     setSelectedRide(ride);
-    // Use edited addresses if approved, else original
-    const origemFinal = (ride.edicao_aprovada && ride.origem_editada) ? ride.origem_editada : ride.origem_texto;
-    const destinoFinal = (ride.edicao_aprovada && ride.destino_editado) ? ride.destino_editado : ride.destino_texto;
-    // Set price from table (read-only)
-    const tabelaResult = buscarPrecoTabela(origemFinal, destinoFinal);
-    if (tabelaResult) {
-      setValor(tabelaResult.valor.toFixed(2));
-    } else {
-      setValor(ride.valor_estimado?.toString() || ride.valor?.toString() || '');
-    }
+    // Fallback: valor original da corrida (o hook reativo precoTabelaConcluir será usado na UI)
+    setValor(ride.valor_estimado?.toString() || ride.valor?.toString() || '');
     setObservacao(ride.observacao_motorista || '');
     setDriverRating(0);
     setDriverComentario('');
@@ -393,11 +392,8 @@ const DriverDashboard: React.FC = () => {
 
   const handleConcluir = () => {
     if (!selectedRide) return;
-    // Use table price — driver cannot edit
-    const origemFinal = (selectedRide.edicao_aprovada && selectedRide.origem_editada) ? selectedRide.origem_editada : selectedRide.origem_texto;
-    const destinoFinal = (selectedRide.edicao_aprovada && selectedRide.destino_editado) ? selectedRide.destino_editado : selectedRide.destino_texto;
-    const tabelaResult = buscarPrecoTabela(origemFinal, destinoFinal);
-    const valorFinal = tabelaResult ? tabelaResult.valor : (valor ? parseFloat(valor.replace(',', '.')) : null);
+    // Usar preço reativo do hook (sempre atualizado via react-query + realtime)
+    const valorFinal = precoTabelaConcluir ? precoTabelaConcluir.valor : (valor ? parseFloat(valor.replace(',', '.')) : null);
     if (valorFinal !== null && (isNaN(valorFinal) || valorFinal < 0)) {
       toast({ title: 'Valor inválido', variant: 'destructive' });
       return;
@@ -419,6 +415,7 @@ const DriverDashboard: React.FC = () => {
       rideId: selectedRide.id,
       origem: editOrigem.trim(),
       destino: editDestino.trim(),
+      precoReativo: precoTabelaEdit?.valor ?? null,
     });
   };
 

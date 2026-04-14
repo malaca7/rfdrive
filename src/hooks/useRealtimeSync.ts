@@ -43,6 +43,7 @@ export function useRealtimeSync() {
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'tabela_precos' }, () => {
         qc.invalidateQueries({ queryKey: ['tabela-precos'] });
+        qc.invalidateQueries({ queryKey: ['preco-dinamico'] });
         syncCacheFromSupabase();
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'precos_rotas' }, () => {
