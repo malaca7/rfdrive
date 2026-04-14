@@ -23,8 +23,10 @@ import {
   MapPin, Navigation, Clock, CheckCircle, Car, Loader2,
   Edit3, DollarSign, MessageSquare, User, Phone, AlertTriangle,
   ChevronRight, X, Check, History, Star, TableProperties, Ban, RotateCcw,
+  Calculator, IdCard,
 } from 'lucide-react';
 import StarRating from '@/components/StarRating';
+import { TripCalculator, DriverBadge } from '@/components/DriverTools';
 import { useToast } from '@/hooks/use-toast';
 import { buscarPrecoTabela, normalizeText } from '@/lib/tabela-preco';
 import { usePrecoTabela, useAllLocations } from '@/hooks/usePrecoTabela';
@@ -183,6 +185,21 @@ const DriverDashboard: React.FC = () => {
       if (!data || data.length === 0) return null;
       const avg = data.reduce((sum, r) => sum + r.nota, 0) / data.length;
       return { avg: Math.round(avg * 10) / 10, count: data.length };
+    },
+    enabled: !!user,
+  });
+
+  // ── Full driver profile (with vehicle info) ──
+  const { data: fullProfile } = useQuery({
+    queryKey: ['driver-full-profile', user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('users')
+        .select('id, nome, telefone, tipo, status, veiculo_marca, veiculo_modelo, veiculo_cor, veiculo_placa')
+        .eq('id', user!.id)
+        .single();
+      if (error) throw error;
+      return data;
     },
     enabled: !!user,
   });
@@ -708,6 +725,14 @@ const DriverDashboard: React.FC = () => {
               <History className="w-3.5 h-3.5" />
               Histórico
             </TabsTrigger>
+            <TabsTrigger value="calcular" className="flex-1 gap-1.5 text-xs rounded-xl h-full font-semibold data-[state=active]:shadow-md">
+              <Calculator className="w-3.5 h-3.5" />
+              Calcular
+            </TabsTrigger>
+            <TabsTrigger value="cracha" className="flex-1 gap-1.5 text-xs rounded-xl h-full font-semibold data-[state=active]:shadow-md">
+              <IdCard className="w-3.5 h-3.5" />
+              Crachá
+            </TabsTrigger>
           </TabsList>
 
           {/* AVAILABLE RIDES */}
@@ -766,6 +791,26 @@ const DriverDashboard: React.FC = () => {
                 {completedRides.map((ride) => (
                   <CompletedRideCard key={ride.id} ride={ride} />
                 ))}
+              </div>
+            )}
+          </TabsContent>
+
+          {/* TRIP CALCULATOR */}
+          <TabsContent value="calcular">
+            <TripCalculator />
+          </TabsContent>
+
+          {/* DRIVER BADGE */}
+          <TabsContent value="cracha">
+            {fullProfile ? (
+              <DriverBadge
+                profile={fullProfile}
+                avgRating={avgRating || null}
+                completedCount={completedRides?.length || 0}
+              />
+            ) : (
+              <div className="flex justify-center py-12">
+                <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
               </div>
             )}
           </TabsContent>
