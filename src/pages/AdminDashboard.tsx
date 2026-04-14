@@ -831,6 +831,12 @@ const AdminDashboard: React.FC = () => {
               <div className="space-y-3">
                 {filteredUsers.map((u, i) => {
                   const rideCount = rides?.filter(r => r.cliente_id === u.id || r.motorista_id === u.id).length || 0;
+                  // Badge de tipo: sempre mostra admin se tipo for admin
+                  const tipos: string[] = u.tipo === 'admin'
+                    ? ['admin', 'cliente']
+                    : u.tipo === 'motorista'
+                      ? ['motorista', 'cliente']
+                      : ['cliente'];
                   return (
                     <motion.div key={u.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.02 }}>
                       <Card className={u.status === 'banido' ? 'border-red-500/30 bg-red-500/5' : ''}>
@@ -851,7 +857,7 @@ const AdminDashboard: React.FC = () => {
                                   {u.telefone}
                                 </div>
                                 <div className="flex gap-1 mt-1.5 flex-wrap">
-                                  {(u.roles && u.roles.length > 0 ? u.roles : [u.tipo]).map(r => {
+                                  {tipos.map(r => {
                                     const rl: Record<string, string> = { cliente: '👤 Cliente', motorista: '🚗 Motorista', admin: '🛡️ Admin' };
                                     const rc: Record<string, string> = {
                                       cliente: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
