@@ -310,7 +310,7 @@ export const TripCalculator: React.FC<{
                           {preco.estimado ? 'Preço estimado' : 'Preço tabelado'}
                         </p>
                         <p className={`text-[clamp(1.1rem,3.5vw,1.35rem)] font-bold ${preco.estimado ? 'text-amber-400' : 'text-green-400'}`}>
-                          R$ {preco.valor.toFixed(2)}
+                          R$ {totalValue.toFixed(2)}
                         </p>
                       </div>
                     </div>
@@ -330,10 +330,14 @@ export const TripCalculator: React.FC<{
                         <span className="text-xs text-muted-foreground">{dynamicAdj.regra.nome}</span>
                       </div>
                       <span className="text-sm font-bold text-purple-400">
-                        {dynamicAdj.regra.tipo_ajuste === 'percentual'
-                          ? `+${dynamicAdj.regra.valor_ajuste}%`
-                          : `+R$ ${dynamicAdj.regra.valor_ajuste.toFixed(2)}`}
+                        +{dynamicAdj.regra.valor_ajuste}%
                       </span>
+                    </div>
+                  )}
+                  {dynamicAdj && (
+                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                      <span>Tarifa base</span>
+                      <span className="line-through">R$ {preco.valor.toFixed(2)}</span>
                     </div>
                   )}
                   {temBagagem && (

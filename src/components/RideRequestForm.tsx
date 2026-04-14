@@ -895,12 +895,12 @@ const RideRequestForm: React.FC = () => {
                         <span className="text-orange-400 text-xs">📦</span>
                         <span className="text-xs text-muted-foreground">Taxa Feira/Bagagem</span>
                       </div>
-                      <span className="text-sm font-bold text-orange-400">R$ {(configTarifas?.taxa_bagagem ?? 5).toFixed(2)}</span>
+                      <span className="text-sm font-bold text-orange-400">+R$ {(configTarifas?.taxa_bagagem ?? 5).toFixed(2)}</span>
                     </div>
                   )}
-                  {temBagagem && (
+                  {(temBagagem || dynamicAdj || precoDinamico?.regra_horario) && (
                     <div className="flex items-center justify-between border-t border-border pt-2">
-                      <span className="text-sm font-medium">Total</span>
+                      <span className="text-sm font-medium">Total da viagem</span>
                       <span className={`text-lg font-bold ${
                         precoDinamico ? 'text-blue-400' : precoTabela?.estimado ? 'text-amber-400' : 'text-green-400'
                       }`}>
