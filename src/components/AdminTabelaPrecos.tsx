@@ -19,7 +19,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  fetchTabelaFromSupabase, seedSupabase, syncCacheFromSupabase,
+  fetchTabelaFromSupabase, syncCacheFromSupabase,
   addEntrySupabase, updateEntrySupabase, deleteEntrySupabase,
   deleteBulkSupabase, importTabelaSupabase, normalizeText, findEntryId,
   type TabelaEntry,
@@ -41,19 +41,10 @@ const AdminTabelaPrecos: React.FC = () => {
     queryFn: fetchTabelaFromSupabase,
   });
 
-  // ── Auto-seed if Supabase table is empty ──
-  const [seeding, setSeeding] = useState(false);
+  // Sync cache on load
   useEffect(() => {
-    if (!loadingTabela && tabela.length === 0 && !seeding) {
-      setSeeding(true);
-      seedSupabase().then(({ added }) => {
-        if (added > 0) {
-          toast({ title: `${added.toLocaleString('pt-BR')} rotas importadas da tabela padr\u00e3o` });
-          qc.invalidateQueries({ queryKey: ['tabela-precos'] });
-          syncCacheFromSupabase();
-        }
-        setSeeding(false);
-      }).catch(() => setSeeding(false));
+    if (!loadingTabela && tabela.length > 0) {
+      syncCacheFromSupabase();
     }
   }, [loadingTabela, tabela.length]);
 

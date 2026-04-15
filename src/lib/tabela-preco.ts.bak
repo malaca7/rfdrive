@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════════════════════
-// Motor de Precificação - 100% via Supabase
-// Sem dependência de JSON. Tudo vem do banco de dados.
-// Cache em memória com sync automático.
+// Motor de Precificação - Tabela Oficial RF Driver
+// Lookup de preço por origem/destino com fuzzy matching
 // ══════════════════════════════════════════════════════════
 
+import tabelaData from '@/data/TabelaRF.json';
 import { supabase } from '@/integrations/supabase/client';
 
 export interface TabelaEntry {
@@ -23,6 +23,45 @@ export interface LookupResult {
   estimado?: boolean;
 }
 
+// ── Persistence: load from localStorage if available, else from static JSON ──
+const STORAGE_KEY = 'rf_drive_tabela_precos';
+
+function loadTabela(): TabelaEntry[] {
+  let raw: TabelaEntry[] = [];
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      if (Array.isArray(parsed) && parsed.length > 0) raw = parsed;
+    }
+  } catch { /* ignore parse errors */ }
+  if (raw.length === 0) {
+    raw = (tabelaData as unknown[]).filter(
+      (e): e is TabelaEntry =>
+        !!e && typeof e === 'object' &&
+        'origem' in e && 'destino' in e && 'valor' in e &&
+        typeof (e as TabelaEntry).origem === 'string' &&
+        typeof (e as TabelaEntry).destino === 'string'
+    ) as TabelaEntry[];
+  }
+  // Dedup: keep first occurrence per origem+destino
+  const seen = new Set<string>();
+  return raw.filter(e => {
+    const key = `${e.origem.toLowerCase()}|${e.destino.toLowerCase()}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function persistTabela() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(tabela));
+  } catch { /* quota exceeded, etc */ }
+}
+
+const tabela: TabelaEntry[] = loadTabela();
+
 // ── Normalize text for matching ──
 function normalize(s: string): string {
   return s
@@ -34,186 +73,93 @@ function normalize(s: string): string {
     .trim();
 }
 
-export { normalize as normalizeText };
-
-// ══════════════════════════════════════════════════════════
-// IN-MEMORY CACHE (populated from Supabase)
-// ══════════════════════════════════════════════════════════
-
-let tabela: TabelaEntry[] = [];
-
+// ── Build lookup maps ──
 // Key: "normalizedOrigem|normalizedDestino" → entry
 const exactMap = new Map<string, TabelaEntry>();
+for (const entry of tabela) {
+  const key = `${normalize(entry.origem)}|${normalize(entry.destino)}`;
+  exactMap.set(key, entry);
+}
+
+// Unique origins and destinations (normalized → original)
 const origensMap = new Map<string, string>();
 const destinosMap = new Map<string, Set<string>>();
-
-let _version = 0;
-export function getTabelaVersion() { return _version; }
-
-function rebuildMaps() {
-  exactMap.clear();
-  origensMap.clear();
-  destinosMap.clear();
-  for (const entry of tabela) {
-    const key = `${normalize(entry.origem)}|${normalize(entry.destino)}`;
-    exactMap.set(key, entry);
-    const on = normalize(entry.origem);
-    if (!origensMap.has(on)) origensMap.set(on, entry.origem);
-    if (!destinosMap.has(on)) destinosMap.set(on, new Set());
-    destinosMap.get(on)!.add(entry.destino);
-  }
-  _version++;
+for (const entry of tabela) {
+  const on = normalize(entry.origem);
+  if (!origensMap.has(on)) origensMap.set(on, entry.origem);
+  if (!destinosMap.has(on)) destinosMap.set(on, new Set());
+  destinosMap.get(on)!.add(entry.destino);
 }
 
-// ══════════════════════════════════════════════════════════
-// SYNC FROM SUPABASE (the single source of truth)
-// ══════════════════════════════════════════════════════════
-
-let _syncPromise: Promise<void> | null = null;
-
-export async function syncCacheFromSupabase(): Promise<void> {
-  if (_syncPromise) return _syncPromise;
-  _syncPromise = (async () => {
-    try {
-      const { data, error } = await supabase
-        .from('tabela_precos')
-        .select('id, origem, destino, valor, regiao');
-      if (error || !data || data.length === 0) return;
-      tabela = [];
-      const seen = new Set<string>();
-      for (const r of data) {
-        const key = `${r.origem.toLowerCase()}|${r.destino.toLowerCase()}`;
-        if (seen.has(key)) continue;
-        seen.add(key);
-        tabela.push({ id: r.id, origem: r.origem, destino: r.destino, valor: Number(r.valor), regiao: r.regiao });
-      }
-      rebuildMaps();
-    } catch { /* keep whatever is cached */ }
-    _syncPromise = null;
-  })();
-  return _syncPromise;
-}
-
-export async function fetchTabelaFromSupabase(): Promise<TabelaEntry[]> {
-  const { data, error } = await supabase
-    .from('tabela_precos')
-    .select('*')
-    .order('origem')
-    .order('destino');
-  if (error) {
-    console.warn('tabela_precos fetch error, using cache:', error.message);
-    return tabela.map(e => ({ ...e }));
-  }
-  const seen = new Set<string>();
-  return (data || []).reduce<TabelaEntry[]>((acc, r) => {
-    const key = `${r.origem.toLowerCase()}|${r.destino.toLowerCase()}`;
-    if (!seen.has(key)) {
-      seen.add(key);
-      acc.push({ id: r.id, origem: r.origem, destino: r.destino, valor: Number(r.valor), regiao: r.regiao });
-    }
-    return acc;
-  }, []);
-}
-
-// Initial load on module import
-syncCacheFromSupabase();
-
-// ══════════════════════════════════════════════════════════
-// FUZZY MATCHING (tolerant search)
-// ══════════════════════════════════════════════════════════
-
-function tokenize(s: string): string[] {
-  return normalize(s).split(' ').filter(w => w.length > 1);
-}
-
+// ── Fuzzy score: how well does `input` match `candidate`? ──
 function fuzzyScore(input: string, candidate: string): number {
   const ni = normalize(input);
   const nc = normalize(candidate);
 
+  // Exact
   if (ni === nc) return 1000;
 
   // One contains the other
   if (nc.includes(ni)) return 800 + (ni.length / nc.length) * 100;
   if (ni.includes(nc)) return 700 + (nc.length / ni.length) * 100;
 
-  // Token overlap
-  const iTokens = tokenize(input);
-  const cTokens = tokenize(candidate);
-  if (iTokens.length === 0 || cTokens.length === 0) return 0;
+  // Word overlap
+  const iWords = ni.split(' ').filter(w => w.length > 1);
+  const cWords = nc.split(' ').filter(w => w.length > 1);
+  if (iWords.length === 0 || cWords.length === 0) return 0;
 
   let matched = 0;
-  for (const it of iTokens) {
-    for (const ct of cTokens) {
-      if (ct.includes(it) || it.includes(ct)) { matched++; break; }
-      // Levenshtein-lite: allow 1-char diff for words >3
-      if (it.length > 3 && ct.length > 3 && levenshteinLite(it, ct) <= 1) { matched += 0.8; break; }
+  for (const iw of iWords) {
+    for (const cw of cWords) {
+      if (cw.includes(iw) || iw.includes(cw)) {
+        matched++;
+        break;
+      }
     }
   }
 
-  return (matched / Math.max(iTokens.length, cTokens.length)) * 600;
+  const overlap = matched / Math.max(iWords.length, cWords.length);
+  return overlap * 500;
 }
 
-/** Simple 1-distance check (fast) */
-function levenshteinLite(a: string, b: string): number {
-  if (Math.abs(a.length - b.length) > 1) return 2;
-  if (a === b) return 0;
-  let diffs = 0;
-  const maxLen = Math.max(a.length, b.length);
-  for (let i = 0, j = 0; i < maxLen && j < maxLen;) {
-    if (a[i] !== b[j]) {
-      diffs++;
-      if (diffs > 1) return 2;
-      if (a.length > b.length) i++;
-      else if (b.length > a.length) j++;
-      else { i++; j++; }
-    } else { i++; j++; }
-  }
-  return diffs;
-}
-
+// ── Find best matching origin from table ──
 function findBestOrigin(input: string): { nome: string; normalized: string; score: number } | null {
+  const ni = normalize(input);
   let best: { nome: string; normalized: string; score: number } | null = null;
+
   for (const [normalizedOrigem, originalOrigem] of origensMap) {
-    const score = fuzzyScore(input, normalizedOrigem);
+    const score = fuzzyScore(ni, normalizedOrigem);
     if (score > (best?.score || 0)) {
       best = { nome: originalOrigem, normalized: normalizedOrigem, score };
     }
   }
-  return best && best.score >= 150 ? best : null;
+
+  return best && best.score >= 200 ? best : null;
 }
 
+// ── Find best matching destination for a given origin ──
 function findBestDestino(input: string, origemNorm: string): { nome: string; score: number } | null {
   const destinos = destinosMap.get(origemNorm);
   if (!destinos) return null;
+
+  const ni = normalize(input);
   let best: { nome: string; score: number } | null = null;
+
   for (const destino of destinos) {
-    const score = fuzzyScore(input, destino);
+    const score = fuzzyScore(ni, destino);
     if (score > (best?.score || 0)) {
       best = { nome: destino, score };
     }
   }
-  return best && best.score >= 150 ? best : null;
-}
 
-// Also search destination across ALL origins (not just the best)
-function findBestDestinoGlobal(input: string): { nome: string; origemNorm: string; score: number } | null {
-  let best: { nome: string; origemNorm: string; score: number } | null = null;
-  for (const [origemNorm, destinos] of destinosMap) {
-    for (const destino of destinos) {
-      const score = fuzzyScore(input, destino);
-      if (score > (best?.score || 0)) {
-        best = { nome: destino, origemNorm, score };
-      }
-    }
-  }
-  return best && best.score >= 150 ? best : null;
+  return best && best.score >= 200 ? best : null;
 }
 
 // ══════════════════════════════════════════════════════════
-// MAIN LOOKUP
+// MAIN LOOKUP FUNCTION
 // ══════════════════════════════════════════════════════════
-
 function lookupDirect(origem: string, destino: string): LookupResult | null {
+  // Try exact match first
   const exactKey = `${normalize(origem)}|${normalize(destino)}`;
   const exactEntry = exactMap.get(exactKey);
   if (exactEntry) {
@@ -226,12 +172,15 @@ function lookupDirect(origem: string, destino: string): LookupResult | null {
     };
   }
 
+  // Fuzzy: find best origin
   const bestOrigem = findBestOrigin(origem);
   if (!bestOrigem) return null;
 
+  // Fuzzy: find best destination for that origin
   const bestDestino = findBestDestino(destino, bestOrigem.normalized);
   if (!bestDestino) return null;
 
+  // Lookup the entry
   const key = `${bestOrigem.normalized}|${normalize(bestDestino.nome)}`;
   const entry = exactMap.get(key);
   if (!entry) return null;
@@ -250,32 +199,15 @@ const HUB_CENTRAL = 'Centro do Cabo';
 export function buscarPrecoTabela(origem: string, destino: string): LookupResult | null {
   if (!origem.trim() || !destino.trim()) return null;
 
-  // 1. Direct lookup
+  // Try origem → destino
   const direct = lookupDirect(origem, destino);
   if (direct) return direct;
 
-  // 2. Reverse (bidirectional)
+  // Fallback: try destino → origem (bidirectional)
   const reverse = lookupDirect(destino, origem);
   if (reverse) return reverse;
 
-  // 3. Try swapping roles: maybe user typed destino in the origin field
-  const bestDestinoGlobal = findBestDestinoGlobal(origem);
-  const bestOrigemGlobal = findBestOrigin(destino);
-  if (bestDestinoGlobal && bestOrigemGlobal) {
-    const key = `${bestOrigemGlobal.normalized}|${normalize(bestDestinoGlobal.nome)}`;
-    const entry = exactMap.get(key);
-    if (entry) {
-      return {
-        valor: entry.valor,
-        origem_tabela: entry.origem,
-        destino_tabela: entry.destino,
-        regiao: entry.regiao,
-        match_exato: false,
-      };
-    }
-  }
-
-  // 4. Hub central fallback
+  // Fallback: estimate via hub central (valor mais alto + 1/12 do mais baixo)
   const trecho1 = lookupDirect(origem, HUB_CENTRAL) || lookupDirect(HUB_CENTRAL, origem);
   const trecho2 = lookupDirect(HUB_CENTRAL, destino) || lookupDirect(destino, HUB_CENTRAL);
   if (trecho1 && trecho2) {
@@ -295,14 +227,12 @@ export function buscarPrecoTabela(origem: string, destino: string): LookupResult
   return null;
 }
 
-// ══════════════════════════════════════════════════════════
-// AUTOCOMPLETE HELPERS
-// ══════════════════════════════════════════════════════════
-
+// ── Get all unique origins (for autocomplete) ──
 export function getOrigens(): string[] {
   return Array.from(origensMap.values()).sort();
 }
 
+// ── Get ALL unique locations (origins + destinations merged, for bidirectional autocomplete) ──
 export function getAllLocations(): string[] {
   const set = new Set<string>();
   for (const entry of tabela) {
@@ -312,6 +242,7 @@ export function getAllLocations(): string[] {
   return Array.from(set).sort((a, b) => a.localeCompare(b, 'pt-BR'));
 }
 
+// ── Get destinations for a given origin (for autocomplete) ──
 export function getDestinosPorOrigem(origem: string): string[] {
   const bestOrigem = findBestOrigin(origem);
   if (!bestOrigem) return [];
@@ -320,19 +251,39 @@ export function getDestinosPorOrigem(origem: string): string[] {
   return Array.from(destinos).sort();
 }
 
+// ── Get total stats ──
 export function getTabelaStats() {
   return {
     totalRotas: tabela.length,
     totalOrigens: origensMap.size,
     totalDestinos: new Set(tabela.map(e => e.destino)).size,
-    precoMin: tabela.length ? Math.min(...tabela.map(e => e.valor)) : 0,
-    precoMax: tabela.length ? Math.max(...tabela.map(e => e.valor)) : 0,
+    precoMin: Math.min(...tabela.map(e => e.valor)),
+    precoMax: Math.max(...tabela.map(e => e.valor)),
   };
 }
 
 // ══════════════════════════════════════════════════════════
-// IN-MEMORY MUTATIONS (for local reactivity)
+// MUTATIONS (for admin management)
 // ══════════════════════════════════════════════════════════
+
+let _version = 0;
+export function getTabelaVersion() { return _version; }
+
+function rebuildMaps() {
+  exactMap.clear();
+  origensMap.clear();
+  destinosMap.clear();
+  for (const entry of tabela) {
+    const key = `${normalize(entry.origem)}|${normalize(entry.destino)}`;
+    exactMap.set(key, entry);
+    const on = normalize(entry.origem);
+    if (!origensMap.has(on)) origensMap.set(on, entry.origem);
+    if (!destinosMap.has(on)) destinosMap.set(on, new Set());
+    destinosMap.get(on)!.add(entry.destino);
+  }
+  _version++;
+  persistTabela();
+}
 
 export function getTabela(): TabelaEntry[] {
   return tabela;
@@ -404,27 +355,113 @@ export function exportTabela(): string {
 }
 
 // ══════════════════════════════════════════════════════════
-// SUPABASE CRUD OPERATIONS
+// SUPABASE OPERATIONS (for admin CRUD + cross-user sync)
 // ══════════════════════════════════════════════════════════
 
-export async function cleanupDuplicatesSupabase(): Promise<number> {
+export { normalize as normalizeText };
+
+export async function fetchTabelaFromSupabase(): Promise<TabelaEntry[]> {
+  const { data, error } = await supabase
+    .from('tabela_precos')
+    .select('*')
+    .order('origem')
+    .order('destino');
+  if (error) {
+    console.warn('tabela_precos fetch error, using local cache:', error.message);
+    return tabela.map(e => ({ ...e }));
+  }
+  // Dedup: keep first occurrence per origem+destino (ordered by origem,destino)
+  const seen = new Set<string>();
+  return (data || []).reduce<TabelaEntry[]>((acc, r) => {
+    const key = `${r.origem.toLowerCase()}|${r.destino.toLowerCase()}`;
+    if (!seen.has(key)) {
+      seen.add(key);
+      acc.push({ id: r.id, origem: r.origem, destino: r.destino, valor: Number(r.valor), regiao: r.regiao });
+    }
+    return acc;
+  }, []);
+}
+
+export async function syncCacheFromSupabase(): Promise<void> {
   try {
-    const { data, error } = await supabase.rpc('cleanup_tabela_precos_duplicates');
-    if (!error && typeof data === 'number') return data;
-  } catch { /* fallback below */ }
-  const { data: all } = await supabase.from('tabela_precos').select('id, origem, destino, updated_at').order('updated_at', { ascending: false });
-  if (!all || all.length === 0) return 0;
-  const seen = new Map<string, string>();
-  const toDelete: string[] = [];
-  for (const row of all) {
-    const key = `${row.origem.toLowerCase()}|${row.destino.toLowerCase()}`;
-    if (seen.has(key)) toDelete.push(row.id);
-    else seen.set(key, row.id);
+    const { data, error } = await supabase
+      .from('tabela_precos')
+      .select('origem, destino, valor, regiao');
+    if (error || !data || data.length === 0) return;
+    tabela.length = 0;
+    const seen = new Set<string>();
+    for (const r of data) {
+      const key = `${r.origem.toLowerCase()}|${r.destino.toLowerCase()}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      tabela.push({ origem: r.origem, destino: r.destino, valor: Number(r.valor), regiao: r.regiao });
+    }
+    rebuildMaps();
+  } catch { /* keep local cache */ }
+}
+
+export async function seedSupabase(): Promise<{ added: number }> {
+  const { count, error: countErr } = await supabase
+    .from('tabela_precos')
+    .select('*', { count: 'exact', head: true });
+  if (countErr) throw countErr;
+  if (count && count > 0) return { added: 0 };
+
+  const source = (tabelaData as unknown[]).filter(
+    (e): e is TabelaEntry =>
+      !!e && typeof e === 'object' && 'origem' in e && 'destino' in e && 'valor' in e &&
+      typeof (e as any).origem === 'string' && typeof (e as any).destino === 'string'
+  ) as TabelaEntry[];
+
+  // Dedup: keep first occurrence per origem+destino
+  const seen = new Set<string>();
+  const deduped = source.filter(e => {
+    const key = `${e.origem.trim().toLowerCase()}|${e.destino.trim().toLowerCase()}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+
+  const BATCH = 500;
+  let added = 0;
+  for (let i = 0; i < deduped.length; i += BATCH) {
+    const batch = deduped.slice(i, i + BATCH).map(e => ({
+      origem: e.origem, destino: e.destino, valor: e.valor, regiao: e.regiao || 'Cabo',
+    }));
+    const { data, error } = await supabase.from('tabela_precos')
+      .upsert(batch, { onConflict: 'origem,destino' })
+      .select('id');
+    if (!error && data) added += data.length;
   }
-  if (toDelete.length > 0) {
-    await supabase.from('tabela_precos').delete().in('id', toDelete);
+  return { added };
+}
+
+/**
+ * Remove entries duplicadas na tabela Supabase (mant\u00e9m o mais recente de cada origem+destino).
+ * Chamado automaticamente ao sincronizar.
+ */
+export async function cleanupDuplicatesSupabase(): Promise<number> {
+  const { data, error } = await supabase.rpc('cleanup_tabela_precos_duplicates');
+  if (error) {
+    // Fallback: do it client-side
+    const { data: all } = await supabase.from('tabela_precos').select('id, origem, destino, updated_at').order('updated_at', { ascending: false });
+    if (!all || all.length === 0) return 0;
+    const seen = new Map<string, string>();
+    const toDelete: string[] = [];
+    for (const row of all) {
+      const key = `${row.origem.toLowerCase()}|${row.destino.toLowerCase()}`;
+      if (seen.has(key)) {
+        toDelete.push(row.id);
+      } else {
+        seen.set(key, row.id);
+      }
+    }
+    if (toDelete.length > 0) {
+      await supabase.from('tabela_precos').delete().in('id', toDelete);
+    }
+    return toDelete.length;
   }
-  return toDelete.length;
+  return typeof data === 'number' ? data : 0;
 }
 
 export async function addEntrySupabase(entry: { origem: string; destino: string; valor: number; regiao: string }): Promise<void> {

@@ -242,7 +242,7 @@ const RideRequestForm: React.FC = () => {
             destino_tabela: tabelaResult.destino_tabela,
             regiao: tabelaResult.regiao,
             match_exato: tabelaResult.match_exato,
-            fonte: 'TabelaRF',
+            fonte: 'Supabase',
           };
         }
       }
