@@ -410,10 +410,13 @@ const CalculadoraDigitalRF: React.FC = () => {
                                 <p className="text-[10px] text-white/50">
                                   {precoTabela.estimado ? 'Média via Centro do Cabo' : precoTabela.match_exato ? 'Correspondência exata' : 'Melhor correspondência'}
                                 </p>
-                                <p className="text-[10px] text-white/50 truncate max-w-[140px]">
-                                  {precoTabela.origem_tabela} → {precoTabela.destino_tabela}
-                                </p>
                               </div>
+                            </div>
+                            <div className="bg-white/[0.03] border border-white/[0.06] rounded-lg px-3 py-2 space-y-0.5">
+                              <p className="text-[10px] text-white/40">Correspondência na tabela:</p>
+                              <p className="text-xs text-white/60">
+                                {precoTabela.origem_tabela} → {precoTabela.destino_tabela}
+                              </p>
                             </div>
                             {dynamicAdj && (() => {
                               const _cor = dynamicAdj.regra.cor || '#8b5cf6';
