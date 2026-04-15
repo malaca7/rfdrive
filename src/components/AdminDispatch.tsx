@@ -154,7 +154,7 @@ const AdminDispatch: React.FC = () => {
 
       return result.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
     },
-    refetchInterval: 10000,
+    refetchInterval: 1000,
   });
 
   // Metrics query
@@ -168,7 +168,7 @@ const AdminDispatch: React.FC = () => {
       if (error) throw error;
       return (data || []) as any[];
     },
-    refetchInterval: 30000,
+    refetchInterval: 1000,
   });
 
   // Filter

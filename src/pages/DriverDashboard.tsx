@@ -142,7 +142,7 @@ const DriverDashboard: React.FC = () => {
       return enriched;
     },
     staleTime: 0,
-    refetchInterval: 5000,
+    refetchInterval: 1000,
   });
 
   const { data: activeRides } = useQuery({
@@ -169,7 +169,7 @@ const DriverDashboard: React.FC = () => {
     },
     enabled: !!user,
     staleTime: 0,
-    refetchInterval: 5000,
+    refetchInterval: 1000,
   });
 
   const { data: completedRides } = useQuery({
@@ -197,7 +197,7 @@ const DriverDashboard: React.FC = () => {
     },
     enabled: !!user,
     staleTime: 0,
-    refetchInterval: 10000,
+    refetchInterval: 1000,
   });
 
   // ── Average rating ──

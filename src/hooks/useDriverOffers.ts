@@ -98,7 +98,7 @@ export function useDriverOffers(driverId: string | undefined) {
       return enriched;
     },
     enabled: !!driverId,
-    refetchInterval: 5000,
+    refetchInterval: 1000,
   });
 
   // Calculate seconds left for each offer

@@ -108,7 +108,7 @@ const AdminTracking: React.FC = () => {
         activeRide: rideMap[u.id] || null,
       }));
     },
-    refetchInterval: 10_000, // Auto-refresh every 10s
+    refetchInterval: 1000,
   });
 
   const ativos = drivers?.filter(d => (d as any).status_disponibilidade === 'ativo') || [];

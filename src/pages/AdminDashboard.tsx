@@ -240,7 +240,7 @@ const AdminDashboard: React.FC = () => {
       return enriched;
     },
     staleTime: 0,
-    refetchInterval: 5000,
+    refetchInterval: 1000,
   });
 
   // ── Fetch all users ──
@@ -252,7 +252,7 @@ const AdminDashboard: React.FC = () => {
       return data as UserRecord[];
     },
     staleTime: 0,
-    refetchInterval: 10000,
+    refetchInterval: 1000,
   });
 
   // ── Fetch motoristas for ride assignment ──

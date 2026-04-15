@@ -98,7 +98,7 @@ const RideRequestForm: React.FC = () => {
     },
     enabled: !!user,
     staleTime: 0,
-    refetchInterval: 5000,
+    refetchInterval: 1000,
   });
 
   // ── Fetch motorista info when ride is accepted ──
