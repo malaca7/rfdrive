@@ -76,7 +76,7 @@ const CalculadoraDigitalRF: React.FC = () => {
   }, [destino, allLocations]);
 
   // ── Valor final ──
-  const valorFinal = useMemo(() => {
+  const { valorFinal, isTarifaMinima } = useMemo(() => {
     let valor = 0;
     if (precoDinamico) {
       valor = precoDinamico.preco_final;
@@ -85,12 +85,13 @@ const CalculadoraDigitalRF: React.FC = () => {
       valor = precoTabela.valor;
       if (dynamicAdj) valor = dynamicAdj.aplicar(valor);
     } else {
-      return null;
+      return { valorFinal: null, isTarifaMinima: false };
     }
     if (temBagagem) valor += (configTarifas?.taxa_bagagem ?? 5);
     const minima = configTarifas?.tarifa_minima ?? 0;
-    if (minima > 0 && valor < minima) valor = minima;
-    return Math.round(valor * 100) / 100;
+    const isMin = minima > 0 && valor < minima;
+    if (isMin) valor = minima;
+    return { valorFinal: Math.round(valor * 100) / 100, isTarifaMinima: isMin };
   }, [precoDinamico, precoTabela, dynamicAdj, temBagagem, configTarifas]);
 
   const temPreco = !!(precoDinamico || precoTabela);
@@ -120,6 +121,7 @@ const CalculadoraDigitalRF: React.FC = () => {
         msg += `_🌙 +R$ ${ajusteValor.toFixed(2).replace('.', ',')} ${dynamicAdj.regra.nome}_\n`;
       }
       if (temBagagem) msg += `_🛒 +R$ ${taxaBagagem.toFixed(2).replace('.', ',')} Adicional Bagagem/Feira_\n`;
+      if (isTarifaMinima) msg += `_⚠️ Tarifa mínima aplicada_\n`;
       msg += `\n`;
       msg += `💵 *Total: R$ ${valorFinal.toFixed(2).replace('.', ',')}*\n`;
     }
@@ -448,7 +450,16 @@ const CalculadoraDigitalRF: React.FC = () => {
                             <span className="text-sm font-bold text-orange-400">+R$ {(configTarifas?.taxa_bagagem ?? 5).toFixed(2)}</span>
                           </div>
                         )}
-                        {valorFinal != null && (temBagagem || dynamicAdj || precoDinamico?.regra_horario) && (
+                        {isTarifaMinima && (
+                          <div className="flex items-center justify-between bg-yellow-500/10 border border-yellow-500/20 rounded-lg px-3 py-2">
+                            <div className="flex items-center gap-2">
+                              <span className="text-yellow-400 text-xs">⚠️</span>
+                              <span className="text-xs text-white/50">Tarifa mínima aplicada</span>
+                            </div>
+                            <span className="text-sm font-bold text-yellow-400">R$ {(configTarifas?.tarifa_minima ?? 0).toFixed(2)}</span>
+                          </div>
+                        )}
+                        {valorFinal != null && (temBagagem || dynamicAdj || precoDinamico?.regra_horario || isTarifaMinima) && (
                           <div className="flex items-center justify-between border-t border-white/[0.06] pt-2">
                             <span className="text-sm font-medium">Total da viagem</span>
                             <span className={`text-lg font-bold ${precoDinamico ? 'text-blue-400' : precoTabela?.estimado ? 'text-amber-400' : 'text-green-400'}`}>
