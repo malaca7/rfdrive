@@ -952,11 +952,7 @@ const RideRequestForm: React.FC = () => {
                               {precoTabela.estimado ? 'Preço estimado' : 'Preço tabelado'}
                             </p>
                             <p className={`text-[clamp(1.1rem,3.5vw,1.35rem)] font-bold ${precoTabela.estimado ? 'text-amber-400' : 'text-green-400'}`}>
-                              R$ {(() => {
-                                let v = precoTabela.valor;
-                                if (dynamicAdj) v = dynamicAdj.aplicar(v);
-                                return v.toFixed(2);
-                              })()}
+                              R$ {precoTabela.valor.toFixed(2)}
                             </p>
                           </div>
                         </div>
