@@ -455,11 +455,14 @@ const DriverDashboard: React.FC = () => {
             {ride.valor_estimado != null && (
               <div className="flex items-center gap-3 ml-4">
                 <span className="text-xs font-semibold text-green-400">R$ {Number(ride.valor_estimado).toFixed(2)}</span>
-                {ride.preco_regra_aplicada && ride.preco_regra_aplicada.includes('+') && (
-                  <span className="text-[10px] text-purple-400 bg-purple-500/10 px-1.5 py-0.5 rounded">
-                    {(ride.preco_detalhes as any)?.ajuste_horario || (ride.preco_detalhes as any)?.regra_horario || 'Preço dinâmico'}
-                  </span>
-                )}
+                {ride.preco_regra_aplicada && ride.preco_regra_aplicada.includes('+') && (() => {
+                  const cor = (ride.preco_detalhes as any)?.cor_regra || '#8b5cf6';
+                  return (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ color: cor, backgroundColor: `${cor}18` }}>
+                      {(ride.preco_detalhes as any)?.ajuste_horario || (ride.preco_detalhes as any)?.regra_horario || 'Preço dinâmico'}
+                    </span>
+                  );
+                })()}
                 {ride.tem_bagagem && (
                   <span className="text-[10px] text-orange-400 bg-orange-500/10 px-1.5 py-0.5 rounded">📦 Bagagem</span>
                 )}
@@ -554,11 +557,14 @@ const DriverDashboard: React.FC = () => {
             {ride.valor_estimado != null && (
               <div className="flex flex-wrap items-center gap-2 bg-muted/50 rounded-lg px-3 py-2">
                 <span className="text-xs font-semibold text-green-400">R$ {Number(ride.valor_estimado).toFixed(2)}</span>
-                {ride.preco_regra_aplicada && ride.preco_regra_aplicada.includes('+') && (
-                  <span className="text-[10px] text-purple-400 bg-purple-500/10 px-1.5 py-0.5 rounded">
-                    {(ride.preco_detalhes as any)?.ajuste_horario || (ride.preco_detalhes as any)?.regra_horario || 'Preço dinâmico'}
-                  </span>
-                )}
+                {ride.preco_regra_aplicada && ride.preco_regra_aplicada.includes('+') && (() => {
+                  const cor = (ride.preco_detalhes as any)?.cor_regra || '#8b5cf6';
+                  return (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ color: cor, backgroundColor: `${cor}18` }}>
+                      {(ride.preco_detalhes as any)?.ajuste_horario || (ride.preco_detalhes as any)?.regra_horario || 'Preço dinâmico'}
+                    </span>
+                  );
+                })()}
                 {ride.tem_bagagem && (
                   <span className="text-[10px] text-orange-400 bg-orange-500/10 px-1.5 py-0.5 rounded">📦 Bagagem</span>
                 )}

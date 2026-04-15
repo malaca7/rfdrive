@@ -986,7 +986,7 @@ const AdminDashboard: React.FC = () => {
                   <TableProperties className="w-4 h-4" /> Tabela RF
                 </TabsTrigger>
                 <TabsTrigger value="precificacao_dinamica" className="flex-1 gap-2">
-                  <DollarSign className="w-4 h-4" /> Precificação Dinâmica
+                  <DollarSign className="w-4 h-4" /> Configurações de Preços
                 </TabsTrigger>
               </TabsList>
               <TabsContent value="tabela_rf">

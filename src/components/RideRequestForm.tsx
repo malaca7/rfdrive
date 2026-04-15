@@ -219,6 +219,7 @@ const RideRequestForm: React.FC = () => {
           if (precoDinamicoResult.regra_horario) {
             preco_regra_aplicada += `+${precoDinamicoResult.regra_horario.nome}`;
             preco_detalhes.regra_horario = precoDinamicoResult.regra_horario.nome;
+            preco_detalhes.cor_regra = precoDinamicoResult.regra_horario.cor || null;
           }
         }
       } catch {
@@ -256,8 +257,9 @@ const RideRequestForm: React.FC = () => {
             preco_detalhes = {
               ...preco_detalhes,
               preco_base_antes_ajuste: precoBase,
-              ajuste_horario: `+${regraAtiva.valor_ajuste}% ${regraAtiva.nome}`,
+              ajuste_horario: regraAtiva.tipo_ajuste === 'fixo' ? `+R$${regraAtiva.valor_ajuste.toFixed(2)} ${regraAtiva.nome}` : `+${regraAtiva.valor_ajuste}% ${regraAtiva.nome}`,
               regra_horario: regraAtiva.nome,
+              cor_regra: regraAtiva.cor || null,
             };
           }
         } catch {
@@ -271,6 +273,7 @@ const RideRequestForm: React.FC = () => {
               preco_base_antes_ajuste: precoBase,
               ajuste_horario: dynamicAdj.label,
               regra_horario: dynamicAdj.regra.nome,
+              cor_regra: dynamicAdj.regra.cor || null,
             };
           }
         }
@@ -867,25 +870,25 @@ const RideRequestForm: React.FC = () => {
                           </p>
                         </div>
                       </div>
-                      {(precoDinamico.regra_horario || dynamicAdj) && (
-                        <div className="flex items-center justify-between bg-purple-500/10 border border-purple-500/20 rounded-lg px-3 py-2">
-                          <div className="flex items-center gap-2">
-                            <Clock className="w-3.5 h-3.5 text-purple-400" />
-                            <span className="text-xs text-muted-foreground">
-                              {precoDinamico.regra_horario?.nome || dynamicAdj?.regra.nome}
+                      {(precoDinamico.regra_horario || dynamicAdj) && (() => {
+                        const _regra = precoDinamico.regra_horario || dynamicAdj?.regra;
+                        const _cor = _regra?.cor || '#8b5cf6';
+                        return (
+                          <div className="flex items-center justify-between rounded-lg px-3 py-2" style={{ backgroundColor: `${_cor}15`, border: `1px solid ${_cor}30` }}>
+                            <div className="flex items-center gap-2">
+                              <Clock className="w-3.5 h-3.5" style={{ color: _cor }} />
+                              <span className="text-xs text-muted-foreground">
+                                {_regra?.nome}
+                              </span>
+                            </div>
+                            <span className="text-sm font-bold" style={{ color: _cor }}>
+                              {_regra?.tipo_ajuste === 'percentual'
+                                ? `+${_regra.valor_ajuste}%`
+                                : `+R$ ${_regra?.valor_ajuste.toFixed(2)}`}
                             </span>
                           </div>
-                          <span className="text-sm font-bold text-purple-400">
-                            {(() => {
-                              const regra = precoDinamico.regra_horario || dynamicAdj?.regra;
-                              if (!regra) return '';
-                              return regra.tipo_ajuste === 'percentual'
-                                ? `+${regra.valor_ajuste}%`
-                                : `+R$ ${regra.valor_ajuste.toFixed(2)}`;
-                            })()}
-                          </span>
-                        </div>
-                      )}
+                        );
+                      })()}
                       {(precoDinamico.preco_base !== precoDinamico.preco_final || (!precoDinamico.regra_horario && dynamicAdj)) && (
                         <div className="flex items-center justify-between text-xs text-muted-foreground">
                           <span>Base</span>
@@ -921,19 +924,22 @@ const RideRequestForm: React.FC = () => {
                           </p>
                         </div>
                       </div>
-                      {dynamicAdj && (
-                        <div className="flex items-center justify-between bg-purple-500/10 border border-purple-500/20 rounded-lg px-3 py-2">
-                          <div className="flex items-center gap-2">
-                            <Clock className="w-3.5 h-3.5 text-purple-400" />
-                            <span className="text-xs text-muted-foreground">{dynamicAdj.regra.nome}</span>
+                      {dynamicAdj && (() => {
+                        const _cor = dynamicAdj.regra.cor || '#8b5cf6';
+                        return (
+                          <div className="flex items-center justify-between rounded-lg px-3 py-2" style={{ backgroundColor: `${_cor}15`, border: `1px solid ${_cor}30` }}>
+                            <div className="flex items-center gap-2">
+                              <Clock className="w-3.5 h-3.5" style={{ color: _cor }} />
+                              <span className="text-xs text-muted-foreground">{dynamicAdj.regra.nome}</span>
+                            </div>
+                            <span className="text-sm font-bold" style={{ color: _cor }}>
+                              {dynamicAdj.regra.tipo_ajuste === 'percentual'
+                                ? `+${dynamicAdj.regra.valor_ajuste}%`
+                                : `+R$ ${dynamicAdj.regra.valor_ajuste.toFixed(2)}`}
+                            </span>
                           </div>
-                          <span className="text-sm font-bold text-purple-400">
-                            {dynamicAdj.regra.tipo_ajuste === 'percentual'
-                              ? `+${dynamicAdj.regra.valor_ajuste}%`
-                              : `+R$ ${dynamicAdj.regra.valor_ajuste.toFixed(2)}`}
-                          </span>
-                        </div>
-                      )}
+                        );
+                      })()}
                       {dynamicAdj && (
                         <div className="flex items-center justify-between text-xs text-muted-foreground">
                           <span>Base</span>

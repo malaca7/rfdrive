@@ -35,6 +35,8 @@ export interface RegraHorario {
   tipo_ajuste: 'percentual' | 'fixo';
   valor_ajuste: number;
   cor: string | null;
+  data_inicio: string | null;
+  data_fim: string | null;
   ativo: boolean;
 }
 
@@ -238,8 +240,13 @@ function findBestRoute(
 export function findActiveTimeRules(regras: RegraHorario[], horario: string): RegraHorario | null {
   // horario format: "HH:MM" or "HH:MM:SS"
   const time = horario.substring(0, 5); // "HH:MM"
+  const today = new Date().toISOString().substring(0, 10); // "YYYY-MM-DD"
 
   for (const regra of regras) {
+    // Check date range if defined
+    if (regra.data_inicio && today < regra.data_inicio) continue;
+    if (regra.data_fim && today > regra.data_fim) continue;
+
     const inicio = regra.hora_inicio.substring(0, 5);
     const fim = regra.hora_fim.substring(0, 5);
 

@@ -896,6 +896,7 @@ const HorariosTab: React.FC<{
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState({
     nome: '', hora_inicio: '', hora_fim: '', tipo_ajuste: 'percentual' as 'percentual' | 'fixo', valor_ajuste: '', cor: '#f97316',
+    sempre_ativa: true, data_inicio: '', data_fim: '',
   });
   const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; nome: string } | null>(null);
 
@@ -913,6 +914,8 @@ const HorariosTab: React.FC<{
         tipo_ajuste: form.tipo_ajuste,
         valor_ajuste: parseFloat(form.valor_ajuste) || 0,
         cor: form.cor,
+        data_inicio: form.sempre_ativa ? null : (form.data_inicio || null),
+        data_fim: form.sempre_ativa ? null : (form.data_fim || null),
         ativo: true,
       };
       if (editingId) {
@@ -955,12 +958,13 @@ const HorariosTab: React.FC<{
   });
 
   const resetForm = () => {
-    setForm({ nome: '', hora_inicio: '', hora_fim: '', tipo_ajuste: 'percentual', valor_ajuste: '', cor: '#f97316' });
+    setForm({ nome: '', hora_inicio: '', hora_fim: '', tipo_ajuste: 'percentual', valor_ajuste: '', cor: '#f97316', sempre_ativa: true, data_inicio: '', data_fim: '' });
     setEditingId(null);
   };
 
   const openEdit = (r: RegraHorarioRow) => {
     setEditingId(r.id);
+    const sempreAtiva = !(r as any).data_inicio && !(r as any).data_fim;
     setForm({
       nome: r.nome,
       hora_inicio: r.hora_inicio.substring(0, 5),
@@ -968,6 +972,9 @@ const HorariosTab: React.FC<{
       tipo_ajuste: (r as any).tipo_ajuste || 'percentual',
       valor_ajuste: String(r.valor_ajuste),
       cor: (r as any).cor || '#f97316',
+      sempre_ativa: sempreAtiva,
+      data_inicio: (r as any).data_inicio || '',
+      data_fim: (r as any).data_fim || '',
     });
     setShowDialog(true);
   };
@@ -1091,6 +1098,17 @@ const HorariosTab: React.FC<{
                           <Badge variant="outline" className="text-[10px] text-muted-foreground">
                             {isFix ? 'Valor fixo' : 'Percentual'}
                           </Badge>
+                          {(r as any).data_inicio || (r as any).data_fim ? (
+                            <Badge variant="outline" className="text-[10px] text-blue-400 border-blue-500/30">
+                              {(r as any).data_inicio ? new Date((r as any).data_inicio + 'T12:00').toLocaleDateString('pt-BR') : '∞'}
+                              {' → '}
+                              {(r as any).data_fim ? new Date((r as any).data_fim + 'T12:00').toLocaleDateString('pt-BR') : '∞'}
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-[10px] text-green-400 border-green-500/30">
+                              Sempre ativa
+                            </Badge>
+                          )}
                         </div>
                       </div>
                       <div className="flex items-center gap-1">
@@ -1194,6 +1212,36 @@ const HorariosTab: React.FC<{
                   />
                 ))}
               </div>
+            </div>
+            {/* Vigência */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs">Vigência</Label>
+                <button
+                  type="button"
+                  onClick={() => setForm(f => ({ ...f, sempre_ativa: !f.sempre_ativa, data_inicio: '', data_fim: '' }))}
+                  className="flex items-center gap-1.5 text-xs"
+                >
+                  {form.sempre_ativa
+                    ? <ToggleRight className="w-5 h-5 text-green-400" />
+                    : <ToggleLeft className="w-5 h-5 text-muted-foreground" />}
+                  <span className={form.sempre_ativa ? 'text-green-400 font-medium' : 'text-muted-foreground'}>
+                    Sempre ativa
+                  </span>
+                </button>
+              </div>
+              {!form.sempre_ativa && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-xs">Data Início</Label>
+                    <Input type="date" value={form.data_inicio} onChange={e => setForm(f => ({ ...f, data_inicio: e.target.value }))} />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Data Fim</Label>
+                    <Input type="date" value={form.data_fim} onChange={e => setForm(f => ({ ...f, data_fim: e.target.value }))} />
+                  </div>
+                </div>
+              )}
             </div>
             {/* Preview */}
             {form.hora_inicio && form.hora_fim && form.valor_ajuste && (
