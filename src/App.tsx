@@ -14,6 +14,7 @@ const ClientDashboard = React.lazy(() => import("./pages/ClientDashboard"));
 const DriverDashboard = React.lazy(() => import("./pages/DriverDashboard"));
 const AdminDashboard = React.lazy(() => import("./pages/AdminDashboard"));
 const NotFound = React.lazy(() => import("./pages/NotFound"));
+const CalculadoraDigitalRF = React.lazy(() => import("./pages/CalculadoraDigitalRF"));
 
 const PageLoader = () => (
   <div className="min-h-screen flex items-center justify-center bg-background">
@@ -48,6 +49,7 @@ const AppRoutes = () => {
     return (
       <Suspense fallback={<PageLoader />}>
         <Routes>
+          <Route path="/calculadora-digital-RF" element={<CalculadoraDigitalRF />} />
           <Route path="*" element={<AuthPage />} />
         </Routes>
       </Suspense>
@@ -63,6 +65,7 @@ const AppRoutes = () => {
         {effectiveScreen === 'motorista' && <Route path="/" element={<DriverDashboard />} />}
         {effectiveScreen === 'cliente' && <Route path="/" element={<ClientDashboard />} />}
         {!effectiveScreen && <Route path="/" element={<ClientDashboard />} />}
+        <Route path="/calculadora-digital-RF" element={<CalculadoraDigitalRF />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Suspense>
