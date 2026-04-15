@@ -648,7 +648,6 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
         `📱 ${profile.telefone}`,
         hasVehicle ? `🚘 ${[profile.veiculo_marca, profile.veiculo_modelo].filter(Boolean).join(' ')} • ${profile.veiculo_cor || ''} • ${profile.veiculo_placa || ''}` : '',
         avgRating ? `⭐ ${avgRating.avg}/5 (${avgRating.count} avaliações)` : '',
-        `✅ ${completedCount} corridas`,
       ].filter(Boolean).join('\n');
 
       try {
@@ -690,8 +689,9 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
             fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
             position: 'relative' as const,
             overflow: 'hidden',
-            aspectRatio: '9 / 16',
-            maxWidth: '380px',
+            width: '420px',
+            maxWidth: '100%',
+            aspectRatio: '3 / 4',
             margin: '0 auto',
           }}
         >
@@ -804,23 +804,44 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
             }} />
 
             {/* ══ VEHICLE IMAGE ══ */}
-            {hasVehicle && (
-              <div style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                padding: '3% 0', flex: '1 1 auto', minHeight: 0,
-              }}>
-                <img
-                  src={`https://cdn.imagin.studio/getimage?customer=hrjavascript-mastery&make=${encodeURIComponent(profile.veiculo_marca || '')}&modelFamily=${encodeURIComponent(profile.veiculo_modelo || '')}&paintId=pspc0001&angle=01&width=800`}
-                  alt=""
-                  crossOrigin="anonymous"
-                  style={{
-                    width: '85%', maxHeight: '140px', objectFit: 'contain',
-                    filter: 'brightness(1.05) drop-shadow(0 8px 24px rgba(0,0,0,0.6))',
-                  }}
-                  onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                />
-              </div>
-            )}
+            {hasVehicle && (() => {
+              // Map Brazilian car color names to imagin.studio paint IDs
+              const corMap: Record<string, string> = {
+                'preto': 'pspc0029', 'preta': 'pspc0029', 'black': 'pspc0029',
+                'branco': 'pspc0001', 'branca': 'pspc0001', 'white': 'pspc0001',
+                'prata': 'pspc0022', 'silver': 'pspc0022',
+                'cinza': 'pspc0032', 'cinzento': 'pspc0032', 'grey': 'pspc0032', 'gray': 'pspc0032',
+                'vermelho': 'pspc0015', 'vermelha': 'pspc0015', 'red': 'pspc0015',
+                'azul': 'pspc0012', 'blue': 'pspc0012',
+                'verde': 'pspc0005', 'green': 'pspc0005',
+                'amarelo': 'pspc0004', 'amarela': 'pspc0004', 'yellow': 'pspc0004',
+                'marrom': 'pspc0031', 'brown': 'pspc0031', 'bege': 'pspc0031', 'beige': 'pspc0031',
+                'dourado': 'pspc0025', 'dourada': 'pspc0025', 'gold': 'pspc0025',
+                'vinho': 'pspc0017', 'bordo': 'pspc0017', 'burgundy': 'pspc0017',
+                'laranja': 'pspc0021', 'orange': 'pspc0021',
+                'rosa': 'pspc0020', 'pink': 'pspc0020',
+              };
+              const corNorm = (profile.veiculo_cor || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+              const paintId = corMap[corNorm] || 'pspc0029';
+              const carUrl = `https://cdn.imagin.studio/getimage?customer=hrjavascript-mastery&make=${encodeURIComponent(profile.veiculo_marca || '')}&modelFamily=${encodeURIComponent(profile.veiculo_modelo || '')}&paintId=${paintId}&angle=01&width=900&zoomType=fullscreen`;
+              return (
+                <div style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  padding: '2% 0', flex: '1 1 auto', minHeight: 0,
+                }}>
+                  <img
+                    src={carUrl}
+                    alt=""
+                    crossOrigin="anonymous"
+                    style={{
+                      width: '90%', maxHeight: '130px', objectFit: 'contain',
+                      filter: 'drop-shadow(0 8px 24px rgba(0,0,0,0.6))',
+                    }}
+                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                  />
+                </div>
+              );
+            })()}
 
             {/* ══ VEHICLE NAME ══ */}
             {hasVehicle && (
@@ -907,34 +928,25 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
             )}
 
             {/* ══ STATS ROW ══ */}
-            <div style={{
-              display: 'flex', justifyContent: 'center', gap: '20px',
-              marginBottom: '4%',
-            }}>
-              {avgRating && (
+            {avgRating && (
+              <div style={{
+                display: 'flex', justifyContent: 'center', marginBottom: '4%',
+              }}>
                 <div style={{ textAlign: 'center' as const }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="#E06616" stroke="none">
                       <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26" />
                     </svg>
                     <span style={{ fontSize: '16px', fontWeight: '800', color: '#ffffff' }}>
                       {avgRating.avg}
                     </span>
+                    <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)', fontWeight: '600', marginLeft: '2px' }}>
+                      ({avgRating.count})
+                    </span>
                   </div>
-                  <div style={{ fontSize: '9px', color: 'rgba(255,255,255,0.35)', fontWeight: '600', letterSpacing: '1px', marginTop: '2px' }}>
-                    {avgRating.count} AVALIAÇÕES
-                  </div>
-                </div>
-              )}
-              <div style={{ textAlign: 'center' as const }}>
-                <div style={{ fontSize: '16px', fontWeight: '800', color: '#ffffff' }}>
-                  {completedCount}
-                </div>
-                <div style={{ fontSize: '9px', color: 'rgba(255,255,255,0.35)', fontWeight: '600', letterSpacing: '1px', marginTop: '2px' }}>
-                  CORRIDAS
                 </div>
               </div>
-            </div>
+            )}
 
             {/* ══ FOOTER: RF MOBILIDADE COM EXCELÊNCIA ══ */}
             <div style={{
