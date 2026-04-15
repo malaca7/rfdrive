@@ -49,8 +49,10 @@ const AppRoutes = () => {
     return (
       <Suspense fallback={<PageLoader />}>
         <Routes>
+          <Route path="/login" element={<AuthPage />} />
           <Route path="/calculadora-digital-RF" element={<CalculadoraDigitalRF />} />
-          <Route path="*" element={<AuthPage />} />
+          <Route path="/" element={<CalculadoraDigitalRF />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Suspense>
     );
