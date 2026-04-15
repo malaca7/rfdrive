@@ -7,9 +7,30 @@ import { Badge } from '@/components/ui/badge';
 import { MapPin, Navigation, Clock, Car, DollarSign, MessageSquare, Route } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-/** Cliente vê apenas "Concluída" ou "Não Concluída" */
-const isConcluida = (status: string) =>
-  status === 'em_analise' || status === 'aprovada';
+/** Status mapping for client-visible badges */
+const getStatusBadge = (status: string): { label: string; variant: 'outline' | 'destructive' | 'default' | 'secondary'; className?: string } => {
+  switch (status) {
+    case 'nova':
+      return { label: 'Nova', variant: 'secondary' };
+    case 'aguardando_motorista':
+      return { label: 'Aguardando', variant: 'secondary', className: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20' };
+    case 'aceita':
+      return { label: 'Aceita', variant: 'outline', className: 'bg-blue-500/10 text-blue-400 border-blue-500/20' };
+    case 'a_caminho':
+      return { label: 'A caminho', variant: 'outline', className: 'bg-blue-500/10 text-blue-400 border-blue-500/20' };
+    case 'em_corrida':
+      return { label: 'Em viagem', variant: 'outline', className: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' };
+    case 'em_analise':
+    case 'aprovada':
+    case 'finalizada':
+      return { label: 'Concluída', variant: 'outline', className: 'bg-green-500/10 text-green-400 border-green-500/20' };
+    case 'nao_realizada':
+    case 'recusada':
+      return { label: 'Não Concluída', variant: 'destructive' };
+    default:
+      return { label: status, variant: 'secondary' };
+  }
+};
 
 const RideHistory: React.FC = () => {
   const { user } = useAuth();
@@ -52,7 +73,7 @@ const RideHistory: React.FC = () => {
   return (
     <div className="space-y-3">
       {rides.map((ride, i) => {
-        const concluida = isConcluida(ride.status);
+        const statusBadge = getStatusBadge(ride.status);
         return (
           <motion.div
             key={ride.id}
@@ -68,8 +89,8 @@ const RideHistory: React.FC = () => {
                       day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit',
                     })}
                   </div>
-                  <Badge variant={concluida ? 'outline' : 'destructive'}>
-                    {concluida ? 'Concluída' : 'Não Concluída'}
+                  <Badge variant={statusBadge.variant} className={statusBadge.className}>
+                    {statusBadge.label}
                   </Badge>
                 </div>
                 <div className="space-y-2">

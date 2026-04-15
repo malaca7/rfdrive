@@ -90,7 +90,7 @@ const RideRequestForm: React.FC = () => {
         .from('corridas')
         .select('*')
         .eq('cliente_id', user!.id)
-        .in('status', ['nova', 'aguardando_motorista', 'aceita'])
+        .in('status', ['nova', 'aguardando_motorista', 'aceita', 'a_caminho', 'em_corrida'])
         .limit(1)
         .maybeSingle();
       if (error) throw error;
@@ -111,7 +111,7 @@ const RideRequestForm: React.FC = () => {
       if (error) throw error;
       return data;
     },
-    enabled: !!activeRide?.motorista_id && activeRide?.status === 'aceita',
+    enabled: !!activeRide?.motorista_id && ['aceita', 'a_caminho', 'em_corrida'].includes(activeRide?.status),
   });
 
   const { data: lastCompletedRide } = useQuery({
@@ -121,7 +121,7 @@ const RideRequestForm: React.FC = () => {
         .from('corridas')
         .select('*')
         .eq('cliente_id', user!.id)
-        .eq('status', 'em_analise')
+        .in('status', ['em_analise', 'finalizada'])
         .order('concluida_at', { ascending: false })
         .limit(1)
         .maybeSingle();
@@ -299,8 +299,8 @@ const RideRequestForm: React.FC = () => {
         cliente_id: user.id,
         origem_texto: o,
         destino_texto: d,
-        status: 'aguardando_motorista',
-        canal_origem: 'app',
+        status: 'aguardando_motorista' as const,
+        canal_origem: 'app' as const,
         distancia_km,
         valor_estimado,
         preco_regra_aplicada,
@@ -403,16 +403,28 @@ const RideRequestForm: React.FC = () => {
     const statusLabel =
       activeRide.status === 'nova' ? 'Processando pedido...' :
       activeRide.status === 'aguardando_motorista' ? 'Aguardando motorista...' :
+      activeRide.status === 'aceita' ? 'Motorista aceitou sua corrida!' :
+      activeRide.status === 'a_caminho' ? 'Motorista a caminho' :
+      activeRide.status === 'em_corrida' ? 'Corrida em andamento' :
       'Corrida em andamento';
     const hasEditPending = activeRide.edicao_pendente && activeRide.edicao_aprovada === null;
+    const isTracking = activeRide.status === 'aceita' || activeRide.status === 'a_caminho' || activeRide.status === 'em_corrida';
 
     return (
       <div className="space-y-[3%]">
         <Card className="border-accent/30 rounded-2xl">
           <CardContent className="py-[5%] px-[4%] space-y-[3%]">
             <div className="text-center">
-              <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-accent/10 mx-auto mb-3">
-                {activeRide.status === 'aceita' ? (
+              <div className={`inline-flex items-center justify-center w-14 h-14 rounded-full mx-auto mb-3 ${
+                activeRide.status === 'em_corrida' ? 'bg-emerald-500/10' :
+                activeRide.status === 'a_caminho' ? 'bg-blue-500/10' :
+                isTracking ? 'bg-green-500/10' : 'bg-accent/10'
+              }`}>
+                {activeRide.status === 'em_corrida' ? (
+                  <Navigation className="w-7 h-7 text-emerald-400" />
+                ) : activeRide.status === 'a_caminho' ? (
+                  <Car className="w-7 h-7 text-blue-400" />
+                ) : isTracking ? (
                   <CheckCircle className="w-7 h-7 text-green-400" />
                 ) : (
                   <Loader2 className="w-7 h-7 text-accent animate-spin" />
@@ -421,10 +433,29 @@ const RideRequestForm: React.FC = () => {
               <h3 className="font-bold text-[clamp(1rem,3.5vw,1.25rem)]">
                 {activeRide.status === 'nova' ? 'Pedido recebido' :
                  activeRide.status === 'aguardando_motorista' ? 'Corrida solicitada' :
-                 'Motorista a caminho'}
+                 activeRide.status === 'aceita' ? 'Motorista aceitou!' :
+                 activeRide.status === 'a_caminho' ? 'Motorista vindo até você' :
+                 activeRide.status === 'em_corrida' ? 'Você está em viagem' :
+                 'Corrida em andamento'}
               </h3>
               <p className="text-sm text-muted-foreground mt-1">{statusLabel}</p>
             </div>
+
+            {/* ── Tracking Progress Bar ── */}
+            {isTracking && (
+              <div className="flex items-center gap-1.5 px-2">
+                <div className={`flex-1 h-1.5 rounded-full ${['aceita','a_caminho','em_corrida'].includes(activeRide.status) ? 'bg-green-500' : 'bg-muted'}`} />
+                <div className={`flex-1 h-1.5 rounded-full ${['a_caminho','em_corrida'].includes(activeRide.status) ? 'bg-blue-500' : 'bg-muted'}`} />
+                <div className={`flex-1 h-1.5 rounded-full ${activeRide.status === 'em_corrida' ? 'bg-emerald-500' : 'bg-muted'}`} />
+              </div>
+            )}
+            {isTracking && (
+              <div className="flex justify-between px-2 text-[10px] text-muted-foreground">
+                <span className={['aceita','a_caminho','em_corrida'].includes(activeRide.status) ? 'text-green-400 font-semibold' : ''}>Aceita</span>
+                <span className={['a_caminho','em_corrida'].includes(activeRide.status) ? 'text-blue-400 font-semibold' : ''}>A caminho</span>
+                <span className={activeRide.status === 'em_corrida' ? 'text-emerald-400 font-semibold' : ''}>Em viagem</span>
+              </div>
+            )}
             <div className="bg-muted/50 rounded-xl p-[4%] space-y-3">
               <div className="flex items-start gap-2">
                 <div className="mt-1.5 w-2 h-2 rounded-full bg-green-500 shrink-0" />
@@ -501,8 +532,8 @@ const RideRequestForm: React.FC = () => {
                 </div>
               )}
             </div>
-            {/* ── Motorista info when ride is accepted ── */}
-            {activeRide.status === 'aceita' && motoristaInfo && (
+            {/* ── Motorista info when ride is accepted/tracking ── */}
+            {isTracking && motoristaInfo && (
               <div className="bg-accent/5 border border-accent/20 rounded-xl p-[4%] space-y-3">
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 rounded-full bg-accent/20 flex items-center justify-center">
@@ -603,9 +634,11 @@ const RideRequestForm: React.FC = () => {
                 Cancelar Corrida
               </Button>
             )}
-            {activeRide.status === 'aceita' && (
+            {isTracking && (
               <p className="text-xs text-muted-foreground text-center">
-                Corrida aceita — não é possível cancelar.
+                {activeRide.status === 'aceita' ? 'Corrida aceita pelo motorista' :
+                 activeRide.status === 'a_caminho' ? 'Motorista está vindo até você' :
+                 'Você está em viagem — Boa viagem!'}
               </p>
             )}
           </CardContent>

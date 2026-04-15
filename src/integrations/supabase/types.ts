@@ -68,7 +68,7 @@ export type Database = {
           origem_texto: string
           destino_texto: string
           horario_estimado: string | null
-          status: "nova" | "aguardando_motorista" | "aceita" | "em_analise" | "aprovada" | "nao_realizada" | "recusada"
+          status: "nova" | "aguardando_motorista" | "aceita" | "a_caminho" | "em_corrida" | "em_analise" | "aprovada" | "nao_realizada" | "recusada" | "finalizada"
           aprovado_admin: boolean
           valor: number | null
           observacao_motorista: string | null
@@ -87,6 +87,7 @@ export type Database = {
           preco_regra_aplicada: string | null
           preco_detalhes: Record<string, unknown> | null
           tem_bagagem: boolean | null
+          tracking_ativo: boolean | null
           created_at: string
         }
         Insert: {
@@ -96,7 +97,7 @@ export type Database = {
           origem_texto: string
           destino_texto: string
           horario_estimado?: string | null
-          status?: "nova" | "aguardando_motorista" | "aceita" | "em_analise" | "aprovada" | "nao_realizada" | "recusada"
+          status?: "nova" | "aguardando_motorista" | "aceita" | "a_caminho" | "em_corrida" | "em_analise" | "aprovada" | "nao_realizada" | "recusada" | "finalizada"
           aprovado_admin?: boolean
           valor?: number | null
           observacao_motorista?: string | null
@@ -115,6 +116,7 @@ export type Database = {
           preco_regra_aplicada?: string | null
           preco_detalhes?: Record<string, unknown> | null
           tem_bagagem?: boolean | null
+          tracking_ativo?: boolean | null
           created_at?: string
         }
         Update: {
@@ -124,7 +126,7 @@ export type Database = {
           origem_texto?: string
           destino_texto?: string
           horario_estimado?: string | null
-          status?: "nova" | "aguardando_motorista" | "aceita" | "em_analise" | "aprovada" | "nao_realizada" | "recusada"
+          status?: "nova" | "aguardando_motorista" | "aceita" | "a_caminho" | "em_corrida" | "em_analise" | "aprovada" | "nao_realizada" | "recusada" | "finalizada"
           aprovado_admin?: boolean
           valor?: number | null
           observacao_motorista?: string | null
@@ -143,6 +145,7 @@ export type Database = {
           preco_regra_aplicada?: string | null
           preco_detalhes?: Record<string, unknown> | null
           tem_bagagem?: boolean | null
+          tracking_ativo?: boolean | null
           created_at?: string
         }
         Relationships: []
