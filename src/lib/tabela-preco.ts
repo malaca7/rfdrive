@@ -163,7 +163,10 @@ function fuzzyScore(input: string, candidate: string): number {
   let matched = 0;
   for (const it of iTokens) {
     for (const ct of cTokens) {
-      if (ct.includes(it) || it.includes(ct)) { matched++; break; }
+      // Exact token match always counts
+      if (it === ct) { matched++; break; }
+      // Substring match only for tokens with 3+ chars (avoids "pe" matching "suape")
+      if (Math.min(it.length, ct.length) >= 3 && (ct.includes(it) || it.includes(ct))) { matched++; break; }
       // Levenshtein-lite: allow 1-char diff for words >3
       if (it.length > 3 && ct.length > 3 && levenshteinLite(it, ct) <= 1) { matched += 0.8; break; }
     }
