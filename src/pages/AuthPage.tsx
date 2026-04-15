@@ -17,7 +17,7 @@ const formatPhone = (value: string) => {
 };
 
 const AuthPage: React.FC = () => {
-  const [isLogin, setIsLogin] = useState(true);
+  const isLogin = true;
   const [telefone, setTelefone] = useState('');
   const [password, setPassword] = useState('');
   const [nome, setNome] = useState('');
@@ -143,15 +143,7 @@ const AuthPage: React.FC = () => {
                 {isLogin ? 'Entrar' : 'Criar Conta'}
               </Button>
             </form>
-            <div className="mt-5 text-center">
-              <button
-                type="button"
-                onClick={() => setIsLogin(!isLogin)}
-                className="text-[clamp(0.75rem,2.2vw,0.85rem)] text-white/40 hover:text-[hsl(22_100%_55%)] transition-colors"
-              >
-                {isLogin ? 'Não tem conta? Cadastre-se' : 'Já tem conta? Faça login'}
-              </button>
-            </div>
+
           </CardContent>
         </Card>
       </motion.div>

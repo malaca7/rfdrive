@@ -550,7 +550,13 @@ const CalculadoraDigitalRF: React.FC = () => {
         </AnimatePresence>
 
         {/* Footer */}
-        <div className="text-center py-4 space-y-0.5">
+        <div className="text-center py-4 space-y-1.5">
+          <a
+            href="#/auth"
+            className="text-[11px] text-white/30 hover:text-[hsl(22_100%_55%)] transition-colors underline underline-offset-2"
+          >
+            Painel Administrativo
+          </a>
           <p className="text-[10px] text-white/25">
             RF Driver © {new Date().getFullYear()} — Calculadora Digital
           </p>
