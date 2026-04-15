@@ -36,6 +36,7 @@ const AdminPricing = React.lazy(() => import('@/components/AdminPricing'));
 const AdminTabelaPrecos = React.lazy(() => import('@/components/AdminTabelaPrecos'));
 const AdminStatsDashboard = React.lazy(() => import('@/components/AdminStatsDashboard'));
 const AdminMotoristas = React.lazy(() => import('@/components/AdminMotoristas'));
+const AdminTracking = React.lazy(() => import('@/components/AdminTracking'));
 
 const TabLoader = () => (
   <div className="flex items-center justify-center py-12">
@@ -587,6 +588,9 @@ const AdminDashboard: React.FC = () => {
             <TabsTrigger value="precificacao" className="flex-1 min-w-[80px] gap-1 rounded-xl h-10 text-[11px] sm:text-xs font-semibold data-[state=active]:bg-[hsl(22_100%_55%)] data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-[hsl(22_100%_55%/0.2)]">
               <DollarSign className="w-3.5 h-3.5 shrink-0" /> Preços
             </TabsTrigger>
+            <TabsTrigger value="tracking" className="flex-1 min-w-[80px] gap-1 rounded-xl h-10 text-[11px] sm:text-xs font-semibold data-[state=active]:bg-[hsl(22_100%_55%)] data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-[hsl(22_100%_55%/0.2)]">
+              <Navigation className="w-3.5 h-3.5 shrink-0" /> Tracking
+            </TabsTrigger>
           </TabsList>
 
           {/* ═══════════════════════════════ DASHBOARD TAB ═══════════════════════════════ */}
@@ -1001,10 +1005,15 @@ const AdminDashboard: React.FC = () => {
               </TabsContent>
             </Tabs>
           </TabsContent>
+
+          {/* ═══════════════════════════════ TRACKING TAB ═══════════════════════════════ */}
+          <TabsContent value="tracking">
+            <Suspense fallback={<TabLoader />}>
+              <AdminTracking />
+            </Suspense>
+          </TabsContent>
         </Tabs>
       </div>
-
-      {/* ═══════════════════ APPROVAL DIALOG ═══════════════════ */}
       <Dialog open={showApprovalDialog} onOpenChange={setShowApprovalDialog}>
         <DialogContent>
           <DialogHeader>

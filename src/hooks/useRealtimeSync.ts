@@ -27,11 +27,14 @@ export function useRealtimeSync() {
         qc.invalidateQueries({ queryKey: ['active-ride'] });
         qc.invalidateQueries({ queryKey: ['last-completed-ride'] });
         qc.invalidateQueries({ queryKey: ['motorista-info'] });
+        qc.invalidateQueries({ queryKey: ['admin-drivers-tracking'] });
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, () => {
         qc.invalidateQueries({ queryKey: ['admin-users'] });
         qc.invalidateQueries({ queryKey: ['driver-profile'] });
         qc.invalidateQueries({ queryKey: ['motorista-info'] });
+        qc.invalidateQueries({ queryKey: ['driver-availability'] });
+        qc.invalidateQueries({ queryKey: ['admin-drivers-tracking'] });
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'avaliacoes' }, () => {
         qc.invalidateQueries({ queryKey: ['ride-rating'] });
@@ -67,6 +70,9 @@ export function useRealtimeSync() {
         qc.invalidateQueries({ queryKey: ['config-tarifas'] });
         qc.invalidateQueries({ queryKey: ['config-tarifas-form'] });
         qc.invalidateQueries({ queryKey: ['config-tarifas-driver'] });
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'localizacao_motorista' }, () => {
+        qc.invalidateQueries({ queryKey: ['admin-drivers-tracking'] });
       })
       .subscribe();
 

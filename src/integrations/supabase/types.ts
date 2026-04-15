@@ -387,6 +387,27 @@ export type Database = {
         }
         Relationships: []
       }
+      localizacao_motorista: {
+        Row: {
+          motorista_id: string
+          latitude: number
+          longitude: number
+          atualizado_em: string
+        }
+        Insert: {
+          motorista_id: string
+          latitude: number
+          longitude: number
+          atualizado_em?: string
+        }
+        Update: {
+          motorista_id?: string
+          latitude?: number
+          longitude?: number
+          atualizado_em?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

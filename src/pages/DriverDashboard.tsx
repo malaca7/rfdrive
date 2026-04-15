@@ -18,18 +18,21 @@ import {
 } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
 import AppShell from '@/components/AppShell';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   MapPin, Navigation, Clock, CheckCircle, Car, Loader2,
   Edit3, DollarSign, MessageSquare, User, Phone, AlertTriangle,
   ChevronRight, X, Check, History, Star, TableProperties, Ban, RotateCcw,
-  Calculator, IdCard,
+  Calculator, IdCard, Power, MapPinned, ArrowRight, Flag,
 } from 'lucide-react';
 import StarRating from '@/components/StarRating';
 import { TripCalculator, DriverBadge } from '@/components/DriverTools';
 import { useToast } from '@/hooks/use-toast';
 import { buscarPrecoTabela, normalizeText, syncCacheFromSupabase } from '@/lib/tabela-preco';
 import { usePrecoTabela, useAllLocations } from '@/hooks/usePrecoTabela';
+import { useDriverAvailability } from '@/hooks/useDriverAvailability';
+import { useDriverLocation } from '@/hooks/useDriverLocation';
+import { useRideTracking } from '@/hooks/useRideTracking';
 
 type Corrida = {
   id: string;
@@ -38,7 +41,7 @@ type Corrida = {
   origem_texto: string;
   destino_texto: string;
   horario_estimado: string | null;
-  status: 'nova' | 'aguardando_motorista' | 'aceita' | 'em_analise' | 'aprovada' | 'nao_realizada' | 'recusada';
+  status: 'nova' | 'aguardando_motorista' | 'aceita' | 'a_caminho' | 'em_corrida' | 'em_analise' | 'aprovada' | 'nao_realizada' | 'recusada' | 'finalizada';
   canal_origem: 'whatsapp' | 'app';
   valor: number | null;
   distancia_km: number | null;
@@ -76,6 +79,15 @@ const DriverDashboard: React.FC = () => {
   const [motivoCancelamento, setMotivoCancelamento] = useState('');
   const [driverRating, setDriverRating] = useState(0);
   const [driverComentario, setDriverComentario] = useState('');
+
+  // ── Etapa 8: Disponibilidade ──
+  const { isAtivo, toggle: toggleDisponibilidade, isPending: togglePending } = useDriverAvailability(user?.id);
+
+  // ── Etapa 7: Geolocalização (ativa só quando disponível) ──
+  useDriverLocation({ driverId: user?.id, enabled: isAtivo });
+
+  // ── Etapa 10: Tracking de corrida ──
+  const rideTracking = useRideTracking(user?.id);
 
 
   // ── Autocomplete locations (reativo) ──
@@ -133,7 +145,7 @@ const DriverDashboard: React.FC = () => {
         .from('corridas')
         .select('*')
         .eq('motorista_id', user!.id)
-        .eq('status', 'aceita')
+        .in('status', ['aceita', 'a_caminho', 'em_corrida'])
         .order('created_at', { ascending: false });
       if (error) throw error;
       const enriched = await Promise.all(
@@ -158,7 +170,7 @@ const DriverDashboard: React.FC = () => {
         .from('corridas')
         .select('*')
         .eq('motorista_id', user!.id)
-        .in('status', ['em_analise', 'aprovada'])
+        .in('status', ['em_analise', 'aprovada', 'finalizada'])
         .order('concluida_at', { ascending: false })
         .limit(20);
       if (error) throw error;
@@ -514,7 +526,13 @@ const DriverDashboard: React.FC = () => {
                 </p>
               </div>
             </div>
-            <Badge className="bg-green-500/20 text-green-400 border-green-500/30">Em andamento</Badge>
+            <Badge className={
+              ride.status === 'a_caminho' ? 'bg-blue-500/20 text-blue-400 border-blue-500/30' :
+              ride.status === 'em_corrida' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' :
+              'bg-green-500/20 text-green-400 border-green-500/30'
+            }>
+              {ride.status === 'aceita' ? 'Aceita' : ride.status === 'a_caminho' ? 'Indo buscar' : ride.status === 'em_corrida' ? 'Em corrida' : 'Em andamento'}
+            </Badge>
           </div>
 
           {/* WhatsApp button */}
@@ -592,6 +610,28 @@ const DriverDashboard: React.FC = () => {
               <X className="w-4 h-4 text-red-400 shrink-0" />
               <p className="text-xs text-red-400">Passageiro recusou a alteração de endereço</p>
             </div>
+          )}
+
+          {/* Tracking Status Flow */}
+          {ride.status === 'aceita' && (
+            <Button
+              className="w-full gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold h-11"
+              onClick={() => rideTracking.startPickup.mutate(ride.id)}
+              disabled={rideTracking.startPickup.isPending}
+            >
+              {rideTracking.startPickup.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Navigation className="w-4 h-4" />}
+              Estou a caminho do cliente
+            </Button>
+          )}
+          {ride.status === 'a_caminho' && (
+            <Button
+              className="w-full gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold h-11"
+              onClick={() => rideTracking.startTrip.mutate(ride.id)}
+              disabled={rideTracking.startTrip.isPending}
+            >
+              {rideTracking.startTrip.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Flag className="w-4 h-4" />}
+              Cliente embarcou — Iniciar corrida
+            </Button>
           )}
 
           {/* Actions */}
@@ -690,6 +730,42 @@ const DriverDashboard: React.FC = () => {
               ? `${activeCount} corrida${activeCount > 1 ? 's' : ''} em andamento`
               : 'Pronto para dirigir'}
           </p>
+        </motion.div>
+
+        {/* ── Etapa 8: Availability Toggle ── */}
+        <motion.div initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
+          <Card className={`mb-[4%] transition-all duration-300 ${isAtivo ? 'border-green-500/30 bg-green-500/5' : 'border-border/50 bg-muted/30'}`}>
+            <CardContent className="py-3 px-[4%]">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${isAtivo ? 'bg-green-500/20' : 'bg-muted'}`}>
+                    <Power className={`w-5 h-5 transition-colors ${isAtivo ? 'text-green-400' : 'text-muted-foreground'}`} />
+                  </div>
+                  <div>
+                    <p className={`font-bold text-sm ${isAtivo ? 'text-green-400' : 'text-muted-foreground'}`}>
+                      {isAtivo ? 'Disponível' : 'Indisponível'}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground flex items-center gap-1">
+                      {isAtivo && <><MapPinned className="w-3 h-3 text-green-400" /> Localização ativa</>}
+                      {!isAtivo && 'Toque para ficar online'}
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  onClick={toggleDisponibilidade}
+                  disabled={togglePending}
+                  className={`h-10 px-6 rounded-full font-bold text-sm transition-all ${
+                    isAtivo
+                      ? 'bg-red-500/15 text-red-400 hover:bg-red-500/25 border border-red-500/30'
+                      : 'gradient-accent text-white hover:opacity-90'
+                  }`}
+                  variant="ghost"
+                >
+                  {togglePending ? <Loader2 className="w-4 h-4 animate-spin" /> : isAtivo ? 'Pausar' : 'Ficar Online'}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </motion.div>
 
         {/* Stats */}
