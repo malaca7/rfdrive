@@ -97,6 +97,8 @@ const RideRequestForm: React.FC = () => {
       return data;
     },
     enabled: !!user,
+    staleTime: 0,
+    refetchInterval: 5000,
   });
 
   // ── Fetch motorista info when ride is accepted ──
@@ -112,6 +114,7 @@ const RideRequestForm: React.FC = () => {
       return data;
     },
     enabled: !!activeRide?.motorista_id && ['aceita', 'a_caminho', 'em_corrida'].includes(activeRide?.status),
+    staleTime: 0,
   });
 
   const { data: lastCompletedRide } = useQuery({
@@ -133,6 +136,7 @@ const RideRequestForm: React.FC = () => {
       return null;
     },
     enabled: !!user && !activeRide,
+    staleTime: 0,
   });
 
   const { data: existingRating } = useQuery({

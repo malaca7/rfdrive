@@ -47,6 +47,8 @@ const RideHistory: React.FC = () => {
       return data;
     },
     enabled: !!user,
+    staleTime: 0,
+    refetchInterval: 10000,
   });
 
   if (isLoading) {
