@@ -361,11 +361,7 @@ const CalculadoraDigitalRF: React.FC = () => {
                                 <div>
                                   <p className="text-[10px] text-white/50">Preço dinâmico</p>
                                   <p className="text-[clamp(1.3rem,4vw,1.6rem)] font-bold text-blue-400">
-                                    R$ {(() => {
-                                      let v = precoDinamico.preco_final;
-                                      if (!precoDinamico.regra_horario && dynamicAdj) v = dynamicAdj.aplicar(v);
-                                      return v.toFixed(2);
-                                    })()}
+                                    R$ {precoDinamico.preco_base.toFixed(2)}
                                   </p>
                                 </div>
                               </div>
@@ -408,11 +404,7 @@ const CalculadoraDigitalRF: React.FC = () => {
                                     {precoTabela.estimado ? 'Preço estimado' : 'Preço tabelado'}
                                   </p>
                                   <p className={`text-[clamp(1.3rem,4vw,1.6rem)] font-bold ${precoTabela.estimado ? 'text-amber-400' : 'text-green-400'}`}>
-                                    R$ {(() => {
-                                      let v = precoTabela.valor;
-                                      if (dynamicAdj) v = dynamicAdj.aplicar(v);
-                                      return v.toFixed(2);
-                                    })()}
+                                    R$ {precoTabela.valor.toFixed(2)}
                                   </p>
                                 </div>
                               </div>

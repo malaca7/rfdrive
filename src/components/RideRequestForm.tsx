@@ -893,12 +893,7 @@ const RideRequestForm: React.FC = () => {
                               Preço dinâmico
                             </p>
                             <p className="text-[clamp(1.1rem,3.5vw,1.35rem)] font-bold text-blue-400">
-                              R$ {(() => {
-                                let v = precoDinamico.preco_final;
-                                // Se o motor não aplicou regra horária mas existe dynamicAdj, aplicar
-                                if (!precoDinamico.regra_horario && dynamicAdj) v = dynamicAdj.aplicar(v);
-                                return v.toFixed(2);
-                              })()}
+                              R$ {precoDinamico.preco_base.toFixed(2)}
                             </p>
                           </div>
                         </div>
