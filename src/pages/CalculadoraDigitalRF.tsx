@@ -544,9 +544,12 @@ const CalculadoraDigitalRF: React.FC = () => {
         </AnimatePresence>
 
         {/* Footer */}
-        <div className="text-center py-4">
+        <div className="text-center py-4 space-y-0.5">
           <p className="text-[10px] text-white/25">
             RF Driver © {new Date().getFullYear()} — Calculadora Digital
+          </p>
+          <p className="text-[10px] text-white/25">
+            ・desenvolvido por <span className="font-bold">malaca</span>
           </p>
         </div>
       </div>
