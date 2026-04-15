@@ -71,17 +71,32 @@ function rebuildMaps() {
 
 let _syncPromise: Promise<void> | null = null;
 
+async function fetchAllRows(): Promise<{ id: string; origem: string; destino: string; valor: number; regiao: string }[]> {
+  const PAGE = 1000;
+  let all: { id: string; origem: string; destino: string; valor: number; regiao: string }[] = [];
+  let from = 0;
+  while (true) {
+    const { data, error } = await supabase
+      .from('tabela_precos')
+      .select('id, origem, destino, valor, regiao')
+      .range(from, from + PAGE - 1);
+    if (error || !data || data.length === 0) break;
+    all = all.concat(data as any);
+    if (data.length < PAGE) break;
+    from += PAGE;
+  }
+  return all;
+}
+
 export async function syncCacheFromSupabase(): Promise<void> {
   if (_syncPromise) return _syncPromise;
   _syncPromise = (async () => {
     try {
-      const { data, error } = await supabase
-        .from('tabela_precos')
-        .select('id, origem, destino, valor, regiao');
-      if (error || !data || data.length === 0) return;
+      const allRows = await fetchAllRows();
+      if (allRows.length === 0) return;
       tabela = [];
       const seen = new Set<string>();
-      for (const r of data) {
+      for (const r of allRows) {
         const key = `${r.origem.toLowerCase()}|${r.destino.toLowerCase()}`;
         if (seen.has(key)) continue;
         seen.add(key);
@@ -95,24 +110,28 @@ export async function syncCacheFromSupabase(): Promise<void> {
 }
 
 export async function fetchTabelaFromSupabase(): Promise<TabelaEntry[]> {
-  const { data, error } = await supabase
-    .from('tabela_precos')
-    .select('*')
-    .order('origem')
-    .order('destino');
-  if (error) {
-    console.warn('tabela_precos fetch error, using cache:', error.message);
+  try {
+    const allRows = await fetchAllRows();
+    if (allRows.length === 0) {
+      console.warn('tabela_precos: nenhum dado retornado, usando cache');
+      return tabela.map(e => ({ ...e }));
+    }
+    const seen = new Set<string>();
+    const result: TabelaEntry[] = [];
+    // Sort client-side since we paginate
+    allRows.sort((a, b) => a.origem.localeCompare(b.origem, 'pt-BR') || a.destino.localeCompare(b.destino, 'pt-BR'));
+    for (const r of allRows) {
+      const key = `${r.origem.toLowerCase()}|${r.destino.toLowerCase()}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        result.push({ id: r.id, origem: r.origem, destino: r.destino, valor: Number(r.valor), regiao: r.regiao });
+      }
+    }
+    return result;
+  } catch (err) {
+    console.warn('tabela_precos fetch error, using cache:', err);
     return tabela.map(e => ({ ...e }));
   }
-  const seen = new Set<string>();
-  return (data || []).reduce<TabelaEntry[]>((acc, r) => {
-    const key = `${r.origem.toLowerCase()}|${r.destino.toLowerCase()}`;
-    if (!seen.has(key)) {
-      seen.add(key);
-      acc.push({ id: r.id, origem: r.origem, destino: r.destino, valor: Number(r.valor), regiao: r.regiao });
-    }
-    return acc;
-  }, []);
 }
 
 // Initial load on module import

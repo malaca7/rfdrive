@@ -72,15 +72,23 @@ const RideRequestForm: React.FC = () => {
   const allLocations = useAllLocations();
 
   const filteredOrigens = useMemo(() => {
-    if (!origem.trim()) return allLocations;
+    if (!origem.trim()) return allLocations.slice(0, 30);
     const q = normalizeText(origem);
-    return allLocations.filter(o => normalizeText(o).includes(q));
+    const terms = q.split(' ').filter(t => t.length > 0);
+    return allLocations.filter(o => {
+      const n = normalizeText(o);
+      return terms.every(t => n.includes(t));
+    });
   }, [origem, allLocations]);
 
   const filteredDestinos = useMemo(() => {
-    if (!destino.trim()) return allLocations;
+    if (!destino.trim()) return allLocations.slice(0, 30);
     const q = normalizeText(destino);
-    return allLocations.filter(d => normalizeText(d).includes(q));
+    const terms = q.split(' ').filter(t => t.length > 0);
+    return allLocations.filter(d => {
+      const n = normalizeText(d);
+      return terms.every(t => n.includes(t));
+    });
   }, [destino, allLocations]);
 
   const { data: activeRide, refetch: refetchActiveRide } = useQuery({

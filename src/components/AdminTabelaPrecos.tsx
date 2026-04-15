@@ -51,6 +51,7 @@ const AdminTabelaPrecos: React.FC = () => {
   // ── Filters ──
   const [search, setSearch] = useState('');
   const [filterOrigem, setFilterOrigem] = useState<string>('_all');
+  const [filterDestino, setFilterDestino] = useState<string>('_all');
   const [filterRegiao, setFilterRegiao] = useState<string>('_all');
 
   // ── Pagination ──
@@ -89,6 +90,10 @@ const AdminTabelaPrecos: React.FC = () => {
   // ── Data ──
   const origens = useMemo(() => [...new Set(tabela.map(e => e.origem))].sort((a, b) => a.localeCompare(b, 'pt-BR')), [tabela]);
   const regioes = useMemo(() => [...new Set(tabela.map(e => e.regiao))].sort(), [tabela]);
+  const destinos = useMemo(() => {
+    const base = filterOrigem !== '_all' ? tabela.filter(e => e.origem === filterOrigem) : tabela;
+    return [...new Set(base.map(e => e.destino))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+  }, [tabela, filterOrigem]);
   const stats = useMemo(() => ({
     totalRotas: tabela.length,
     totalOrigens: new Set(tabela.map(e => e.origem)).size,
@@ -103,19 +108,23 @@ const AdminTabelaPrecos: React.FC = () => {
     if (filterOrigem !== '_all') {
       data = data.filter(e => e.origem === filterOrigem);
     }
+    if (filterDestino !== '_all') {
+      data = data.filter(e => e.destino === filterDestino);
+    }
     if (filterRegiao !== '_all') {
       data = data.filter(e => e.regiao === filterRegiao);
     }
     if (search.trim()) {
       const q = normalizeText(search);
-      data = data.filter(e =>
-        normalizeText(e.origem).includes(q) ||
-        normalizeText(e.destino).includes(q) ||
-        e.valor.toString().includes(search.trim())
-      );
+      // Support searching "origem destino" simultaneously with space-separated terms
+      const terms = q.split(' ').filter(t => t.length > 1);
+      data = data.filter(e => {
+        const combined = `${normalizeText(e.origem)} ${normalizeText(e.destino)} ${e.valor}`;
+        return terms.every(t => combined.includes(t));
+      });
     }
     return data;
-  }, [tabela, filterOrigem, filterRegiao, search]);
+  }, [tabela, filterOrigem, filterDestino, filterRegiao, search]);
 
   // ── Sorting ──
   const sorted = useMemo(() => {
@@ -321,17 +330,61 @@ const AdminTabelaPrecos: React.FC = () => {
     setEditingOrigKey(null);
   };
 
+  // ── Autocomplete suggestions for form fields ──
+  const allLocations = useMemo(() => {
+    const set = new Set<string>();
+    for (const e of tabela) { set.add(e.origem); set.add(e.destino); }
+    return Array.from(set).sort((a, b) => a.localeCompare(b, 'pt-BR'));
+  }, [tabela]);
+
+  const AutocompleteInput = ({ value, onChange, placeholder, label }: {
+    value: string; onChange: (v: string) => void; placeholder?: string; label: string;
+  }) => {
+    const [open, setOpen] = useState(false);
+    const suggestions = useMemo(() => {
+      if (!value.trim() || value.length < 2) return [];
+      const q = normalizeText(value);
+      return allLocations.filter(l => normalizeText(l).includes(q)).slice(0, 8);
+    }, [value]);
+
+    return (
+      <div className="relative">
+        <Label className="text-xs">{label}</Label>
+        <Input
+          value={value}
+          onChange={(e) => { onChange(e.target.value); setOpen(true); }}
+          onFocus={() => setOpen(true)}
+          onBlur={() => setTimeout(() => setOpen(false), 150)}
+          placeholder={placeholder}
+          autoComplete="off"
+        />
+        {open && suggestions.length > 0 && (
+          <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-popover border border-border rounded-lg shadow-lg max-h-40 overflow-y-auto">
+            {suggestions.map(s => (
+              <button
+                key={s}
+                type="button"
+                className="w-full text-left px-3 py-1.5 text-sm hover:bg-accent/10 transition-colors"
+                onMouseDown={(e) => { e.preventDefault(); onChange(s); setOpen(false); }}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   // ══════════════════════════════════════════════════════════
   // RENDER
   // ══════════════════════════════════════════════════════════
 
-  if (loadingTabela || seeding) {
+  if (loadingTabela) {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-3">
         <Loader2 className="w-8 h-8 animate-spin text-accent" />
-        <p className="text-muted-foreground text-sm">
-          {seeding ? 'Importando tabela de preços para o Supabase...' : 'Carregando tabela de preços...'}
-        </p>
+        <p className="text-muted-foreground text-sm">Carregando tabela de preços...</p>
       </div>
     );
   }
@@ -370,19 +423,37 @@ const AdminTabelaPrecos: React.FC = () => {
               </button>
             )}
           </div>
-          <Select value={filterOrigem} onValueChange={(v) => { setFilterOrigem(v); setPage(0); }}>
+          <Select value={filterOrigem} onValueChange={(v) => { setFilterOrigem(v); setFilterDestino('_all'); setPage(0); }}>
             <SelectTrigger className="w-[160px] h-9">
               <SelectValue placeholder="Origem" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="max-h-60">
               <SelectItem value="_all">Todas origens</SelectItem>
               {origens.map(o => (
                 <SelectItem key={o} value={o}>{o}</SelectItem>
               ))}
             </SelectContent>
           </Select>
+          <Select value={filterDestino} onValueChange={(v) => { setFilterDestino(v); setPage(0); }}>
+            <SelectTrigger className="w-[160px] h-9">
+              <SelectValue placeholder="Destino" />
+            </SelectTrigger>
+            <SelectContent className="max-h-60">
+              <SelectItem value="_all">Todos destinos</SelectItem>
+              {destinos.map(d => (
+                <SelectItem key={d} value={d}>{d}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          {(filterOrigem !== '_all' || filterDestino !== '_all' || filterRegiao !== '_all' || search) && (
+            <Button size="sm" variant="ghost" className="h-8 gap-1 text-xs text-muted-foreground" onClick={() => {
+              setFilterOrigem('_all'); setFilterDestino('_all'); setFilterRegiao('_all'); setSearch(''); setPage(0);
+            }}>
+              <X className="w-3 h-3" /> Limpar filtros
+            </Button>
+          )}
           <Button size="sm" onClick={() => { resetForm(); setShowAddDialog(true); }} className="gap-1.5 h-8">
             <Plus className="w-3.5 h-3.5" /> Rota
           </Button>
@@ -511,14 +582,8 @@ const AdminTabelaPrecos: React.FC = () => {
             <DialogDescription>Defina a origem, destino e valor da nova rota.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
-            <div>
-              <Label className="text-xs">Origem</Label>
-              <Input value={formOrigem} onChange={(e) => setFormOrigem(e.target.value)} placeholder="Ex: Centro do Cabo" />
-            </div>
-            <div>
-              <Label className="text-xs">Destino</Label>
-              <Input value={formDestino} onChange={(e) => setFormDestino(e.target.value)} placeholder="Ex: Boa Viagem" />
-            </div>
+            <AutocompleteInput label="Origem" value={formOrigem} onChange={setFormOrigem} placeholder="Ex: Centro do Cabo" />
+            <AutocompleteInput label="Destino" value={formDestino} onChange={setFormDestino} placeholder="Ex: Boa Viagem" />
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label className="text-xs">Valor (R$)</Label>
@@ -555,14 +620,8 @@ const AdminTabelaPrecos: React.FC = () => {
             <DialogDescription>Altere os dados da rota selecionada.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
-            <div>
-              <Label className="text-xs">Origem</Label>
-              <Input value={formOrigem} onChange={(e) => setFormOrigem(e.target.value)} />
-            </div>
-            <div>
-              <Label className="text-xs">Destino</Label>
-              <Input value={formDestino} onChange={(e) => setFormDestino(e.target.value)} />
-            </div>
+            <AutocompleteInput label="Origem" value={formOrigem} onChange={setFormOrigem} />
+            <AutocompleteInput label="Destino" value={formDestino} onChange={setFormDestino} />
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label className="text-xs">Valor (R$)</Label>
