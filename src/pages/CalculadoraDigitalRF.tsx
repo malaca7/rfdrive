@@ -551,12 +551,12 @@ const CalculadoraDigitalRF: React.FC = () => {
 
         {/* Footer */}
         <div className="text-center py-4 space-y-1.5">
-          <a
-            href="#/auth"
+          <button
+            onClick={() => { window.location.hash = '/auth'; }}
             className="text-[11px] text-white/30 hover:text-[hsl(22_100%_55%)] transition-colors underline underline-offset-2"
           >
             Painel Administrativo
-          </a>
+          </button>
           <p className="text-[10px] text-white/25">
             RF Driver © {new Date().getFullYear()} — Calculadora Digital
           </p>
