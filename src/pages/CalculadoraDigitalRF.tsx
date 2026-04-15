@@ -105,7 +105,7 @@ const CalculadoraDigitalRF: React.FC = () => {
     const dataStr = agora.toLocaleDateString('pt-BR');
     const horaStr = agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
-    let msg = `🚗 *SOLICITAÇÃO DE CORRIDA - RF Driver*\n`;
+    let msg = `🚗 *VIAGENS - RF Driver*\n`;
     msg += `━━━━━━━━━━━━━━━━━━━━━\n\n`;
     msg += `📍 *Origem:* ${o}\n`;
     msg += `🏁 *Destino:* ${d}\n`;
