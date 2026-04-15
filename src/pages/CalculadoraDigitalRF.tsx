@@ -109,16 +109,24 @@ const CalculadoraDigitalRF: React.FC = () => {
     msg += `━━━━━━━━━━━━━━━━━━━━━\n\n`;
     msg += `📍 *Origem:* ${o}\n`;
     msg += `🏁 *Destino:* ${d}\n`;
-    if (temBagagem) msg += `📦 *Bagagem/Feira:* Sim\n`;
-    msg += `\n`;
+    msg += `\n━━━━━━━━━━━━━━━━━━━━━\n\n`;
     if (valorFinal != null) {
-      msg += `💰 *Valor: R$ ${valorFinal.toFixed(2).replace('.', ',')}*\n`;
-      if (dynamicAdj) msg += `⏰ ${dynamicAdj.label}\n`;
-      if (temBagagem) msg += `📦 +R$ ${(configTarifas?.taxa_bagagem ?? 5).toFixed(2).replace('.', ',')} (bagagem)\n`;
+      // Valor base da corrida (sem adicionais de horário e bagagem)
+      const valorCorrida = precoTabela?.valor ?? (precoDinamico?.preco_final ?? 0);
+      const taxaBagagem = configTarifas?.taxa_bagagem ?? 5;
+      msg += `💰 Valor Corrida: R$ ${valorCorrida.toFixed(2).replace('.', ',')} \n`;
+      if (dynamicAdj) {
+        const ajusteValor = dynamicAdj.aplicar(valorCorrida) - valorCorrida;
+        msg += `_🌙 +R$ ${ajusteValor.toFixed(2).replace('.', ',')} ${dynamicAdj.regra.nome}_\n`;
+      }
+      if (temBagagem) msg += `_🛒 +R$ ${taxaBagagem.toFixed(2).replace('.', ',')} Adicional Bagagem/Feira_\n`;
+      msg += `\n`;
+      msg += `💵 *Total: R$ ${valorFinal.toFixed(2).replace('.', ',')}*\n`;
     }
-    msg += `\n📅 ${dataStr} às ${horaStr}\n`;
+    msg += `\n━━━━━━━━━━━━━━━━━━━━━\n`;
+    msg += `📅 ${dataStr} às ${horaStr} \n`;
     msg += `━━━━━━━━━━━━━━━━━━━━━\n`;
-    msg += `_Calculadora Digital RF Driver_`;
+    msg += `_Calculadora Digital - RF Driver_`;
 
     setMensagemGerada(msg);
     return msg;
@@ -412,12 +420,7 @@ const CalculadoraDigitalRF: React.FC = () => {
                                 </p>
                               </div>
                             </div>
-                            <div className="bg-white/[0.03] border border-white/[0.06] rounded-lg px-3 py-2 space-y-0.5">
-                              <p className="text-[10px] text-white/40">Correspondência na tabela:</p>
-                              <p className="text-xs text-white/60">
-                                {precoTabela.origem_tabela} → {precoTabela.destino_tabela}
-                              </p>
-                            </div>
+
                             {dynamicAdj && (() => {
                               const _cor = dynamicAdj.regra.cor || '#8b5cf6';
                               return (
