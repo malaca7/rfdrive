@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { useRealtimeSync } from "@/hooks/useRealtimeSync";
+import { useDispatchEngine } from "@/hooks/useDispatchEngine";
 import React, { Suspense } from "react";
 
 // Lazy-load pages — each becomes a separate chunk
@@ -35,6 +36,10 @@ const AppRoutes = () => {
   const { user, activeScreen, loading, roles } = useAuth();
   useRealtimeSync();
 
+  // Etapa 19: Dispatch engine runs when admin is logged in
+  const isAdmin = !loading && user && (user.tipo === 'admin' || roles.includes('admin'));
+  useDispatchEngine(!!isAdmin);
+
   if (loading) {
     return <PageLoader />;
   }
@@ -49,7 +54,6 @@ const AppRoutes = () => {
     );
   }
 
-  const isAdmin = user.tipo === 'admin' || roles.includes('admin');
   const effectiveScreen = isAdmin && activeScreen === 'admin' ? 'admin' : activeScreen;
 
   return (

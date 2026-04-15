@@ -411,6 +411,84 @@ export type Database = {
         }
         Relationships: []
       }
+      ofertas_corrida: {
+        Row: {
+          id: string
+          corrida_id: string
+          motorista_id: string
+          status: "enviada" | "aceita" | "recusada" | "expirada" | "cancelada"
+          rodada_disparo: number
+          score_ranking: number | null
+          distancia_km: number | null
+          enviado_em: string
+          respondido_em: string | null
+          tempo_resposta_segundos: number | null
+          motivo_rodada: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          corrida_id: string
+          motorista_id: string
+          status?: "enviada" | "aceita" | "recusada" | "expirada" | "cancelada"
+          rodada_disparo?: number
+          score_ranking?: number | null
+          distancia_km?: number | null
+          enviado_em?: string
+          respondido_em?: string | null
+          tempo_resposta_segundos?: number | null
+          motivo_rodada?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          corrida_id?: string
+          motorista_id?: string
+          status?: "enviada" | "aceita" | "recusada" | "expirada" | "cancelada"
+          rodada_disparo?: number
+          score_ranking?: number | null
+          distancia_km?: number | null
+          enviado_em?: string
+          respondido_em?: string | null
+          tempo_resposta_segundos?: number | null
+          motivo_rodada?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      metricas_motorista: {
+        Row: {
+          id: string
+          motorista_id: string
+          media_tempo_aceite: number
+          total_corridas_aceitas: number
+          total_corridas_recusadas: number
+          total_corridas_expiradas: number
+          taxa_aceite: number
+          atualizado_em: string
+        }
+        Insert: {
+          id?: string
+          motorista_id: string
+          media_tempo_aceite?: number
+          total_corridas_aceitas?: number
+          total_corridas_recusadas?: number
+          total_corridas_expiradas?: number
+          taxa_aceite?: number
+          atualizado_em?: string
+        }
+        Update: {
+          id?: string
+          motorista_id?: string
+          media_tempo_aceite?: number
+          total_corridas_aceitas?: number
+          total_corridas_recusadas?: number
+          total_corridas_expiradas?: number
+          taxa_aceite?: number
+          atualizado_em?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

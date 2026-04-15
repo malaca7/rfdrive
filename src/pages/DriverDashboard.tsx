@@ -33,6 +33,8 @@ import { usePrecoTabela, useAllLocations } from '@/hooks/usePrecoTabela';
 import { useDriverAvailability } from '@/hooks/useDriverAvailability';
 import { useDriverLocation } from '@/hooks/useDriverLocation';
 import { useRideTracking } from '@/hooks/useRideTracking';
+import { useDriverOffers } from '@/hooks/useDriverOffers';
+import { DriverOffersList } from '@/components/DriverOfferCard';
 
 type Corrida = {
   id: string;
@@ -88,6 +90,9 @@ const DriverDashboard: React.FC = () => {
 
   // ── Etapa 10: Tracking de corrida ──
   const rideTracking = useRideTracking(user?.id);
+
+  // ── Etapa 20: Ofertas de corrida (despacho automático) ──
+  const driverOffers = useDriverOffers(user?.id);
 
 
   // ── Autocomplete locations (reativo) ──
@@ -840,6 +845,18 @@ const DriverDashboard: React.FC = () => {
 
           {/* AVAILABLE RIDES */}
           <TabsContent value="disponiveis">
+            {/* ── Ofertas de Despacho Automático ── */}
+            {driverOffers.hasOffers && (
+              <div className="mb-4">
+                <DriverOffersList
+                  offers={driverOffers.offers}
+                  onAccept={driverOffers.handleAccept}
+                  onDecline={driverOffers.handleDecline}
+                  accepting={driverOffers.accepting}
+                  declining={driverOffers.declining}
+                />
+              </div>
+            )}
             {loadingPending ? (
               <div className="flex justify-center py-12">
                 <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />

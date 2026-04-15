@@ -74,6 +74,17 @@ export function useRealtimeSync() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'localizacao_motorista' }, () => {
         qc.invalidateQueries({ queryKey: ['admin-drivers-tracking'] });
       })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'ofertas_corrida' }, () => {
+        qc.invalidateQueries({ queryKey: ['driver-offers'] });
+        qc.invalidateQueries({ queryKey: ['admin-dispatch'] });
+        qc.invalidateQueries({ queryKey: ['dispatch-offers'] });
+        qc.invalidateQueries({ queryKey: ['pending-rides'] });
+        qc.invalidateQueries({ queryKey: ['active-ride'] });
+        qc.invalidateQueries({ queryKey: ['my-active-rides'] });
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'metricas_motorista' }, () => {
+        qc.invalidateQueries({ queryKey: ['admin-driver-metrics'] });
+      })
       .subscribe();
 
     return () => {
