@@ -16,7 +16,7 @@ import {
 
 type Ride = {
   id: string; status: string; valor: number | null; valor_estimado: number | null;
-  created_at: string; concluida_at: string | null; canal_origem: string;
+  created_at: string; concluida_at: string | null;
   origem_texto: string; destino_texto: string; motorista_id: string | null; cliente_id: string;
 };
 type UserRecord = {
@@ -54,7 +54,7 @@ const AdminDashboardPage: React.FC = () => {
   const { data: rides = [], isLoading: loadingRides } = useQuery({
     queryKey: ['admin-rides-dashboard'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('corridas').select('id, status, valor, valor_estimado, created_at, concluida_at, canal_origem, origem_texto, destino_texto, motorista_id, cliente_id').order('created_at', { ascending: false });
+      const { data, error } = await supabase.from('corridas').select('id, status, valor, valor_estimado, created_at, concluida_at, origem_texto, destino_texto, motorista_id, cliente_id').order('created_at', { ascending: false });
       if (error) throw error;
       return (data || []) as Ride[];
     },
@@ -110,8 +110,6 @@ const AdminDashboardPage: React.FC = () => {
     const naoRealizadas = filteredRides.filter(r => r.status === 'nao_realizada');
     const receitaTotal = aprovadas.reduce((sum, r) => sum + (r.valor || 0), 0);
     const receitaEstimada = filteredRides.reduce((sum, r) => sum + (r.valor_estimado || r.valor || 0), 0);
-    const whatsapp = filteredRides.filter(r => r.canal_origem === 'whatsapp').length;
-    const app = filteredRides.filter(r => r.canal_origem === 'app').length;
 
     // Admin vs common user rides
     const adminIds = new Set(users.filter(u => u.roles?.includes('admin') || u.tipo === 'admin').map(u => u.id));
@@ -121,7 +119,7 @@ const AdminDashboardPage: React.FC = () => {
     return {
       total, aprovadas: aprovadas.length, emAnalise: emAnalise.length,
       recusadas: recusadas.length, naoRealizadas: naoRealizadas.length,
-      receitaTotal, receitaEstimada, whatsapp, app,
+      receitaTotal, receitaEstimada,
       corridasAdmin: corridasAdmin.length, corridasComum: corridasComum.length,
       receitaAdmin: corridasAdmin.filter(r => r.status === 'aprovada').reduce((s, r) => s + (r.valor || 0), 0),
       receitaComum: corridasComum.filter(r => r.status === 'aprovada').reduce((s, r) => s + (r.valor || 0), 0),
@@ -215,27 +213,6 @@ const AdminDashboardPage: React.FC = () => {
               </Card>
             ))}
           </div>
-
-          {/* ── Canal de Origem ── */}
-          <Card>
-            <CardContent className="py-4">
-              <h3 className="text-sm font-semibold mb-3 flex items-center gap-2"><Activity className="w-4 h-4 text-accent" /> Origem das Corridas</h3>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                {[
-                  { label: 'Via WhatsApp', value: stats.whatsapp, color: 'text-green-400', icon: <Car className="w-3.5 h-3.5" /> },
-                  { label: 'Via App', value: stats.app, color: 'text-blue-400', icon: <Car className="w-3.5 h-3.5" /> },
-                ].map(s => (
-                  <div key={s.label} className="flex items-center gap-2 bg-muted/30 rounded-lg p-3">
-                    <span className={s.color}>{s.icon}</span>
-                    <div>
-                      <p className={`text-sm font-bold ${s.color}`}>{s.value}</p>
-                      <p className="text-[10px] text-muted-foreground">{s.label}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
 
           {/* ── Admin vs Motorista Comparação ── */}
           <Card>

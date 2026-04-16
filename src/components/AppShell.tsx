@@ -22,7 +22,7 @@ const SCREEN_CONFIG: Record<string, { label: string; icon: React.ReactNode; acti
 
 const MOTORISTA_NAV = [
   { path: '/motorista/dashboard', label: 'Dashboard', icon: <BarChart3 className="w-5 h-5" /> },
-  { path: '/motorista/viagens', label: 'Viagens', icon: <Calculator className="w-5 h-5" /> },
+  { path: '/motorista/viagens', label: 'Registrar', icon: <Calculator className="w-5 h-5" /> },
   { path: '/motorista/dashboardall', label: 'Geral', icon: <Trophy className="w-5 h-5" /> },
   { path: '/motorista/credencial', label: 'Credencial', icon: <IdCard className="w-5 h-5" /> },
   { path: '/motorista/editperfil', label: 'Perfil', icon: <UserCog className="w-5 h-5" /> },
@@ -68,6 +68,13 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                 <p className="text-[10px] text-white/40 capitalize">{activeScreen}</p>
               )}
             </div>
+            {profile?.avatar_url ? (
+              <img src={profile.avatar_url} alt="" className="w-9 h-9 rounded-2xl object-cover border border-white/10" />
+            ) : (
+              <div className="w-9 h-9 rounded-2xl bg-accent/20 flex items-center justify-center text-accent font-bold text-sm">
+                {(profile?.nome || '?')[0].toUpperCase()}
+              </div>
+            )}
             <button
               onClick={signOut}
               className="w-9 h-9 rounded-2xl flex items-center justify-center text-white/40 hover:text-red-400 hover:bg-red-500/10 transition-all"

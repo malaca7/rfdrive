@@ -208,7 +208,6 @@ const RideRequestForm: React.FC = () => {
         origem_texto: o,
         destino_texto: d,
         status: 'aprovada' as const,
-        canal_origem: 'app' as const,
         distancia_km,
         valor_estimado,
         preco_regra_aplicada,
@@ -225,7 +224,6 @@ const RideRequestForm: React.FC = () => {
           origem_texto: o,
           destino_texto: d,
           status: 'aprovada',
-          canal_origem: 'app',
           distancia_km,
           valor_estimado,
         }).select('id').single();

@@ -77,7 +77,6 @@ export type Database = {
           edicao_pendente: boolean
           edicao_aprovada: boolean | null
           concluida_at: string | null
-          canal_origem: "whatsapp" | "app"
           origem_audio_url: string | null
           observacoes: string | null
           confianca_ia: number | null
@@ -106,7 +105,6 @@ export type Database = {
           edicao_pendente?: boolean
           edicao_aprovada?: boolean | null
           concluida_at?: string | null
-          canal_origem?: "whatsapp" | "app"
           origem_audio_url?: string | null
           observacoes?: string | null
           confianca_ia?: number | null
@@ -135,7 +133,6 @@ export type Database = {
           edicao_pendente?: boolean
           edicao_aprovada?: boolean | null
           concluida_at?: string | null
-          canal_origem?: "whatsapp" | "app"
           origem_audio_url?: string | null
           observacoes?: string | null
           confianca_ia?: number | null

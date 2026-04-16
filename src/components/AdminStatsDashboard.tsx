@@ -15,7 +15,6 @@ type Ride = {
   valor_estimado: number | null;
   created_at: string;
   concluida_at: string | null;
-  canal_origem: string;
   origem_texto: string;
   destino_texto: string;
   motorista_id: string | null;
@@ -48,7 +47,6 @@ interface AdminStatsProps {
 const AdminStatsDashboard: React.FC<AdminStatsProps> = ({ rides, users }) => {
   const [periodo, setPeriodo] = useState<string>('todos');
   const [statusFilter, setStatusFilter] = useState<string>('todos');
-  const [canalFilter, setCanalFilter] = useState<string>('todos');
 
   // Filtered rides based on selected filters
   const filteredRides = useMemo(() => {
@@ -73,15 +71,10 @@ const AdminStatsDashboard: React.FC<AdminStatsProps> = ({ rides, users }) => {
       result = result.filter(r => r.status === statusFilter);
     }
 
-    // Canal filter
-    if (canalFilter !== 'todos') {
-      result = result.filter(r => r.canal_origem === canalFilter);
-    }
-
     return result;
-  }, [rides, periodo, statusFilter, canalFilter]);
+  }, [rides, periodo, statusFilter]);
 
-  const hasFilters = periodo !== 'todos' || statusFilter !== 'todos' || canalFilter !== 'todos';
+  const hasFilters = periodo !== 'todos' || statusFilter !== 'todos';
 
   const stats = useMemo(() => {
     const now = new Date();
@@ -229,20 +222,9 @@ const AdminStatsDashboard: React.FC<AdminStatsProps> = ({ rides, users }) => {
               </SelectContent>
             </Select>
 
-            <Select value={canalFilter} onValueChange={setCanalFilter}>
-              <SelectTrigger className="w-[130px] h-8 text-xs">
-                <SelectValue placeholder="Canal" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos Canais</SelectItem>
-                <SelectItem value="whatsapp">WhatsApp</SelectItem>
-                <SelectItem value="app">App</SelectItem>
-              </SelectContent>
-            </Select>
-
             {hasFilters && (
               <button
-                onClick={() => { setPeriodo('todos'); setStatusFilter('todos'); setCanalFilter('todos'); }}
+                onClick={() => { setPeriodo('todos'); setStatusFilter('todos'); }}
                 className="flex items-center gap-1 text-xs text-muted-foreground hover:text-accent transition-colors"
               >
                 <RotateCcw className="w-3 h-3" />

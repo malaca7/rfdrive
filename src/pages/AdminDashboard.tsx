@@ -57,7 +57,6 @@ type Solicitacao = {
   valor_estimado: number | null;
   distancia_km: number | null;
   observacao_motorista: string | null;
-  canal_origem: string;
   observacoes: string | null;
   confianca_ia: number | null;
   created_at: string;
@@ -607,8 +606,6 @@ const AdminDashboard: React.FC = () => {
     const matchSearch = !searchTerm || [
       r.origem_texto,
       r.destino_texto,
-      r.cliente?.nome,
-      r.cliente?.telefone,
       r.motorista?.nome,
     ].some(f => f?.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').includes(
       searchTerm.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
@@ -637,8 +634,6 @@ const AdminDashboard: React.FC = () => {
     aceitas: rides?.filter(r => r.status === 'aceita').length || 0,
     emAnalise: rides?.filter(r => r.status === 'em_analise').length || 0,
     aprovadas: rides?.filter(r => r.status === 'aprovada').length || 0,
-    whatsapp: rides?.filter(r => r.canal_origem === 'whatsapp').length || 0,
-    app: rides?.filter(r => r.canal_origem === 'app').length || 0,
     motoristas: users?.filter(u => u.tipo === 'motorista').length || 0,
     clientes: users?.filter(u => u.tipo === 'cliente').length || 0,
     totalUsers: users?.length || 0,
@@ -748,13 +743,6 @@ const AdminDashboard: React.FC = () => {
                                   {cfg.icon}
                                   {cfg.label}
                                 </Badge>
-                                <Badge variant="outline" className="text-xs gap-1">
-                                  {ride.canal_origem === 'whatsapp' ? (
-                                    <><MessageSquare className="w-3 h-3 text-green-400" /> WhatsApp</>
-                                  ) : (
-                                    <><Globe className="w-3 h-3 text-blue-400" /> App</>
-                                  )}
-                                </Badge>
                                 {ride.confianca_ia != null && (
                                   <Badge variant="outline" className="text-[10px]">
                                     IA: {Math.round(ride.confianca_ia * 100)}%
@@ -768,13 +756,8 @@ const AdminDashboard: React.FC = () => {
                               </span>
                             </div>
 
-                            {/* Client & Driver info */}
+                            {/* Driver info */}
                             <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6">
-                              <div className="flex items-center gap-2">
-                                <User className="w-3.5 h-3.5 text-muted-foreground" />
-                                <span className="text-sm font-medium">{ride.cliente?.nome || 'Desconhecido'}</span>
-                                <span className="text-xs text-muted-foreground">{ride.cliente?.telefone}</span>
-                              </div>
                               {ride.motorista && (
                                 <div className="flex items-center gap-2">
                                   <Car className="w-3.5 h-3.5 text-accent" />
@@ -891,7 +874,7 @@ const AdminDashboard: React.FC = () => {
                               <Button
                                 size="sm" variant="outline"
                                 className="text-xs gap-1 text-red-400 border-red-500/30 hover:bg-red-500/10 ml-auto"
-                                onClick={() => confirmDelete('ride', ride.id, `Corrida de ${ride.cliente?.nome || 'cliente'}`)}
+                                onClick={() => confirmDelete('ride', ride.id, `Corrida #${ride.id.slice(0,8)}`)}
                               >
                                 <Trash2 className="w-3 h-3" /> Excluir
                               </Button>
@@ -1174,11 +1157,6 @@ const AdminDashboard: React.FC = () => {
           {selectedRide && (
             <div className="space-y-4 py-2">
               <div className="bg-muted/50 rounded-lg p-3 space-y-2">
-                <div className="flex items-center gap-2 text-sm">
-                  <User className="w-3.5 h-3.5 text-muted-foreground" />
-                  <span className="font-medium">{selectedRide.cliente?.nome}</span>
-                  <span className="text-xs text-muted-foreground">{selectedRide.cliente?.telefone}</span>
-                </div>
                 <div className="flex items-center gap-2 text-sm">
                   <div className="w-2 h-2 rounded-full bg-green-500" />
                   <span>{selectedRide.origem_texto}</span>
@@ -1630,16 +1608,8 @@ const AdminDashboard: React.FC = () => {
                 </Badge>
               </div>
 
-              {/* Channel */}
+              {/* Channel - removed */}
               <div className="flex items-center gap-2">
-                <span className="text-xs text-muted-foreground">Canal:</span>
-                <Badge variant="outline" className="gap-1">
-                  {selectedRide.canal_origem === 'whatsapp' ? (
-                    <><MessageSquare className="w-3 h-3 text-green-400" /> WhatsApp</>
-                  ) : (
-                    <><Globe className="w-3 h-3 text-blue-400" /> App</>
-                  )}
-                </Badge>
                 {selectedRide.confianca_ia != null && (
                   <Badge variant="outline" className="text-xs">
                     Confiança IA: {Math.round(selectedRide.confianca_ia * 100)}%
@@ -1648,17 +1618,6 @@ const AdminDashboard: React.FC = () => {
               </div>
 
               <Separator />
-
-              {/* Client info */}
-              <div>
-                <p className="text-xs text-muted-foreground mb-2 font-medium">CLIENTE</p>
-                <div className="bg-muted/50 rounded-lg p-3 space-y-1">
-                  <p className="text-sm font-medium">{selectedRide.cliente?.nome}</p>
-                  <p className="text-xs text-muted-foreground flex items-center gap-1">
-                    <Phone className="w-3 h-3" /> {selectedRide.cliente?.telefone}
-                  </p>
-                </div>
-              </div>
 
               {/* Driver info */}
               {selectedRide.motorista && (

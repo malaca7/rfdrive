@@ -36,7 +36,6 @@ type Solicitacao = {
   valor_estimado: number | null;
   distancia_km: number | null;
   observacao_motorista: string | null;
-  canal_origem: string;
   observacoes: string | null;
   confianca_ia: number | null;
   created_at: string;
@@ -217,7 +216,7 @@ const AdminCorridas: React.FC = () => {
   // ── Filtering ──
   const filteredRides = rides?.filter((r) => {
     const matchStatus = statusFilter === 'all' || r.status === statusFilter;
-    const matchSearch = !searchTerm || [r.origem_texto, r.destino_texto, r.cliente?.nome, r.cliente?.telefone, r.motorista?.nome]
+    const matchSearch = !searchTerm || [r.origem_texto, r.destino_texto, r.motorista?.nome]
       .some(f => f?.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').includes(searchTerm.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')));
     return matchStatus && matchSearch;
   });
@@ -294,18 +293,10 @@ const AdminCorridas: React.FC = () => {
                       <div className="flex items-center justify-between flex-wrap gap-2">
                         <div className="flex items-center gap-2">
                           <Badge variant="outline" className={`text-xs gap-1 ${cfg.color}`}>{cfg.icon}{cfg.label}</Badge>
-                          <Badge variant="outline" className="text-xs gap-1">
-                            {ride.canal_origem === 'whatsapp' ? <><MessageSquare className="w-3 h-3 text-green-400" /> WhatsApp</> : <><Globe className="w-3 h-3 text-blue-400" /> App</>}
-                          </Badge>
                         </div>
                         <span className="text-xs text-muted-foreground">{new Date(ride.created_at).toLocaleString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
                       </div>
                       <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6">
-                        <div className="flex items-center gap-2">
-                          <User className="w-3.5 h-3.5 text-muted-foreground" />
-                          <span className="text-sm font-medium">{ride.cliente?.nome || 'Desconhecido'}</span>
-                          <span className="text-xs text-muted-foreground">{ride.cliente?.telefone}</span>
-                        </div>
                         {ride.motorista && (
                           <div className="flex items-center gap-2">
                             <Car className="w-3.5 h-3.5 text-accent" />

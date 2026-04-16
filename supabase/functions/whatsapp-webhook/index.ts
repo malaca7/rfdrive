@@ -257,7 +257,6 @@ async function handleMessage(phone: string, text: string, messageId: string) {
       destino_texto: parsed.destino,
       horario_estimado: parsed.horario || null,
       status: "nova",
-      canal_origem: "whatsapp",
       whatsapp_message_id: messageId,
       confianca_ia: parsed.origem && parsed.destino ? 0.9 : 0.5,
     })
@@ -356,7 +355,7 @@ serve(async (req) => {
       const { data: latestRide } = await supabase
         .from("corridas")
         .select("*")
-        .eq("canal_origem", "whatsapp")
+        .not("whatsapp_message_id", "is", null)
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();

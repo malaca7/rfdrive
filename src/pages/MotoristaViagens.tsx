@@ -142,7 +142,6 @@ const MotoristaViagens: React.FC = () => {
         valor: totalValue,
         valor_estimado: totalValue,
         status: 'em_analise',
-        canal_origem: 'app',
         observacao_motorista: observacao.trim() || null,
         concluida_at: new Date().toISOString(),
         tem_bagagem: temBagagem || null,
@@ -207,8 +206,8 @@ const MotoristaViagens: React.FC = () => {
               <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-accent/10 mx-auto">
                 <Calculator className="w-6 h-6 text-accent" />
               </div>
-              <h2 className="text-[clamp(1.1rem,3.5vw,1.35rem)] font-bold">Calcular Viagem</h2>
-              <p className="text-xs text-muted-foreground">Consulte valor e registre a viagem</p>
+              <h2 className="text-[clamp(1.1rem,3.5vw,1.35rem)] font-bold">Registrar Viagem</h2>
+              <p className="text-xs text-muted-foreground">Registre viagens e faça orçamentos</p>
             </div>
 
             {/* Origem */}

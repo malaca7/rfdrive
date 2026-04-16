@@ -44,7 +44,6 @@ type Corrida = {
   destino_texto: string;
   horario_estimado: string | null;
   status: 'nova' | 'aguardando_motorista' | 'aceita' | 'a_caminho' | 'em_corrida' | 'em_analise' | 'aprovada' | 'nao_realizada' | 'recusada' | 'finalizada';
-  canal_origem: 'whatsapp' | 'app';
   valor: number | null;
   distancia_km: number | null;
   valor_estimado: number | null;
@@ -59,7 +58,6 @@ type Corrida = {
   preco_regra_aplicada: string | null;
   preco_detalhes: Record<string, unknown> | null;
   tem_bagagem: boolean | null;
-  cliente?: { nome: string; telefone: string } | null;
 };
 
 const DriverDashboard: React.FC = () => {
@@ -129,17 +127,7 @@ const DriverDashboard: React.FC = () => {
         .eq('status', 'aguardando_motorista')
         .order('created_at', { ascending: false });
       if (error) throw error;
-      const enriched = await Promise.all(
-        (data || []).map(async (ride: any) => {
-          const { data: cliente } = await supabase
-            .from('users')
-            .select('nome, telefone')
-            .eq('id', ride.cliente_id)
-            .single();
-          return { ...ride, cliente } as Corrida;
-        })
-      );
-      return enriched;
+      return (data || []) as Corrida[];
     },
     staleTime: 0,
     refetchInterval: 1000,
@@ -155,17 +143,7 @@ const DriverDashboard: React.FC = () => {
         .in('status', ['aceita', 'a_caminho', 'em_corrida'])
         .order('created_at', { ascending: false });
       if (error) throw error;
-      const enriched = await Promise.all(
-        (data || []).map(async (ride: any) => {
-          const { data: cliente } = await supabase
-            .from('users')
-            .select('nome, telefone')
-            .eq('id', ride.cliente_id)
-            .single();
-          return { ...ride, cliente } as Corrida;
-        })
-      );
-      return enriched;
+      return (data || []) as Corrida[];
     },
     enabled: !!user,
     staleTime: 0,
@@ -183,17 +161,7 @@ const DriverDashboard: React.FC = () => {
         .order('concluida_at', { ascending: false })
         .limit(20);
       if (error) throw error;
-      const enriched = await Promise.all(
-        (data || []).map(async (ride: any) => {
-          const { data: cliente } = await supabase
-            .from('users')
-            .select('nome, telefone')
-            .eq('id', ride.cliente_id)
-            .single();
-          return { ...ride, cliente } as Corrida;
-        })
-      );
-      return enriched;
+      return (data || []) as Corrida[];
     },
     enabled: !!user,
     staleTime: 0,
@@ -451,10 +419,6 @@ const DriverDashboard: React.FC = () => {
       <Card className="border-border/50 hover:border-accent/30 transition-colors">
         <CardContent className="py-4 space-y-3">
           <div className="flex items-start justify-between">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <User className="w-3.5 h-3.5" />
-              <span>{ride.cliente?.nome || 'Passageiro'}</span>
-            </div>
             <span className="text-xs text-muted-foreground">
               {new Date(ride.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
             </span>
@@ -523,20 +487,8 @@ const DriverDashboard: React.FC = () => {
     return (
       <Card className="border-accent/30 bg-accent/5">
         <CardContent className="py-4 space-y-4">
-          {/* Client info header */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-accent/20 flex items-center justify-center">
-                <User className="w-5 h-5 text-accent" />
-              </div>
-              <div>
-                <p className="font-semibold text-sm">{ride.cliente?.nome || 'Passageiro'}</p>
-                <p className="text-xs text-muted-foreground flex items-center gap-1">
-                  <Phone className="w-3 h-3" />
-                  {ride.cliente?.telefone || '—'}
-                </p>
-              </div>
-            </div>
+          {/* Status header */}
+          <div className="flex items-center justify-end">
             <Badge className={
               ride.status === 'a_caminho' ? 'bg-blue-500/20 text-blue-400 border-blue-500/30' :
               ride.status === 'em_corrida' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' :
@@ -545,21 +497,6 @@ const DriverDashboard: React.FC = () => {
               {ride.status === 'aceita' ? 'Aceita' : ride.status === 'a_caminho' ? 'Indo buscar' : ride.status === 'em_corrida' ? 'Em corrida' : 'Em andamento'}
             </Badge>
           </div>
-
-          {/* WhatsApp button */}
-          {ride.cliente?.telefone && (
-            <a
-              href={`https://wa.me/55${ride.cliente.telefone.replace(/\D/g, '')}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center justify-center gap-2 w-full py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white font-semibold text-sm transition-colors"
-            >
-              <MessageSquare className="w-4 h-4" />
-              WhatsApp do Cliente
-            </a>
-          )}
-
-          <Separator />
 
           {/* Route info */}
           <div className="space-y-2">
@@ -718,9 +655,6 @@ const DriverDashboard: React.FC = () => {
           <div className="w-1.5 h-1.5 rounded-full bg-accent" />
           <span className="text-xs">{ride.destino_texto}</span>
         </div>
-        {ride.cliente && (
-          <p className="text-xs text-muted-foreground">{ride.cliente.nome}</p>
-        )}
         {ride.observacao_motorista && (
           <p className="text-xs text-muted-foreground italic">"{ride.observacao_motorista}"</p>
         )}
@@ -841,7 +775,7 @@ const DriverDashboard: React.FC = () => {
             </TabsTrigger>
             <TabsTrigger value="calcular" className="flex-1 min-w-[70px] gap-1 text-[11px] sm:text-xs rounded-xl h-10 font-semibold data-[state=active]:bg-[hsl(45_100%_50%)] data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-[hsl(45_100%_50%/0.2)]">
               <Calculator className="w-3.5 h-3.5 shrink-0" />
-              <span className="truncate">Calcular</span>
+              <span className="truncate">Registrar</span>
             </TabsTrigger>
             <TabsTrigger value="cracha" className="flex-1 min-w-[70px] gap-1 text-[11px] sm:text-xs rounded-xl h-10 font-semibold data-[state=active]:bg-[hsl(45_100%_50%)] data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-[hsl(45_100%_50%/0.2)]">
               <IdCard className="w-3.5 h-3.5 shrink-0" />
