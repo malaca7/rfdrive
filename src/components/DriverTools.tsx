@@ -846,28 +846,28 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
     ctx.fillStyle = miniDivGrad;
     ctx.fillRect(LC - miniDivW / 2, 466, miniDivW, 1.5);
 
-    // Rating stars — BIGGER
-    const ratingY = 500;
+    // Rating stars — aligned with plate
+    const ratingY = 530;
     const ratingVal = avgRating?.avg ?? 0;
     const filledStars = Math.round(ratingVal);
 
     const starGrad = nameGrad;
 
     for (let i = 0; i < 5; i++) {
-      const sx = LC - 90 + i * 45;
-      drawStarShape(ctx, sx, ratingY, 22, 9);
+      const sx = LC - 100 + i * 50;
+      drawStarShape(ctx, sx, ratingY, 26, 11);
       ctx.fillStyle = i < filledStars ? starGrad : 'rgba(255,255,255,0.15)';
       ctx.fill();
     }
 
     // Nota text — bigger
     if (avgRating) {
-      ctx.font = `700 34px ${FONT}`;
+      ctx.font = `700 36px ${FONT}`;
       ctx.fillStyle = starGrad;
-      ctx.fillText(ratingVal.toFixed(1), LC, ratingY + 50);
+      ctx.fillText(ratingVal.toFixed(1), LC, ratingY + 54);
       ctx.font = `400 16px ${FONT}`;
       ctx.fillStyle = 'rgba(255,255,255,0.5)';
-      ctx.fillText(`(${avgRating.count} avaliação${avgRating.count !== 1 ? 'ões' : ''})`, LC, ratingY + 72);
+      ctx.fillText(`(${avgRating.count} avaliação${avgRating.count !== 1 ? 'ões' : ''})`, LC, ratingY + 76);
     }
 
     // ═══════════════════════════════════════
