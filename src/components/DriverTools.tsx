@@ -758,7 +758,7 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
       const badgeW = ctx.measureText(badgeText).width + 44;
       const badgeH = 36;
       const badgeX = W / 2 - badgeW / 2;
-      const badgeY = BORDER + topBarH + 10;
+      const badgeY = BORDER + topBarH + 30;
 
       // Neon glow aura
       ctx.save();
