@@ -8,8 +8,8 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import AdminLayout from '@/components/AdminLayout';
 import {
-  Settings, DollarSign, Save, Loader2, Calendar,
-  Shield, Clock, AlertTriangle, CheckCircle,
+  Settings, DollarSign, Save, Loader2,
+  Shield, AlertTriangle, CheckCircle, Palette,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
@@ -17,18 +17,18 @@ type ConfigPlataforma = {
   id: string;
   taxa_semanal_motorista: number;
   nome_plataforma: string;
-  telefone_suporte: string;
-  horario_funcionamento_inicio: string;
-  horario_funcionamento_fim: string;
+  cor_primaria: string;
+  cor_secundaria: string;
+  cor_terciaria: string;
   updated_at: string;
 };
 
 const DEFAULT_CONFIG: Omit<ConfigPlataforma, 'id' | 'updated_at'> = {
   taxa_semanal_motorista: 0,
   nome_plataforma: 'RF Drive',
-  telefone_suporte: '',
-  horario_funcionamento_inicio: '06:00',
-  horario_funcionamento_fim: '22:00',
+  cor_primaria: '#FFD000',
+  cor_secundaria: '#0a0a0a',
+  cor_terciaria: '#ffffff',
 };
 
 const AdminConfig: React.FC = () => {
@@ -57,9 +57,9 @@ const AdminConfig: React.FC = () => {
       setForm({
         taxa_semanal_motorista: config.taxa_semanal_motorista ?? 0,
         nome_plataforma: config.nome_plataforma ?? 'RF Drive',
-        telefone_suporte: config.telefone_suporte ?? '',
-        horario_funcionamento_inicio: config.horario_funcionamento_inicio ?? '06:00',
-        horario_funcionamento_fim: config.horario_funcionamento_fim ?? '22:00',
+        cor_primaria: (config as any).cor_primaria ?? '#FFD000',
+        cor_secundaria: (config as any).cor_secundaria ?? '#0a0a0a',
+        cor_terciaria: (config as any).cor_terciaria ?? '#ffffff',
       });
       setHasChanges(false);
     }
@@ -134,38 +134,38 @@ const AdminConfig: React.FC = () => {
           color: 'text-accent',
           bgColor: 'bg-accent/10 border-accent/20',
         },
-        {
-          key: 'telefone_suporte',
-          label: 'Telefone de Suporte',
-          desc: 'Número de contato para suporte via WhatsApp.',
-          type: 'tel' as const,
-          placeholder: '(99) 99999-9999',
-          color: 'text-blue-400',
-          bgColor: 'bg-blue-500/10 border-blue-500/20',
-        },
       ],
     },
     {
-      title: 'Horário de Funcionamento',
-      icon: <Clock className="w-4 h-4 text-purple-400" />,
+      title: 'Cores do Tema',
+      icon: <Palette className="w-4 h-4 text-purple-400" />,
       items: [
         {
-          key: 'horario_funcionamento_inicio',
-          label: 'Início',
-          desc: 'Horário de início do funcionamento da plataforma.',
-          type: 'time' as const,
-          placeholder: '06:00',
+          key: 'cor_primaria',
+          label: 'Cor Primária',
+          desc: 'Cor principal do tema (botões, destaques).',
+          type: 'color' as const,
+          placeholder: '#FFD000',
+          color: 'text-yellow-400',
+          bgColor: 'bg-yellow-500/10 border-yellow-500/20',
+        },
+        {
+          key: 'cor_secundaria',
+          label: 'Cor Secundária',
+          desc: 'Cor de fundo principal do site.',
+          type: 'color' as const,
+          placeholder: '#0a0a0a',
           color: 'text-purple-400',
           bgColor: 'bg-purple-500/10 border-purple-500/20',
         },
         {
-          key: 'horario_funcionamento_fim',
-          label: 'Fim',
-          desc: 'Horário de encerramento do funcionamento.',
-          type: 'time' as const,
-          placeholder: '22:00',
-          color: 'text-purple-400',
-          bgColor: 'bg-purple-500/10 border-purple-500/20',
+          key: 'cor_terciaria',
+          label: 'Cor Terciária',
+          desc: 'Cor de texto e elementos secundários.',
+          type: 'color' as const,
+          placeholder: '#ffffff',
+          color: 'text-blue-400',
+          bgColor: 'bg-blue-500/10 border-blue-500/20',
         },
       ],
     },
@@ -201,15 +201,33 @@ const AdminConfig: React.FC = () => {
                             {'prefix' in cfg && cfg.prefix && (
                               <span className="text-xs text-muted-foreground font-medium">{cfg.prefix}</span>
                             )}
-                            <Input
-                              type={cfg.type}
-                              step={cfg.type === 'number' ? '0.01' : undefined}
-                              min={cfg.type === 'number' ? '0' : undefined}
-                              value={(form as any)[cfg.key]}
-                              onChange={e => updateField(cfg.key, cfg.type === 'number' ? e.target.value : e.target.value)}
-                              placeholder={cfg.placeholder}
-                              className={`w-40 ${cfg.type === 'number' ? 'text-right' : ''} font-semibold`}
-                            />
+                            {cfg.type === 'color' ? (
+                              <div className="flex items-center gap-2">
+                                <input
+                                  type="color"
+                                  value={(form as any)[cfg.key] || cfg.placeholder}
+                                  onChange={e => updateField(cfg.key, e.target.value)}
+                                  className="w-10 h-10 rounded-lg border border-border cursor-pointer bg-transparent"
+                                />
+                                <Input
+                                  type="text"
+                                  value={(form as any)[cfg.key]}
+                                  onChange={e => updateField(cfg.key, e.target.value)}
+                                  placeholder={cfg.placeholder}
+                                  className="w-28 font-mono text-sm font-semibold"
+                                />
+                              </div>
+                            ) : (
+                              <Input
+                                type={cfg.type}
+                                step={cfg.type === 'number' ? '0.01' : undefined}
+                                min={cfg.type === 'number' ? '0' : undefined}
+                                value={(form as any)[cfg.key]}
+                                onChange={e => updateField(cfg.key, cfg.type === 'number' ? e.target.value : e.target.value)}
+                                placeholder={cfg.placeholder}
+                                className={`w-40 ${cfg.type === 'number' ? 'text-right' : ''} font-semibold`}
+                              />
+                            )}
                           </div>
                         </div>
                       </div>

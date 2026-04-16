@@ -1,42 +1,84 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import AppShell from '@/components/AppShell';
 import { motion } from 'framer-motion';
 import {
-  ClipboardList, ChevronRight, Loader2, CheckCircle, Clock, XCircle, DollarSign,
+  ClipboardList, ChevronRight, Loader2, CheckCircle, Clock, XCircle, DollarSign, Filter,
 } from 'lucide-react';
 
-type StatusFilter = 'todos' | 'aprovada' | 'em_analise' | 'recusada';
+type PeriodFilter = 'semana' | 'semana_passada' | 'mes' | 'personalizado';
+
+function getWeekRange(): [Date, Date] {
+  const now = new Date();
+  const start = new Date(now);
+  start.setDate(now.getDate() - now.getDay());
+  start.setHours(0, 0, 0, 0);
+  const end = new Date(now);
+  end.setHours(23, 59, 59, 999);
+  return [start, end];
+}
+
+function getLastWeekRange(): [Date, Date] {
+  const now = new Date();
+  const end = new Date(now);
+  end.setDate(now.getDate() - now.getDay() - 1);
+  end.setHours(23, 59, 59, 999);
+  const start = new Date(end);
+  start.setDate(end.getDate() - 6);
+  start.setHours(0, 0, 0, 0);
+  return [start, end];
+}
+
+function getMonthRange(): [Date, Date] {
+  const now = new Date();
+  const start = new Date(now.getFullYear(), now.getMonth(), 1);
+  const end = new Date(now);
+  end.setHours(23, 59, 59, 999);
+  return [start, end];
+}
 
 const MotoristaHistoricoViagens: React.FC = () => {
   const { user } = useAuth();
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>('todos');
+  const [period, setPeriod] = useState<PeriodFilter>('semana');
+  const [customStart, setCustomStart] = useState('');
+  const [customEnd, setCustomEnd] = useState('');
+
+  const dateRange = useMemo((): [Date, Date] | null => {
+    switch (period) {
+      case 'semana': return getWeekRange();
+      case 'semana_passada': return getLastWeekRange();
+      case 'mes': return getMonthRange();
+      case 'personalizado':
+        if (customStart && customEnd) {
+          return [new Date(customStart + 'T00:00:00'), new Date(customEnd + 'T23:59:59')];
+        }
+        return null;
+    }
+  }, [period, customStart, customEnd]);
 
   const { data: viagens, isLoading } = useQuery({
-    queryKey: ['historico-viagens-completo', user?.id],
+    queryKey: ['historico-viagens-completo', user?.id, dateRange?.[0]?.toISOString(), dateRange?.[1]?.toISOString()],
     queryFn: async () => {
+      if (!dateRange) return [];
       const { data, error } = await supabase
         .from('corridas')
         .select('id, origem_texto, destino_texto, valor, status, concluida_at, created_at, observacao_motorista')
         .eq('motorista_id', user!.id)
         .in('status', ['em_analise', 'aprovada', 'finalizada', 'recusada'])
+        .gte('concluida_at', dateRange[0].toISOString())
+        .lte('concluida_at', dateRange[1].toISOString())
         .order('created_at', { ascending: false });
       if (error) throw error;
       return data || [];
     },
-    enabled: !!user,
+    enabled: !!user && !!dateRange,
   });
-
-  const filtered = viagens?.filter(v => {
-    if (statusFilter === 'todos') return true;
-    if (statusFilter === 'aprovada') return v.status === 'aprovada' || v.status === 'finalizada';
-    return v.status === statusFilter;
-  }) || [];
 
   const totalAprovadas = viagens?.filter(v => v.status === 'aprovada' || v.status === 'finalizada').length || 0;
   const totalPendentes = viagens?.filter(v => v.status === 'em_analise').length || 0;
@@ -79,34 +121,49 @@ const MotoristaHistoricoViagens: React.FC = () => {
           ))}
         </div>
 
-        {/* Filters */}
-        <div className="flex gap-2 overflow-x-auto pb-1">
-          {([
-            { key: 'todos' as const, label: 'Todos', count: viagens?.length || 0 },
-            { key: 'aprovada' as const, label: 'Aprovadas', count: totalAprovadas },
-            { key: 'em_analise' as const, label: 'Pendentes', count: totalPendentes },
-            { key: 'recusada' as const, label: 'Recusadas', count: totalRecusadas },
-          ]).map(f => (
-            <Button
-              key={f.key}
-              variant={statusFilter === f.key ? 'default' : 'outline'}
-              size="sm"
-              className={`text-xs rounded-full shrink-0 ${statusFilter === f.key ? 'gradient-accent text-accent-foreground' : ''}`}
-              onClick={() => setStatusFilter(f.key)}
-            >
-              {f.label} ({f.count})
-            </Button>
-          ))}
-        </div>
+        {/* Period Filter */}
+        <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.02 }}>
+          <Card>
+            <CardContent className="py-3 px-[4%] space-y-3">
+              <div className="flex items-center gap-2">
+                <Filter className="w-4 h-4 text-muted-foreground" />
+                <span className="text-sm font-medium">Filtrar Período</span>
+              </div>
+              <Select value={period} onValueChange={(v) => setPeriod(v as PeriodFilter)}>
+                <SelectTrigger className="h-10">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="semana">📅 Esta Semana</SelectItem>
+                  <SelectItem value="semana_passada">📅 Semana Passada</SelectItem>
+                  <SelectItem value="mes">📅 Este Mês</SelectItem>
+                  <SelectItem value="personalizado">📅 Período Personalizado</SelectItem>
+                </SelectContent>
+              </Select>
+              {period === 'personalizado' && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs text-muted-foreground">De</label>
+                    <Input type="date" value={customStart} onChange={e => setCustomStart(e.target.value)} className="h-10" />
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground">Até</label>
+                    <Input type="date" value={customEnd} onChange={e => setCustomEnd(e.target.value)} className="h-10" />
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </motion.div>
 
         {/* Trip List */}
         {isLoading ? (
           <div className="flex justify-center py-12">
             <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
           </div>
-        ) : filtered.length > 0 ? (
+        ) : (viagens?.length || 0) > 0 ? (
           <div className="space-y-2">
-            {filtered.map((ride, idx) => (
+            {viagens!.map((ride, idx) => (
               <motion.div
                 key={ride.id}
                 initial={{ opacity: 0, y: 8 }}
@@ -168,7 +225,7 @@ const MotoristaHistoricoViagens: React.FC = () => {
               <ClipboardList className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
               <p className="text-muted-foreground">Nenhuma viagem encontrada</p>
               <p className="text-xs text-muted-foreground mt-1">
-                {statusFilter !== 'todos' ? 'Tente outro filtro' : 'Registre viagens na aba "Registrar"'}
+                Nenhuma viagem encontrada no período selecionado
               </p>
             </CardContent>
           </Card>

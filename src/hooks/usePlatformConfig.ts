@@ -5,17 +5,17 @@ export type PlatformConfig = {
   id: string;
   nome_plataforma: string;
   taxa_semanal_motorista: number;
-  telefone_suporte: string;
-  horario_funcionamento_inicio: string;
-  horario_funcionamento_fim: string;
+  cor_primaria: string;
+  cor_secundaria: string;
+  cor_terciaria: string;
 };
 
 const DEFAULTS: Omit<PlatformConfig, 'id'> = {
   nome_plataforma: 'RF Drive',
   taxa_semanal_motorista: 0,
-  telefone_suporte: '',
-  horario_funcionamento_inicio: '06:00',
-  horario_funcionamento_fim: '22:00',
+  cor_primaria: '#FFD000',
+  cor_secundaria: '#0a0a0a',
+  cor_terciaria: '#ffffff',
 };
 
 export function usePlatformConfig() {
@@ -37,5 +37,8 @@ export function usePlatformConfig() {
   return {
     config: data,
     nomePlataforma: data?.nome_plataforma || DEFAULTS.nome_plataforma,
+    corPrimaria: (data as any)?.cor_primaria || DEFAULTS.cor_primaria,
+    corSecundaria: (data as any)?.cor_secundaria || DEFAULTS.cor_secundaria,
+    corTerciaria: (data as any)?.cor_terciaria || DEFAULTS.cor_terciaria,
   };
 }

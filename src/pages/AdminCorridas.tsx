@@ -183,6 +183,7 @@ const AdminCorridas: React.FC = () => {
 
   // ── Helpers ──
   const openApprovalDialog = (ride: Solicitacao, action: string) => { setSelectedRide(ride); setApprovalAction(action); setApprovalObs(''); setShowApprovalDialog(true); };
+  const handleDirectApprove = (ride: Solicitacao) => { approvalMutation.mutate({ rideId: ride.id, statusAdmin: 'aprovada', observacao: '' }); };
   const openDetailDialog = async (ride: Solicitacao) => {
     setSelectedRide(ride);
     const { data } = await supabase.from('aprovacoes').select('*').eq('solicitacao_id', ride.id).order('created_at', { ascending: false });
@@ -335,7 +336,7 @@ const AdminCorridas: React.FC = () => {
                         <Button size="sm" variant="outline" className="text-xs gap-1" onClick={() => openEditRideDialog(ride)}><Pencil className="w-3 h-3" /> Editar</Button>
                         {canValidate && (
                           <>
-                            <Button size="sm" variant="outline" className="text-xs gap-1 text-green-400 border-green-500/30 hover:bg-green-500/10" onClick={() => openApprovalDialog(ride, 'aprovada')}><CheckCircle className="w-3 h-3" /> Aprovar</Button>
+                            <Button size="sm" variant="outline" className="text-xs gap-1 text-green-400 border-green-500/30 hover:bg-green-500/10" onClick={() => handleDirectApprove(ride)}><CheckCircle className="w-3 h-3" /> Aprovar</Button>
                             <Button size="sm" variant="outline" className="text-xs gap-1 text-yellow-400 border-yellow-500/30 hover:bg-yellow-500/10" onClick={() => openApprovalDialog(ride, 'nao_realizada')}><AlertTriangle className="w-3 h-3" /> Não Realizada</Button>
                             <Button size="sm" variant="outline" className="text-xs gap-1 text-red-400 border-red-500/30 hover:bg-red-500/10" onClick={() => openApprovalDialog(ride, 'recusada')}><XCircle className="w-3 h-3" /> Recusar</Button>
                           </>
