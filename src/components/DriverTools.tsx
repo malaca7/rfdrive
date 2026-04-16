@@ -879,12 +879,12 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
     nameGrad.addColorStop(0.5, '#ffe066');
     nameGrad.addColorStop(1, GOLD2);
     ctx.fillStyle = nameGrad;
-    ctx.fillText(firstName, LC, 490);
+    ctx.fillText(firstName, LC, 530);
 
     // Subtitle — bigger
     ctx.font = `400 22px ${FONT}`;
     ctx.fillStyle = 'rgba(255,255,255,0.75)';
-    ctx.fillText('Motorista Credenciado', LC, 524);
+    ctx.fillText('Motorista Credenciado', LC, 564);
 
 
 
