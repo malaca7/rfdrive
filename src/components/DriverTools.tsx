@@ -853,24 +853,10 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
           const ratio = Math.min(maxCW / carImg.width, maxCH / carImg.height);
           const cw = carImg.width * ratio, ch = carImg.height * ratio;
           const cx = W / 2 - cw / 2, cy = carCenterY - ch / 2;
-          const radius = 16;
           ctx.save();
           ctx.shadowColor = 'rgba(0,0,0,0.6)';
           ctx.shadowBlur = 20;
           ctx.shadowOffsetY = 8;
-          // Rounded rectangle clip
-          ctx.beginPath();
-          ctx.moveTo(cx + radius, cy);
-          ctx.lineTo(cx + cw - radius, cy);
-          ctx.quadraticCurveTo(cx + cw, cy, cx + cw, cy + radius);
-          ctx.lineTo(cx + cw, cy + ch - radius);
-          ctx.quadraticCurveTo(cx + cw, cy + ch, cx + cw - radius, cy + ch);
-          ctx.lineTo(cx + radius, cy + ch);
-          ctx.quadraticCurveTo(cx, cy + ch, cx, cy + ch - radius);
-          ctx.lineTo(cx, cy + radius);
-          ctx.quadraticCurveTo(cx, cy, cx + radius, cy);
-          ctx.closePath();
-          ctx.clip();
           ctx.drawImage(carImg, cx, cy, cw, ch);
           ctx.restore();
           carDrawn = true;
