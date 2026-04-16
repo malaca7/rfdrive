@@ -169,11 +169,11 @@ const CalculadoraDigitalRF: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
+    <div className="min-h-screen bg-background text-foreground">
       {/* Header */}
-      <div className="sticky top-0 z-40 bg-[#0a0a0a]/95 backdrop-blur-sm border-b border-white/[0.06]">
+      <div className="sticky top-0 z-40 bg-background/95 backdrop-blur-sm border-b border-white/[0.06]">
         <div className="max-w-lg mx-auto px-4 py-3 flex items-center gap-3">
-          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#FFD000] to-[#FFE14D] flex items-center justify-center">
+          <div className="w-9 h-9 rounded-full gradient-accent flex items-center justify-center">
             <Car className="w-5 h-5 text-white" />
           </div>
           <div>
@@ -193,9 +193,9 @@ const CalculadoraDigitalRF: React.FC = () => {
                 onClick={() => { if (i < etapa) setEtapa(i); }}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
                   i === etapa
-                    ? 'bg-[#FFD000] text-white shadow-lg shadow-[#FFD000]/30'
+                    ? 'bg-accent text-accent-foreground shadow-lg shadow-accent/30'
                     : i < etapa
-                      ? 'bg-[#FFD000]/20 text-[#FFD000] cursor-pointer'
+                      ? 'bg-accent/20 text-accent cursor-pointer'
                       : 'bg-white/[0.04] text-white/30'
                 }`}
               >
@@ -204,7 +204,7 @@ const CalculadoraDigitalRF: React.FC = () => {
                 <span className="sm:hidden">{i + 1}</span>
               </button>
               {i < STEPS.length - 1 && (
-                <div className={`w-6 h-0.5 rounded-full ${i < etapa ? 'bg-[#FFD000]/40' : 'bg-white/[0.06]'}`} />
+                <div className={`w-6 h-0.5 rounded-full ${i < etapa ? 'bg-accent/40' : 'bg-white/[0.06]'}`} />
               )}
             </React.Fragment>
           ))}
@@ -223,8 +223,8 @@ const CalculadoraDigitalRF: React.FC = () => {
               <Card className="rounded-2xl bg-white/[0.03] border-white/[0.06]">
                 <CardContent className="pt-5 pb-4 px-4 space-y-4">
                   <div className="text-center space-y-1">
-                    <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-[#FFD000]/10 mx-auto">
-                      <Navigation className="w-6 h-6 text-[#FFD000]" />
+                    <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-accent/10 mx-auto">
+                      <Navigation className="w-6 h-6 text-accent" />
                     </div>
                     <h2 className="text-lg font-bold">Para onde vai?</h2>
                     <p className="text-xs text-white/50">Escolha a origem e o destino</p>
@@ -265,7 +265,7 @@ const CalculadoraDigitalRF: React.FC = () => {
                   {/* Destino */}
                   <div className="space-y-1.5 relative">
                     <label className="text-sm font-medium flex items-center gap-2">
-                      <div className="w-2.5 h-2.5 rounded-full bg-[#FFD000]" />
+                      <div className="w-2.5 h-2.5 rounded-full bg-accent" />
                       Destino
                     </label>
                     <Input
@@ -298,7 +298,7 @@ const CalculadoraDigitalRF: React.FC = () => {
                   <Button
                     onClick={avancar}
                     disabled={!podeAvancar}
-                    className="w-full h-12 rounded-2xl text-base font-bold gradient-accent text-white shadow-lg shadow-[#FFD000]/30 hover:opacity-90 transition-opacity"
+                    className="w-full h-12 rounded-2xl text-base font-bold gradient-accent text-white shadow-lg shadow-accent/30 hover:opacity-90 transition-opacity"
                   >
                     Calcular Valor <ArrowRight className="w-5 h-5 ml-2" />
                   </Button>
@@ -325,7 +325,7 @@ const CalculadoraDigitalRF: React.FC = () => {
                       <span className="text-white/70 truncate">{origem}</span>
                     </div>
                     <div className="flex items-center gap-2 text-sm">
-                      <div className="w-2 h-2 rounded-full bg-[#FFD000]" />
+                      <div className="w-2 h-2 rounded-full bg-accent" />
                       <span className="text-white/70 truncate">{destino}</span>
                     </div>
                   </div>
@@ -337,7 +337,7 @@ const CalculadoraDigitalRF: React.FC = () => {
                       id="temBagagemCalc"
                       checked={temBagagem}
                       onChange={(e) => { setTemBagagem(e.target.checked); setMensagemGerada(''); }}
-                      className="w-5 h-5 rounded border-white/[0.15] bg-white/[0.05] text-[#FFD000] focus:ring-[#FFD000]"
+                      className="w-5 h-5 rounded border-white/[0.15] bg-white/[0.05] text-accent focus:ring-accent"
                     />
                     <label htmlFor="temBagagemCalc" className="text-sm cursor-pointer">
                       <span className="font-medium">Levando Feira ou Bagagem?</span>
@@ -477,7 +477,7 @@ const CalculadoraDigitalRF: React.FC = () => {
                     <Button
                       onClick={avancar}
                       disabled={!temPreco}
-                      className="flex-1 h-11 rounded-2xl text-base font-bold gradient-accent text-white shadow-lg shadow-[#FFD000]/30 hover:opacity-90 transition-opacity"
+                      className="flex-1 h-11 rounded-2xl text-base font-bold gradient-accent text-white shadow-lg shadow-accent/30 hover:opacity-90 transition-opacity"
                     >
                       Gerar Mensagem <ArrowRight className="w-5 h-5 ml-2" />
                     </Button>

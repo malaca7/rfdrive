@@ -65,7 +65,7 @@ const AuthPage: React.FC = () => {
   };
 
   return (
-    <div className="h-[100dvh] w-full bg-[hsl(0_0%_4%)] flex flex-col items-center justify-center px-[6%]">
+    <div className="h-[100dvh] w-full bg-background flex flex-col items-center justify-center px-[6%]">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -85,7 +85,7 @@ const AuthPage: React.FC = () => {
           <p className="text-white/40 text-[clamp(0.8rem,2.5vw,0.95rem)] mt-1">Seu transporte inteligente</p>
         </div>
 
-        <Card className="bg-[hsl(0_0%_8%)]/90 backdrop-blur-2xl border border-white/[0.06] rounded-3xl overflow-hidden">
+        <Card className="bg-card/90 backdrop-blur-2xl border border-white/[0.06] rounded-3xl overflow-hidden">
           <CardHeader className="text-center pb-2">
             <CardTitle className="text-[clamp(1.1rem,3.5vw,1.3rem)] text-white">{isLogin ? 'Entrar' : 'Criar Conta'}</CardTitle>
             <CardDescription className="text-[clamp(0.7rem,2.2vw,0.8rem)] text-white/40">

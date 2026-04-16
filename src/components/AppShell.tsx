@@ -49,12 +49,12 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   ).filter(s => s !== 'cliente');
 
   return (
-    <div className="h-[100dvh] w-full flex flex-col bg-[hsl(0_0%_4%)] overflow-hidden">
+    <div className="h-[100dvh] w-full flex flex-col bg-background overflow-hidden">
       {/* ── Top Bar ── */}
-      <header className="shrink-0 z-50 bg-[hsl(0_0%_6%)]/95 backdrop-blur-2xl border-b border-white/[0.06] safe-top">
+      <header className="shrink-0 z-50 bg-card/95 backdrop-blur-2xl border-b border-white/[0.06] safe-top">
         <div className="w-full px-[4%] h-14 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-2xl gradient-accent flex items-center justify-center shadow-lg shadow-[hsl(45_100%_50%/0.3)] glow-accent">
+            <div className="w-9 h-9 rounded-2xl gradient-accent flex items-center justify-center shadow-lg shadow-accent/30 glow-accent">
               <Navigation className="w-[18px] h-[18px] text-white" />
             </div>
             <div>
@@ -91,7 +91,7 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       </main>
 
       {/* ── Bottom Navigation ── */}
-      <nav className="shrink-0 z-50 bg-[hsl(0_0%_6%)]/95 backdrop-blur-2xl border-t border-white/[0.06] safe-bottom">
+      <nav className="shrink-0 z-50 bg-card/95 backdrop-blur-2xl border-t border-white/[0.06] safe-bottom">
         <div className="w-full px-[4%] flex items-stretch justify-around h-16">
           {(isMotoristaRoute || (!isAdminScreen && !isAdminRoute)) ? (
             /* ── Motorista: 5 route-based nav items ── */

@@ -542,7 +542,7 @@ export const TripCalculator: React.FC<{
 // ═══════════════════════════════════════════════
 export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, completedCount }) => {
   const { toast } = useToast();
-  const { nomePlataforma } = usePlatformConfig();
+  const { nomePlataforma, corPrimaria } = usePlatformConfig();
   const badgeRef = useRef<HTMLDivElement>(null);
   const hasVehicle = profile.veiculo_marca || profile.veiculo_placa;
 
@@ -661,7 +661,7 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
           style={{
             background: '#1a1a1a',
             borderRadius: '20px',
-            border: '2px solid rgba(255,208,0,0.35)',
+            border: `2px solid ${corPrimaria}55`,
             fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
             position: 'relative' as const,
             overflow: 'hidden',
@@ -675,10 +675,10 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
           <div style={{
             position: 'absolute', inset: 0,
             backgroundImage: `
-              linear-gradient(rgba(255,208,0,0.03) 1px, transparent 1px),
-              linear-gradient(90deg, rgba(255,208,0,0.03) 1px, transparent 1px),
-              linear-gradient(rgba(255,208,0,0.015) 1px, transparent 1px),
-              linear-gradient(90deg, rgba(255,208,0,0.015) 1px, transparent 1px)
+              linear-gradient(${corPrimaria}08 1px, transparent 1px),
+              linear-gradient(90deg, ${corPrimaria}08 1px, transparent 1px),
+              linear-gradient(${corPrimaria}04 1px, transparent 1px),
+              linear-gradient(90deg, ${corPrimaria}04 1px, transparent 1px)
             `,
             backgroundSize: '60px 60px, 60px 60px, 20px 20px, 20px 20px',
             opacity: 0.7,
@@ -691,17 +691,17 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
 
           {/* ── Gold corner decorations ── */}
           {/* Top-left */}
-          <div style={{ position: 'absolute', top: '12px', left: '12px', width: '30px', height: '30px', borderTop: '2px solid #FFD000', borderLeft: '2px solid #FFD000' }} />
+          <div style={{ position: 'absolute', top: '12px', left: '12px', width: '30px', height: '30px', borderTop: `2px solid ${corPrimaria}`, borderLeft: `2px solid ${corPrimaria}` }} />
           {/* Top-right */}
-          <div style={{ position: 'absolute', top: '12px', right: '12px', width: '30px', height: '30px', borderTop: '2px solid #FFD000', borderRight: '2px solid #FFD000' }} />
+          <div style={{ position: 'absolute', top: '12px', right: '12px', width: '30px', height: '30px', borderTop: `2px solid ${corPrimaria}`, borderRight: `2px solid ${corPrimaria}` }} />
           {/* Bottom-left */}
-          <div style={{ position: 'absolute', bottom: '56px', left: '12px', width: '30px', height: '30px', borderBottom: '2px solid #FFD000', borderLeft: '2px solid #FFD000' }} />
+          <div style={{ position: 'absolute', bottom: '56px', left: '12px', width: '30px', height: '30px', borderBottom: `2px solid ${corPrimaria}`, borderLeft: `2px solid ${corPrimaria}` }} />
           {/* Bottom-right */}
-          <div style={{ position: 'absolute', bottom: '56px', right: '12px', width: '30px', height: '30px', borderBottom: '2px solid #FFD000', borderRight: '2px solid #FFD000' }} />
+          <div style={{ position: 'absolute', bottom: '56px', right: '12px', width: '30px', height: '30px', borderBottom: `2px solid ${corPrimaria}`, borderRight: `2px solid ${corPrimaria}` }} />
 
           {/* ── Gold accent lines on sides ── */}
-          <div style={{ position: 'absolute', top: '20%', left: 0, width: '3px', height: '25%', background: 'linear-gradient(180deg, transparent, #FFD000, transparent)' }} />
-          <div style={{ position: 'absolute', top: '20%', right: 0, width: '3px', height: '25%', background: 'linear-gradient(180deg, transparent, #FFD000, transparent)' }} />
+          <div style={{ position: 'absolute', top: '20%', left: 0, width: '3px', height: '25%', background: `linear-gradient(180deg, transparent, ${corPrimaria}, transparent)` }} />
+          <div style={{ position: 'absolute', top: '20%', right: 0, width: '3px', height: '25%', background: `linear-gradient(180deg, transparent, ${corPrimaria}, transparent)` }} />
 
           {/* ── Content ── */}
           <div style={{
@@ -714,9 +714,9 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
             <div style={{ textAlign: 'center' as const, marginBottom: '2%' }}>
               <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: '1px' }}>
                 <span style={{
-                  fontSize: 'clamp(38px, 10vw, 52px)', fontWeight: '900', color: '#FFD000',
+                  fontSize: 'clamp(38px, 10vw, 52px)', fontWeight: '900', color: corPrimaria,
                   letterSpacing: '-2px', lineHeight: '1', fontStyle: 'italic',
-                  textShadow: '0 2px 20px rgba(255,208,0,0.3)',
+                  textShadow: `0 2px 20px ${corPrimaria}4D`,
                 }}>R</span>
                 <span style={{
                   fontSize: 'clamp(38px, 10vw, 52px)', fontWeight: '900', color: '#ffffff',
@@ -786,15 +786,15 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
                 <div style={{
                   width: '105px', height: '105px',
                   borderRadius: '50%',
-                  border: '3px solid #FFD000',
+                  border: `3px solid ${corPrimaria}`,
                   overflow: 'hidden', background: '#1a1a1a',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  boxShadow: '0 0 25px rgba(255,208,0,0.2), 0 8px 30px rgba(0,0,0,0.6)',
+                  boxShadow: `0 0 25px ${corPrimaria}33, 0 8px 30px rgba(0,0,0,0.6)`,
                 }}>
                   {avatarDataUrl ? (
                     <img src={avatarDataUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   ) : (
-                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#FFD000" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke={corPrimaria} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
                       <circle cx="12" cy="7" r="4" />
                     </svg>
@@ -815,7 +815,7 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
                 {profile.veiculo_placa && (
                   <div style={{
                     fontSize: 'clamp(12px, 3.2vw, 16px)', fontWeight: '700',
-                    color: '#FFD000', marginTop: '2px',
+                    color: corPrimaria, marginTop: '2px',
                     letterSpacing: '3px', textTransform: 'uppercase' as const,
                   }}>
                     {profile.veiculo_placa}
@@ -834,7 +834,7 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
               </div>
               <div style={{
                 fontSize: 'clamp(11px, 3vw, 14px)', fontWeight: '600',
-                color: '#FFD000', marginTop: '4px',
+                color: corPrimaria, marginTop: '4px',
                 letterSpacing: '3px', textTransform: 'uppercase' as const,
               }}>
                 {profile.tipo === 'admin' ? 'Administrador' : 'Motorista'}
@@ -844,7 +844,7 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
             {/* ══ FOOTER BAR: RF MOBILIDADE COM EXCELÊNCIA ══ */}
             <div style={{
               background: 'linear-gradient(180deg, #111111, #0a0a0a)',
-              borderTop: '1px solid rgba(255,208,0,0.2)',
+              borderTop: `1px solid ${corPrimaria}33`,
               margin: '0 -5.3%',
               padding: '10px 16px',
               display: 'flex', flexDirection: 'column' as const,
@@ -853,7 +853,7 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: '0px' }}>
                   <span style={{
-                    fontSize: '18px', fontWeight: '900', color: '#FFD000',
+                    fontSize: '18px', fontWeight: '900', color: corPrimaria,
                     fontStyle: 'italic', lineHeight: '1',
                   }}>R</span>
                   <span style={{
@@ -870,7 +870,7 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
               </div>
               <div style={{ display: 'flex', gap: '3px' }}>
                 {[1, 2, 3, 4, 5].map(i => (
-                  <svg key={i} width="10" height="10" viewBox="0 0 24 24" fill="#FFD000" stroke="none">
+                  <svg key={i} width="10" height="10" viewBox="0 0 24 24" fill={corPrimaria} stroke="none">
                     <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26" />
                   </svg>
                 ))}

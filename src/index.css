@@ -146,13 +146,13 @@
     -webkit-overflow-scrolling: touch;
   }
   .glow-accent {
-    box-shadow: 0 0 20px hsl(45 100% 50% / 0.25), 0 0 60px hsl(45 100% 50% / 0.1);
+    box-shadow: 0 0 20px hsl(var(--accent) / 0.25), 0 0 60px hsl(var(--accent) / 0.1);
   }
   .card-hover {
     @apply transition-all duration-300;
   }
   .card-hover:hover {
-    border-color: hsl(45 100% 50% / 0.3);
-    box-shadow: 0 0 20px hsl(45 100% 50% / 0.08);
+    border-color: hsl(var(--accent) / 0.3);
+    box-shadow: 0 0 20px hsl(var(--accent) / 0.08);
   }
 }

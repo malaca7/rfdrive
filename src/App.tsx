@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 import { useDispatchEngine } from "@/hooks/useDispatchEngine";
+import { ThemeSync } from "@/components/ThemeSync";
 import React, { Suspense } from "react";
 
 // Lazy-load pages — each becomes a separate chunk
@@ -108,6 +109,7 @@ const AppRoutes = () => {
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
+      <ThemeSync />
       <Toaster />
       <Sonner />
       <HashRouter>
