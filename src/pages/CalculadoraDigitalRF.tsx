@@ -552,7 +552,7 @@ const CalculadoraDigitalRF: React.FC = () => {
         {/* Footer */}
         <div className="text-center py-4 space-y-1.5">
           <button
-            onClick={() => { window.location.hash = '/login'; }}
+            onClick={() => { window.location.hash = '/admin/login'; }}
             className="text-[11px] text-white/30 hover:text-[hsl(22_100%_55%)] transition-colors underline underline-offset-2"
           >
             Painel Administrativo

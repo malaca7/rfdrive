@@ -45,30 +45,27 @@ const AppRoutes = () => {
     return <PageLoader />;
   }
 
-  if (!user) {
-    return (
-      <Suspense fallback={<PageLoader />}>
-        <Routes>
-          <Route path="/login" element={<AuthPage />} />
-          <Route path="/calculadora-digital-RF" element={<CalculadoraDigitalRF />} />
-          <Route path="/" element={<CalculadoraDigitalRF />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </Suspense>
-    );
-  }
-
   const effectiveScreen = isAdmin && activeScreen === 'admin' ? 'admin' : activeScreen;
 
   return (
     <Suspense fallback={<PageLoader />}>
       <Routes>
-        {effectiveScreen === 'admin' && <Route path="/" element={<AdminDashboard />} />}
-        {effectiveScreen === 'motorista' && <Route path="/" element={<DriverDashboard />} />}
-        {effectiveScreen === 'cliente' && <Route path="/" element={<CalculadoraDigitalRF />} />}
-        {!effectiveScreen && <Route path="/" element={<CalculadoraDigitalRF />} />}
-        <Route path="/login" element={<Navigate to="/" replace />} />
+        {/* Rotas públicas */}
+        <Route path="/" element={<CalculadoraDigitalRF />} />
         <Route path="/calculadora-digital-RF" element={<CalculadoraDigitalRF />} />
+
+        {/* Painel admin */}
+        {!user && <Route path="/admin/login" element={<AuthPage />} />}
+        {!user && <Route path="/admin/*" element={<Navigate to="/admin/login" replace />} />}
+
+        {user && effectiveScreen === 'admin' && <Route path="/admin" element={<AdminDashboard />} />}
+        {user && effectiveScreen === 'motorista' && <Route path="/admin" element={<DriverDashboard />} />}
+        {user && !effectiveScreen && <Route path="/admin" element={<DriverDashboard />} />}
+        {user && <Route path="/admin/login" element={<Navigate to="/admin" replace />} />}
+        {user && <Route path="/admin/*" element={<Navigate to="/admin" replace />} />}
+
+        {/* Compat: rota antiga /login redireciona */}
+        <Route path="/login" element={<Navigate to="/admin/login" replace />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Suspense>
