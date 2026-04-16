@@ -7,7 +7,7 @@ import { DriverBadge } from '@/components/DriverTools';
 import { Loader2 } from 'lucide-react';
 
 const MotoristaCredencial: React.FC = () => {
-  const { user } = useAuth();
+  const { user, profile: authProfile } = useAuth();
 
   const { data: fullProfile, isLoading: loadingProfile } = useQuery({
     queryKey: ['driver-full-profile', user?.id],
@@ -69,7 +69,10 @@ const MotoristaCredencial: React.FC = () => {
           </div>
         ) : fullProfile ? (
           <DriverBadge
-            profile={fullProfile}
+            profile={{
+              ...fullProfile,
+              avatar_url: authProfile?.avatar_url || fullProfile.avatar_url,
+            }}
             avgRating={avgRating || null}
             completedCount={completedCount || 0}
           />

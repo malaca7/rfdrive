@@ -58,7 +58,7 @@ function formatPlate(value: string): string {
 }
 
 const MotoristaEditPerfil: React.FC = () => {
-  const { user, updateProfile } = useAuth();
+  const { user, updateProfile, profile: authProfile } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -89,10 +89,11 @@ const MotoristaEditPerfil: React.FC = () => {
   const [avatarUrl, setAvatarUrl] = useState('');
   const [initialized, setInitialized] = useState(false);
 
-  // Sync avatarUrl when profile loads/changes
+  // Sync avatarUrl: prioritize AuthContext (same source as top bar)
   React.useEffect(() => {
-    if (fullProfile?.avatar_url && !avatarUrl) setAvatarUrl(fullProfile.avatar_url);
-  }, [fullProfile?.avatar_url]);
+    const best = authProfile?.avatar_url || fullProfile?.avatar_url;
+    if (best && !avatarUrl) setAvatarUrl(best);
+  }, [authProfile?.avatar_url, fullProfile?.avatar_url]);
 
   // ── Avatar crop ──
   const [showCropDialog, setShowCropDialog] = useState(false);
