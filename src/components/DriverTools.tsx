@@ -807,20 +807,20 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
 
     // Decorative diamonds (behind avatar)
     ctx.save();
-    drawDiamond(ctx, LC, 246, 220, 220);
+    drawDiamond(ctx, LC, 270, 320, 320);
     ctx.fillStyle = 'rgba(255,255,255,0.03)';
     ctx.fill();
     ctx.restore();
     ctx.save();
-    drawDiamond(ctx, LC, 236, 160, 160);
+    drawDiamond(ctx, LC, 260, 260, 260);
     ctx.fillStyle = 'rgba(255,255,255,0.05)';
     ctx.fill();
     ctx.restore();
 
     // Diamond avatar frame
     const avCX = LC;
-    const avCY = 236;
-    const diamHalf = 120;
+    const avCY = 270;
+    const diamHalf = 180;
 
     // Gold diamond border
     ctx.save();
@@ -879,46 +879,14 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
     nameGrad.addColorStop(0.5, '#ffe066');
     nameGrad.addColorStop(1, GOLD2);
     ctx.fillStyle = nameGrad;
-    ctx.fillText(firstName, LC, 416);
+    ctx.fillText(firstName, LC, 490);
 
     // Subtitle — bigger
     ctx.font = `400 22px ${FONT}`;
     ctx.fillStyle = 'rgba(255,255,255,0.75)';
-    ctx.fillText('Motorista Credenciado', LC, 450);
+    ctx.fillText('Motorista Credenciado', LC, 524);
 
-    // Small gold divider line
-    const miniDivW = 100;
-    const miniDivGrad = ctx.createLinearGradient(LC - miniDivW / 2, 0, LC + miniDivW / 2, 0);
-    miniDivGrad.addColorStop(0, 'transparent');
-    miniDivGrad.addColorStop(0.3, GOLD1);
-    miniDivGrad.addColorStop(0.7, GOLD2);
-    miniDivGrad.addColorStop(1, 'transparent');
-    ctx.fillStyle = miniDivGrad;
-    ctx.fillRect(LC - miniDivW / 2, 466, miniDivW, 1.5);
 
-    // Rating stars — aligned with plate
-    const ratingY = 530;
-    const ratingVal = avgRating?.avg ?? 0;
-    const filledStars = Math.round(ratingVal);
-
-    const starGrad = nameGrad;
-
-    for (let i = 0; i < 5; i++) {
-      const sx = LC - 100 + i * 50;
-      drawStarShape(ctx, sx, ratingY, 26, 11);
-      ctx.fillStyle = i < filledStars ? starGrad : 'rgba(255,255,255,0.15)';
-      ctx.fill();
-    }
-
-    // Nota text — bigger
-    if (avgRating) {
-      ctx.font = `700 36px ${FONT}`;
-      ctx.fillStyle = starGrad;
-      ctx.fillText(ratingVal.toFixed(1), LC, ratingY + 54);
-      ctx.font = `400 16px ${FONT}`;
-      ctx.fillStyle = 'rgba(255,255,255,0.5)';
-      ctx.fillText(`(${avgRating.count} avaliação${avgRating.count !== 1 ? 'ões' : ''})`, LC, ratingY + 76);
-    }
 
     // ═══════════════════════════════════════
     // RIGHT SIDE — Vehicle Info
