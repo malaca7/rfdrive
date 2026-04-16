@@ -710,96 +710,6 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
     ctx.strokeRect(BORDER / 2, BORDER / 2, W - BORDER, H - BORDER);
     ctx.restore();
 
-    // ══ 2) Top bar — branding ══
-    const topBarH = 60;
-    ctx.fillStyle = '#111111';
-    ctx.fillRect(BORDER, BORDER, W - BORDER * 2, topBarH);
-    // Gold line at bottom of top bar
-    const goldLine = ctx.createLinearGradient(100, 0, W - 100, 0);
-    goldLine.addColorStop(0, 'transparent');
-    goldLine.addColorStop(0.3, GOLD1);
-    goldLine.addColorStop(0.7, GOLD2);
-    goldLine.addColorStop(1, 'transparent');
-    ctx.fillStyle = goldLine;
-    ctx.fillRect(BORDER, BORDER + topBarH - 2, W - BORDER * 2, 2);
-
-    // RF + MOBILIDADE COM EXCELÊNCIA — single baseline, side by side
-    ctx.textAlign = 'left';
-    ctx.textBaseline = 'middle';
-    const tbCY = BORDER + topBarH / 2;
-    ctx.font = `italic 900 30px ${FONT}`;
-    ctx.fillStyle = GOLD1;
-    ctx.fillText('R', 28, tbCY);
-    const rW = ctx.measureText('R').width;
-    ctx.fillStyle = '#ffffff';
-    ctx.fillText('F', 28 + rW, tbCY);
-    const rfW = rW + ctx.measureText('F').width;
-
-    ctx.font = `600 12px ${FONT}`;
-    ctx.fillStyle = 'rgba(255,255,255,0.6)';
-    ctx.letterSpacing = '2px';
-    ctx.fillText('MOBILIDADE COM EXCELÊNCIA', 28 + rfW + 14, tbCY);
-    ctx.letterSpacing = '0px';
-
-    // Small stars right-aligned in top bar
-    ctx.textAlign = 'center';
-    for (let i = 0; i < 5; i++) {
-      const sx = W - 28 - (4 - i) * 16 - 8;
-      drawStarShape(ctx, sx, tbCY, 6, 2.5);
-      ctx.fillStyle = GOLD1;
-      ctx.fill();
-    }
-
-    // ══ ADMINISTRADOR — centered, above everything ══
-    const isAdmin = profile.tipo === 'admin';
-    if (isAdmin) {
-      const badgeText = 'ADMINISTRADOR';
-      ctx.font = `800 22px ${FONT}`;
-      const badgeW = ctx.measureText(badgeText).width + 44;
-      const badgeH = 36;
-      const badgeX = W / 2 - badgeW / 2;
-      const badgeY = BORDER + topBarH + 30;
-
-      // Neon glow aura
-      ctx.save();
-      ctx.shadowColor = '#3b82f6';
-      ctx.shadowBlur = 30;
-      ctx.shadowOffsetX = 0;
-      ctx.shadowOffsetY = 0;
-      ctx.fillStyle = 'rgba(59,130,246,0.15)';
-      ctx.beginPath();
-      ctx.roundRect(badgeX - 4, badgeY - 4, badgeW + 8, badgeH + 8, 8);
-      ctx.fill();
-      ctx.restore();
-
-      // Badge fill
-      ctx.save();
-      ctx.shadowColor = '#60a5fa';
-      ctx.shadowBlur = 20;
-      const badgeFill = ctx.createLinearGradient(badgeX, 0, badgeX + badgeW, 0);
-      badgeFill.addColorStop(0, '#1e40af');
-      badgeFill.addColorStop(0.5, '#2563eb');
-      badgeFill.addColorStop(1, '#1e40af');
-      ctx.fillStyle = badgeFill;
-      ctx.beginPath();
-      ctx.roundRect(badgeX, badgeY, badgeW, badgeH, 6);
-      ctx.fill();
-
-      // Neon border
-      ctx.strokeStyle = '#60a5fa';
-      ctx.lineWidth = 1.5;
-      ctx.stroke();
-      ctx.restore();
-
-      // Text
-      ctx.fillStyle = '#ffffff';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.font = `800 22px ${FONT}`;
-      ctx.fillText(badgeText, W / 2, badgeY + badgeH / 2);
-      ctx.textBaseline = 'alphabetic';
-    }
-
     // ═══════════════════════════════════════
     // LEFT SIDE — Driver Info
     // ═══════════════════════════════════════
@@ -1007,6 +917,100 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
         }
       }
     }
+
+    // ══ TOP BAR (rendered last to overlay everything) ══
+    const topBarH = 60;
+    ctx.fillStyle = '#111111';
+    ctx.fillRect(BORDER, BORDER, W - BORDER * 2, topBarH);
+    // Gold line at bottom of top bar
+    const goldLine = ctx.createLinearGradient(100, 0, W - 100, 0);
+    goldLine.addColorStop(0, 'transparent');
+    goldLine.addColorStop(0.3, GOLD1);
+    goldLine.addColorStop(0.7, GOLD2);
+    goldLine.addColorStop(1, 'transparent');
+    ctx.fillStyle = goldLine;
+    ctx.fillRect(BORDER, BORDER + topBarH - 2, W - BORDER * 2, 2);
+
+    // RF + MOBILIDADE COM EXCELÊNCIA
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    const tbCY = BORDER + topBarH / 2;
+    ctx.font = `italic 900 30px ${FONT}`;
+    ctx.fillStyle = GOLD1;
+    ctx.fillText('R', 28, tbCY);
+    const rW = ctx.measureText('R').width;
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText('F', 28 + rW, tbCY);
+    const rfW = rW + ctx.measureText('F').width;
+
+    ctx.font = `600 12px ${FONT}`;
+    ctx.fillStyle = 'rgba(255,255,255,0.6)';
+    ctx.letterSpacing = '2px';
+    ctx.fillText('MOBILIDADE COM EXCELÊNCIA', 28 + rfW + 14, tbCY);
+    ctx.letterSpacing = '0px';
+
+    // Small stars right-aligned in top bar
+    ctx.textAlign = 'center';
+    for (let i = 0; i < 5; i++) {
+      const sx = W - 28 - (4 - i) * 16 - 8;
+      drawStarShape(ctx, sx, tbCY, 6, 2.5);
+      ctx.fillStyle = GOLD1;
+      ctx.fill();
+    }
+
+    // ══ ADMINISTRADOR — centered, overlays everything ══
+    const isAdmin = profile.tipo === 'admin';
+    if (isAdmin) {
+      const badgeText = 'ADMINISTRADOR';
+      ctx.font = `800 22px ${FONT}`;
+      const badgeW = ctx.measureText(badgeText).width + 44;
+      const badgeH = 36;
+      const badgeX = W / 2 - badgeW / 2;
+      const badgeY = BORDER + topBarH + 30;
+
+      ctx.save();
+      ctx.shadowColor = '#3b82f6';
+      ctx.shadowBlur = 30;
+      ctx.fillStyle = 'rgba(59,130,246,0.15)';
+      ctx.beginPath();
+      ctx.roundRect(badgeX - 4, badgeY - 4, badgeW + 8, badgeH + 8, 8);
+      ctx.fill();
+      ctx.restore();
+
+      ctx.save();
+      ctx.shadowColor = '#60a5fa';
+      ctx.shadowBlur = 20;
+      const badgeFill = ctx.createLinearGradient(badgeX, 0, badgeX + badgeW, 0);
+      badgeFill.addColorStop(0, '#1e40af');
+      badgeFill.addColorStop(0.5, '#2563eb');
+      badgeFill.addColorStop(1, '#1e40af');
+      ctx.fillStyle = badgeFill;
+      ctx.beginPath();
+      ctx.roundRect(badgeX, badgeY, badgeW, badgeH, 6);
+      ctx.fill();
+      ctx.strokeStyle = '#60a5fa';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      ctx.restore();
+
+      ctx.fillStyle = '#ffffff';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.font = `800 22px ${FONT}`;
+      ctx.fillText(badgeText, W / 2, badgeY + badgeH / 2);
+      ctx.textBaseline = 'alphabetic';
+    }
+
+    // ══ Re-draw border on top ══
+    ctx.save();
+    const borderGradTop = ctx.createLinearGradient(0, 0, W, H);
+    borderGradTop.addColorStop(0, GOLD1);
+    borderGradTop.addColorStop(0.5, '#ffe066');
+    borderGradTop.addColorStop(1, GOLD2);
+    ctx.strokeStyle = borderGradTop;
+    ctx.lineWidth = BORDER;
+    ctx.strokeRect(BORDER / 2, BORDER / 2, W - BORDER, H - BORDER);
+    ctx.restore();
   }, [profile, hasVehicle, carColor, avgRating]);
 
   useEffect(() => { drawBadge(); }, [drawBadge]);
