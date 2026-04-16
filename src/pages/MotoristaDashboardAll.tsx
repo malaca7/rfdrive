@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import AppShell from '@/components/AppShell';
 import { motion } from 'framer-motion';
 import {
-  Trophy, TrendingUp, DollarSign, Loader2, BarChart3,
+  Trophy, TrendingUp, Loader2, BarChart3,
   Crown, Medal, Award, Calendar, Filter, Users, Car,
 } from 'lucide-react';
 
@@ -114,15 +114,12 @@ const MotoristaDashboardAll: React.FC = () => {
   const { ranking, platformStats } = useMemo(() => {
     if (!allRides) return { ranking: [], platformStats: { total: 0, receita: 0, motoristas: 0 } };
 
-    const byDriver: Record<string, { viagens: number; receita: number }> = {};
-    let totalReceita = 0;
+    const byDriver: Record<string, { viagens: number }> = {};
 
     allRides.forEach(r => {
       const mid = r.motorista_id || 'unknown';
-      if (!byDriver[mid]) byDriver[mid] = { viagens: 0, receita: 0 };
+      if (!byDriver[mid]) byDriver[mid] = { viagens: 0 };
       byDriver[mid].viagens++;
-      byDriver[mid].receita += r.valor || 0;
-      totalReceita += r.valor || 0;
     });
 
     const rankArr = Object.entries(byDriver)
@@ -139,7 +136,6 @@ const MotoristaDashboardAll: React.FC = () => {
       ranking: rankArr,
       platformStats: {
         total: allRides.length,
-        receita: totalReceita,
         motoristas: Object.keys(byDriver).length,
       },
     };
@@ -210,7 +206,7 @@ const MotoristaDashboardAll: React.FC = () => {
         ) : (
           <>
             {/* Platform Stats */}
-            <div className="grid grid-cols-3 gap-[3%] mb-[4%]">
+            <div className="grid grid-cols-2 gap-[3%] mb-[4%]">
               <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
                 <Card className="border-accent/20">
                   <CardContent className="py-[12%] text-center">
@@ -221,17 +217,6 @@ const MotoristaDashboardAll: React.FC = () => {
                 </Card>
               </motion.div>
               <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
-                <Card className="border-green-500/20">
-                  <CardContent className="py-[12%] text-center">
-                    <DollarSign className="w-5 h-5 text-green-400 mx-auto mb-1" />
-                    <p className="text-[clamp(1.1rem,3.5vw,1.5rem)] font-extrabold text-green-400">
-                      R$ {platformStats.receita.toFixed(0)}
-                    </p>
-                    <p className="text-[clamp(0.55rem,1.8vw,0.65rem)] text-muted-foreground font-medium">Receita</p>
-                  </CardContent>
-                </Card>
-              </motion.div>
-              <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
                 <Card className="border-blue-500/20">
                   <CardContent className="py-[12%] text-center">
                     <Users className="w-5 h-5 text-blue-400 mx-auto mb-1" />
@@ -259,9 +244,6 @@ const MotoristaDashboardAll: React.FC = () => {
                     <div className="text-right">
                       <p className="text-sm font-bold text-accent">
                         {ranking[myPosition - 1]?.viagens || 0} viagens
-                      </p>
-                      <p className="text-xs text-green-400">
-                        R$ {(ranking[myPosition - 1]?.receita || 0).toFixed(2)}
                       </p>
                     </div>
                   </CardContent>
