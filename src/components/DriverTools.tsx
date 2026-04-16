@@ -670,14 +670,34 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
     const GOLD2 = '#c9a227';    // dourado escuro
     const BORDER = 8;
 
-    // ══ 1) Gray-black gradient background ══
-    const bgGrad = ctx.createLinearGradient(0, 0, 0, H);
-    bgGrad.addColorStop(0, '#3a3a3a');
-    bgGrad.addColorStop(0.3, '#2a2a2a');
-    bgGrad.addColorStop(0.6, '#1a1a1a');
-    bgGrad.addColorStop(1, '#0d0d0d');
-    ctx.fillStyle = bgGrad;
-    ctx.fillRect(0, 0, W, H);
+    // ══ 1) Background image (or fallback gradient) ══
+    try {
+      const bgImg = await loadImageAny(`${import.meta.env.BASE_URL}badge-bg.png`);
+      if (bgImg) {
+        // Cover: fill canvas, crop center
+        const imgRatio = bgImg.width / bgImg.height;
+        const canvasRatio = W / H;
+        let sx = 0, sy = 0, sw = bgImg.width, sh = bgImg.height;
+        if (imgRatio > canvasRatio) {
+          sw = bgImg.height * canvasRatio;
+          sx = (bgImg.width - sw) / 2;
+        } else {
+          sh = bgImg.width / canvasRatio;
+          sy = (bgImg.height - sh) / 2;
+        }
+        ctx.drawImage(bgImg, sx, sy, sw, sh, 0, 0, W, H);
+      } else {
+        throw new Error('no img');
+      }
+    } catch {
+      const bgGrad = ctx.createLinearGradient(0, 0, 0, H);
+      bgGrad.addColorStop(0, '#3a3a3a');
+      bgGrad.addColorStop(0.3, '#2a2a2a');
+      bgGrad.addColorStop(0.6, '#1a1a1a');
+      bgGrad.addColorStop(1, '#0d0d0d');
+      ctx.fillStyle = bgGrad;
+      ctx.fillRect(0, 0, W, H);
+    }
 
     // ══ THICK GOLD GRADIENT BORDER ══
     const borderGradOuter = ctx.createLinearGradient(0, 0, W, H);
@@ -831,10 +851,7 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
     const ratingVal = avgRating?.avg ?? 0;
     const filledStars = Math.round(ratingVal);
 
-    const starGrad = ctx.createLinearGradient(LC - 110, 0, LC + 110, 0);
-    starGrad.addColorStop(0, GOLD1);
-    starGrad.addColorStop(0.5, '#ffe066');
-    starGrad.addColorStop(1, GOLD2);
+    const starGrad = nameGrad;
 
     for (let i = 0; i < 5; i++) {
       const sx = LC - 90 + i * 45;
