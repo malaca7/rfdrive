@@ -181,14 +181,14 @@ async function handleMessage(phone: string, text: string, messageId: string) {
       // Confirm the ride
       await supabase
         .from("corridas")
-        .update({ status: "aguardando_motorista" })
+        .update({ status: "aprovada" })
         .eq("id", pendingRide.id);
 
       await sendWhatsAppMessage(phone,
-        `✅ *Corrida confirmada!*\n\n` +
+        `✅ *Viagem registrada!*\n\n` +
         `📍 De: ${pendingRide.origem_texto}\n` +
         `🏁 Para: ${pendingRide.destino_texto}\n\n` +
-        `Aguardando um motorista aceitar sua corrida. Você será notificado! 🚗`
+        `Sua corrida foi registrada com sucesso! 🚗`
       );
       return;
     }
@@ -220,47 +220,7 @@ async function handleMessage(phone: string, text: string, messageId: string) {
     }
   }
 
-  // Check for active ride
-  const { data: activeRide } = await supabase
-    .from("corridas")
-    .select("*")
-    .eq("cliente_id", user.id)
-    .in("status", ["aguardando_motorista", "aceita"])
-    .limit(1)
-    .maybeSingle();
-
-  if (activeRide) {
-    if (lowerText === "status" || lowerText === "como esta" || lowerText === "como está") {
-      const statusTexts: Record<string, string> = {
-        aguardando_motorista: "⏳ Aguardando um motorista aceitar sua corrida...",
-        aceita: "🚗 Seu motorista está a caminho! Fique atento.",
-      };
-      await sendWhatsAppMessage(phone,
-        statusTexts[activeRide.status] || "Sua corrida está em andamento."
-      );
-      return;
-    }
-
-    if (lowerText === "cancelar") {
-      await supabase
-        .from("corridas")
-        .update({ status: "recusada" })
-        .eq("id", activeRide.id);
-
-      await sendWhatsAppMessage(phone,
-        "❌ Corrida cancelada. Quando precisar, é só mandar uma mensagem!"
-      );
-      return;
-    }
-
-    await sendWhatsAppMessage(phone,
-      `📌 Você já tem uma corrida em andamento.\n\n` +
-      `📍 De: ${activeRide.origem_texto}\n` +
-      `🏁 Para: ${activeRide.destino_texto}\n\n` +
-      `Digite *status* para ver o andamento ou *cancelar* para cancelar.`
-    );
-    return;
-  }
+  // No active ride tracking - proceed to new ride request
 
   // ── New ride request - Parse the message ──
   const parsed = await parseRideText(text);

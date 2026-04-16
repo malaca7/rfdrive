@@ -1,4 +1,4 @@
-import React, { useState, useRef, useMemo, useCallback } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
@@ -8,11 +8,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  MapPin, Navigation, Loader2, Check, CheckCircle, Clock,
-  Edit3, X, DollarSign, Route, Car, Star, Send, TableProperties, MessageSquare, Phone, Zap, AlertTriangle,
+  Navigation, Loader2, Clock,
+  Send, TableProperties, MessageSquare, Zap, AlertTriangle,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import StarRating from '@/components/StarRating';
 import { calculateRoute } from '@/lib/route-ai';
 import { calcularPreco, salvarHistoricoPreco, getConfigTarifas, getActiveTimeRule, applyTimeAdjustment, invalidatePricingCache, type PricingResult, type ConfigTarifas } from '@/lib/pricing-engine';
 import { buscarPrecoTabela, syncCacheFromSupabase } from '@/lib/tabela-preco';
@@ -33,11 +32,6 @@ const RideRequestForm: React.FC = () => {
   const [origem, setOrigem] = useState('');
   const [destino, setDestino] = useState('');
   const [isSending, setIsSending] = useState(false);
-  const [showCompletedSummary, setShowCompletedSummary] = useState(true);
-  const [rating, setRating] = useState(0);
-  const [comentario, setComentario] = useState('');
-  const [isSendingRating, setIsSendingRating] = useState(false);
-  const [ratingSubmitted, setRatingSubmitted] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [observacaoCliente, setObservacaoCliente] = useState('');
   const [temBagagem, setTemBagagem] = useState(false);
@@ -45,20 +39,20 @@ const RideRequestForm: React.FC = () => {
   const [showOrigemSuggestions, setShowOrigemSuggestions] = useState(false);
   const [showDestinoSuggestions, setShowDestinoSuggestions] = useState(false);
 
-  // -- Tabela de preço: lookup em tempo real (reativo) --
+  // -- Tabela de preÃ§o: lookup em tempo real (reativo) --
   const precoTabela = usePrecoTabela(origem, destino);
 
-  // -- Regra de horário dinâmica (noturno, madrugada, etc.) --
+  // -- Regra de horÃ¡rio dinÃ¢mica (noturno, madrugada, etc.) --
   const dynamicAdj = useDynamicAdjustment();
 
-  // -- Configuração global de tarifas --
+  // -- ConfiguraÃ§Ã£o global de tarifas --
   const { data: configTarifas } = useQuery<ConfigTarifas | null>({
     queryKey: ['config-tarifas-form'],
     queryFn: () => getConfigTarifas(),
     staleTime: 10_000,
   });
 
-  // -- Motor dinâmico: preço reativo via localidades + precos_rotas + regras_horario --
+  // -- Motor dinÃ¢mico: preÃ§o reativo via localidades + precos_rotas + regras_horario --
   const origemTrim = origem.trim();
   const destinoTrim = destino.trim();
   const { data: precoDinamico } = useQuery<PricingResult | null>({
@@ -91,109 +85,14 @@ const RideRequestForm: React.FC = () => {
     });
   }, [destino, allLocations]);
 
-  const { data: activeRide, refetch: refetchActiveRide } = useQuery({
-    queryKey: ['active-ride', user?.id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('corridas')
-        .select('*')
-        .eq('cliente_id', user!.id)
-        .in('status', ['nova', 'aguardando_motorista', 'aceita', 'a_caminho', 'em_corrida'])
-        .limit(1)
-        .maybeSingle();
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!user,
-    staleTime: 0,
-    refetchInterval: 1000,
-  });
-
-  // -- Fetch motorista info when ride is accepted --
-  const { data: motoristaInfo } = useQuery({
-    queryKey: ['motorista-info', activeRide?.motorista_id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('users')
-        .select('nome, telefone, veiculo_marca, veiculo_modelo, veiculo_cor, veiculo_placa')
-        .eq('id', activeRide!.motorista_id!)
-        .single();
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!activeRide?.motorista_id && ['aceita', 'a_caminho', 'em_corrida'].includes(activeRide?.status),
-    staleTime: 0,
-  });
-
-  const { data: lastCompletedRide } = useQuery({
-    queryKey: ['last-completed-ride', user?.id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('corridas')
-        .select('*')
-        .eq('cliente_id', user!.id)
-        .in('status', ['em_analise', 'finalizada'])
-        .order('concluida_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      if (error) throw error;
-      if (data?.concluida_at) {
-        const ago = Date.now() - new Date(data.concluida_at).getTime();
-        if (ago < 5 * 60 * 1000) return data;
-      }
-      return null;
-    },
-    enabled: !!user && !activeRide,
-    staleTime: 0,
-  });
-
-  const { data: existingRating } = useQuery({
-    queryKey: ['ride-rating', lastCompletedRide?.id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('avaliacoes')
-        .select('*')
-        .eq('corrida_id', lastCompletedRide!.id)
-        .eq('tipo', 'cliente')
-        .maybeSingle();
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!lastCompletedRide?.id,
-  });
-
-  const submitRating = async () => {
-    if (!lastCompletedRide || !user || rating === 0 || !lastCompletedRide.motorista_id) return;
-    setIsSendingRating(true);
-    try {
-      const { error } = await supabase.from('avaliacoes').insert({
-        corrida_id: lastCompletedRide.id,
-        cliente_id: user.id,
-        motorista_id: lastCompletedRide.motorista_id,
-        nota: rating,
-        comentario: comentario.trim() || null,
-        tipo: 'cliente',
-      });
-      if (error) throw error;
-      toast({ title: 'Avaliação enviada!', description: 'Obrigado pelo seu feedback.' });
-      setRatingSubmitted(true);
-    } catch (_e) {
-      toast({ title: 'Erro ao enviar avaliação', variant: 'destructive' });
-    } finally {
-      setIsSendingRating(false);
-    }
-  };
-
-  const hasActiveRide = !!activeRide;
-
   const handleSolicitar = async () => {
     const o = origem.trim();
     const d = destino.trim();
     if (!o || !d) {
-      toast({ title: 'Preencha os dois campos', description: 'Informe de onde você sai e para onde vai.', variant: 'destructive' });
+      toast({ title: 'Preencha os dois campos', description: 'Informe de onde vocÃª sai e para onde vai.', variant: 'destructive' });
       return;
     }
-    if (!user || hasActiveRide) return;
+    if (!user) return;
     setIsSending(true);
     setErrorMsg('');
     try {
@@ -202,7 +101,7 @@ const RideRequestForm: React.FC = () => {
       let preco_regra_aplicada: string | null = null;
       let preco_detalhes: Record<string, unknown> | null = null;
 
-      // IA local: calcula distância e preço client-side (non-blocking)
+      // IA local: calcula distÃ¢ncia e preÃ§o client-side (non-blocking)
       try {
         const routeResult = await calculateRoute(o, d);
         if (routeResult) {
@@ -213,7 +112,7 @@ const RideRequestForm: React.FC = () => {
         // route calc is optional
       }
 
-      // 1) Motor dinâmico: prioridade máxima (usa localidades + precos_rotas + regras_horario do admin)
+      // 1) Motor dinÃ¢mico: prioridade mÃ¡xima (usa localidades + precos_rotas + regras_horario do admin)
       let motorDinamicoAplicouRegra = false;
       try {
         const precoDinamicoResult = await calcularPreco(o, d);
@@ -238,7 +137,7 @@ const RideRequestForm: React.FC = () => {
         // dynamic engine is optional
       }
 
-      // 2) Tabela oficial RF: fallback se motor dinâmico não encontrou
+      // 2) Tabela oficial RF: fallback se motor dinÃ¢mico nÃ£o encontrou
       if (!preco_regra_aplicada) {
         await syncCacheFromSupabase(); // Garantir dados frescos da tabela
         const tabelaResult = buscarPrecoTabela(o, d);
@@ -255,13 +154,11 @@ const RideRequestForm: React.FC = () => {
         }
       }
 
-      // 3) Aplicar regra de horário dinâmica se nenhuma fonte já a aplicou
-      //    Busca DIRETO do DB (dados frescos) em vez de depender do hook closure
+      // 3) Aplicar regra de horÃ¡rio dinÃ¢mica se nenhuma fonte jÃ¡ a aplicou
       if (valor_estimado != null && !motorDinamicoAplicouRegra) {
         try {
-          invalidatePricingCache(); // Forçar dados frescos
+          invalidatePricingCache();
           const regraAtiva = await getActiveTimeRule();
-          console.log('[handleSolicitar] Regra ativa fresca:', regraAtiva);
           if (regraAtiva) {
             const precoBase = valor_estimado;
             valor_estimado = Math.round(applyTimeAdjustment(precoBase, regraAtiva) * 100) / 100;
@@ -275,7 +172,6 @@ const RideRequestForm: React.FC = () => {
             };
           }
         } catch {
-          // fallback: try hook value
           if (dynamicAdj) {
             const precoBase = valor_estimado;
             valor_estimado = dynamicAdj.aplicar(precoBase);
@@ -291,14 +187,14 @@ const RideRequestForm: React.FC = () => {
         }
       }
 
-      // Adicionar taxa de bagagem se aplicável
+      // Adicionar taxa de bagagem se aplicÃ¡vel
       const taxaBagagemValor = configTarifas?.taxa_bagagem ?? 5.00;
       const taxaBagagem = temBagagem ? taxaBagagemValor : 0;
       if (taxaBagagem > 0) {
         valor_estimado = (valor_estimado || 0) + taxaBagagem;
       }
 
-      // Aplicar tarifa mínima global
+      // Aplicar tarifa mÃ­nima global
       const tarifaMinima = configTarifas?.tarifa_minima ?? 0;
       if (tarifaMinima > 0 && valor_estimado != null && valor_estimado < tarifaMinima) {
         valor_estimado = tarifaMinima;
@@ -311,7 +207,7 @@ const RideRequestForm: React.FC = () => {
         cliente_id: user.id,
         origem_texto: o,
         destino_texto: d,
-        status: 'aguardando_motorista' as const,
+        status: 'aprovada' as const,
         canal_origem: 'app' as const,
         distancia_km,
         valor_estimado,
@@ -328,7 +224,7 @@ const RideRequestForm: React.FC = () => {
           cliente_id: user.id,
           origem_texto: o,
           destino_texto: d,
-          status: 'aguardando_motorista',
+          status: 'aprovada',
           canal_origem: 'app',
           distancia_km,
           valor_estimado,
@@ -339,19 +235,19 @@ const RideRequestForm: React.FC = () => {
         corridaData = d1;
       }
 
-      // Salvar histórico de preço (non-critical)
+      // Salvar histÃ³rico de preÃ§o (non-critical)
       if (preco_regra_aplicada && corridaData?.id) {
         try {
-          const precoDinamico = await calcularPreco(o, d);
-          if (precoDinamico) {
-            await salvarHistoricoPreco(corridaData.id, precoDinamico);
+          const precoDin = await calcularPreco(o, d);
+          if (precoDin) {
+            await salvarHistoricoPreco(corridaData.id, precoDin);
           }
         } catch {
           // non-critical
         }
       }
 
-      toast({ title: 'Corrida solicitada!', description: 'Aguardando um motorista aceitar.' });
+      toast({ title: 'Viagem registrada!', description: 'Sua corrida foi registrada com sucesso.' });
       setOrigem('');
       setDestino('');
       setObservacaoCliente('');
@@ -360,402 +256,11 @@ const RideRequestForm: React.FC = () => {
     } catch (_e) {
       const msg = _e instanceof Error ? _e.message : 'Erro desconhecido';
       setErrorMsg(msg);
-      toast({ title: 'Erro ao solicitar corrida', description: msg, variant: 'destructive' });
+      toast({ title: 'Erro ao registrar viagem', description: msg, variant: 'destructive' });
     } finally {
       setIsSending(false);
     }
   };
-
-  const respondToEdit = async (approved: boolean) => {
-    if (!activeRide) return;
-    const updateData: Record<string, unknown> = {
-      edicao_aprovada: approved,
-      edicao_pendente: false,
-    };
-    if (approved) {
-      updateData.origem_texto = activeRide.origem_editada;
-      updateData.destino_texto = activeRide.destino_editado;
-      updateData.origem_editada = null;
-      updateData.destino_editado = null;
-    }
-    const { error } = await supabase
-      .from('corridas')
-      .update(updateData)
-      .eq('id', activeRide.id);
-    if (error) {
-      toast({ title: 'Erro ao responder', variant: 'destructive' });
-    } else {
-      toast({ title: approved ? 'Endereço atualizado!' : 'Alteração recusada' });
-      refetchActiveRide();
-    }
-  };
-
-  const [isCancelling, setIsCancelling] = useState(false);
-
-  const handleCancelRide = async () => {
-    if (!activeRide) return;
-    setIsCancelling(true);
-    try {
-      const { error } = await supabase
-        .from('corridas')
-        .update({ status: 'nao_realizada' })
-        .eq('id', activeRide.id)
-        .in('status', ['nova', 'aguardando_motorista']);
-      if (error) throw error;
-      toast({ title: 'Corrida cancelada' });
-      refetchActiveRide();
-    } catch (_e) {
-      toast({ title: 'Erro ao cancelar', variant: 'destructive' });
-    } finally {
-      setIsCancelling(false);
-    }
-  };
-
-  if (hasActiveRide) {
-    const statusLabel =
-      activeRide.status === 'nova' ? 'Processando pedido...' :
-      activeRide.status === 'aguardando_motorista' ? 'Aguardando motorista...' :
-      activeRide.status === 'aceita' ? 'Motorista aceitou sua corrida!' :
-      activeRide.status === 'a_caminho' ? 'Motorista a caminho' :
-      activeRide.status === 'em_corrida' ? 'Corrida em andamento' :
-      'Corrida em andamento';
-    const hasEditPending = activeRide.edicao_pendente && activeRide.edicao_aprovada === null;
-    const isTracking = activeRide.status === 'aceita' || activeRide.status === 'a_caminho' || activeRide.status === 'em_corrida';
-
-    return (
-      <div className="space-y-[3%]">
-        <Card className="border-accent/30 rounded-2xl">
-          <CardContent className="py-[5%] px-[4%] space-y-[3%]">
-            <div className="text-center">
-              <div className={`inline-flex items-center justify-center w-14 h-14 rounded-full mx-auto mb-3 ${
-                activeRide.status === 'em_corrida' ? 'bg-emerald-500/10' :
-                activeRide.status === 'a_caminho' ? 'bg-blue-500/10' :
-                isTracking ? 'bg-green-500/10' : 'bg-accent/10'
-              }`}>
-                {activeRide.status === 'em_corrida' ? (
-                  <Navigation className="w-7 h-7 text-emerald-400" />
-                ) : activeRide.status === 'a_caminho' ? (
-                  <Car className="w-7 h-7 text-blue-400" />
-                ) : isTracking ? (
-                  <CheckCircle className="w-7 h-7 text-green-400" />
-                ) : (
-                  <Loader2 className="w-7 h-7 text-accent animate-spin" />
-                )}
-              </div>
-              <h3 className="font-bold text-[clamp(1rem,3.5vw,1.25rem)]">
-                {activeRide.status === 'nova' ? 'Pedido recebido' :
-                 activeRide.status === 'aguardando_motorista' ? 'Corrida solicitada' :
-                 activeRide.status === 'aceita' ? 'Motorista aceitou!' :
-                 activeRide.status === 'a_caminho' ? 'Motorista vindo até você' :
-                 activeRide.status === 'em_corrida' ? 'Você está em viagem' :
-                 'Corrida em andamento'}
-              </h3>
-              <p className="text-sm text-muted-foreground mt-1">{statusLabel}</p>
-            </div>
-
-            {/* -- Tracking Progress Bar -- */}
-            {isTracking && (
-              <div className="flex items-center gap-1.5 px-2">
-                <div className={`flex-1 h-1.5 rounded-full ${['aceita','a_caminho','em_corrida'].includes(activeRide.status) ? 'bg-green-500' : 'bg-muted'}`} />
-                <div className={`flex-1 h-1.5 rounded-full ${['a_caminho','em_corrida'].includes(activeRide.status) ? 'bg-blue-500' : 'bg-muted'}`} />
-                <div className={`flex-1 h-1.5 rounded-full ${activeRide.status === 'em_corrida' ? 'bg-emerald-500' : 'bg-muted'}`} />
-              </div>
-            )}
-            {isTracking && (
-              <div className="flex justify-between px-2 text-[10px] text-muted-foreground">
-                <span className={['aceita','a_caminho','em_corrida'].includes(activeRide.status) ? 'text-green-400 font-semibold' : ''}>Aceita</span>
-                <span className={['a_caminho','em_corrida'].includes(activeRide.status) ? 'text-blue-400 font-semibold' : ''}>A caminho</span>
-                <span className={activeRide.status === 'em_corrida' ? 'text-emerald-400 font-semibold' : ''}>Em viagem</span>
-              </div>
-            )}
-            <div className="bg-muted/50 rounded-xl p-[4%] space-y-3">
-              <div className="flex items-start gap-2">
-                <div className="mt-1.5 w-2 h-2 rounded-full bg-green-500 shrink-0" />
-                <div>
-                  <p className="text-xs text-muted-foreground">Origem</p>
-                  <p className="text-sm font-medium">{activeRide.origem_texto}</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-2">
-                <div className="mt-1.5 w-2 h-2 rounded-full bg-accent shrink-0" />
-                <div>
-                  <p className="text-xs text-muted-foreground">Destino</p>
-                  <p className="text-sm font-medium">{activeRide.destino_texto}</p>
-                </div>
-              </div>
-              {activeRide.valor_estimado != null && (
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between bg-green-500/10 border border-green-500/20 rounded-xl px-[4%] py-3">
-                    <div className="flex items-center gap-2">
-                      <DollarSign className="w-4 h-4 text-green-400" />
-                      <div>
-                        <p className="text-[10px] text-muted-foreground">Valor da viagem</p>
-                        <p className="text-base font-bold text-green-400">
-                          R$ {Number(activeRide.valor_estimado).toFixed(2)}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                  {/* Detalhes do preço dinâmico */}
-                  {activeRide.preco_detalhes && (
-                    <div className="space-y-1.5 px-1">
-                      {(activeRide.preco_detalhes as any)?.preco_base != null && (activeRide.preco_detalhes as any).preco_base !== activeRide.valor_estimado && (
-                        <div className="flex items-center justify-between text-xs text-muted-foreground">
-                          <span>Tarifa base</span>
-                          <span className="line-through">R$ {Number((activeRide.preco_detalhes as any).preco_base).toFixed(2)}</span>
-                        </div>
-                      )}
-                      {(activeRide.preco_detalhes as any)?.preco_base_antes_ajuste != null && (
-                        <div className="flex items-center justify-between text-xs text-muted-foreground">
-                          <span>Preço antes do ajuste</span>
-                          <span className="line-through">R$ {Number((activeRide.preco_detalhes as any).preco_base_antes_ajuste).toFixed(2)}</span>
-                        </div>
-                      )}
-                      {(activeRide.preco_detalhes as any)?.regra_horario && (
-                        <div className="flex items-center justify-between bg-purple-500/10 border border-purple-500/20 rounded-lg px-3 py-1.5">
-                          <div className="flex items-center gap-2">
-                            <Clock className="w-3.5 h-3.5 text-purple-400" />
-                            <span className="text-xs text-muted-foreground">{(activeRide.preco_detalhes as any).regra_horario}</span>
-                          </div>
-                          <span className="text-xs font-bold text-purple-400">
-                            {(activeRide.preco_detalhes as any)?.ajuste_horario || (activeRide.preco_detalhes as any)?.ajuste || 'Dinâmico'}
-                          </span>
-                        </div>
-                      )}
-                      {activeRide.tem_bagagem && (
-                        <div className="flex items-center justify-between bg-orange-500/10 border border-orange-500/20 rounded-lg px-3 py-1.5">
-                          <div className="flex items-center gap-2">
-                            <span className="text-orange-400 text-xs">??</span>
-                            <span className="text-xs text-muted-foreground">Feira/Bagagem</span>
-                          </div>
-                          <span className="text-xs font-bold text-orange-400">Inclusa</span>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                  {/* Caso não tenha preco_detalhes mas tenha preco_regra_aplicada */}
-                  {!activeRide.preco_detalhes && activeRide.preco_regra_aplicada && activeRide.preco_regra_aplicada.includes('+') && (
-                    <div className="flex items-center justify-center">
-                      <span className="text-[10px] text-purple-400 bg-purple-500/10 px-2 py-1 rounded">
-                        ? Preço dinâmico aplicado
-                      </span>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-            {/* -- Motorista info when ride is accepted/tracking -- */}
-            {isTracking && motoristaInfo && (
-              <div className="bg-accent/5 border border-accent/20 rounded-xl p-[4%] space-y-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-full bg-accent/20 flex items-center justify-center">
-                    <Car className="w-6 h-6 text-accent" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-semibold">{motoristaInfo.nome}</p>
-                    <p className="text-xs text-muted-foreground flex items-center gap-1">
-                      <Phone className="w-3 h-3" />
-                      {motoristaInfo.telefone}
-                    </p>
-                  </div>
-                </div>
-                {(motoristaInfo.veiculo_marca || motoristaInfo.veiculo_modelo || motoristaInfo.veiculo_cor || motoristaInfo.veiculo_placa) && (
-                  <div className="bg-muted/50 rounded-xl p-3 space-y-1.5">
-                    <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide">Veículo</p>
-                    {(motoristaInfo.veiculo_marca || motoristaInfo.veiculo_modelo) && (
-                      <p className="text-sm font-medium">
-                        {[motoristaInfo.veiculo_marca, motoristaInfo.veiculo_modelo].filter(Boolean).join(' ')}
-                      </p>
-                    )}
-                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                      {motoristaInfo.veiculo_cor && (
-                        <span>Cor: <strong className="text-foreground">{motoristaInfo.veiculo_cor}</strong></span>
-                      )}
-                      {motoristaInfo.veiculo_placa && (
-                        <span>Placa: <strong className="text-foreground font-mono">{motoristaInfo.veiculo_placa}</strong></span>
-                      )}
-                    </div>
-                  </div>
-                )}
-                <a
-                  href={`https://wa.me/55${motoristaInfo.telefone.replace(/\D/g, '')}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center justify-center gap-2 w-full py-2.5 rounded-lg bg-green-600 hover:bg-green-700 text-white font-semibold text-sm transition-colors"
-                >
-                  <MessageSquare className="w-4 h-4" />
-                  Falar com Motorista via WhatsApp
-                </a>
-              </div>
-            )}
-            {hasEditPending && (
-              <Card className="border-yellow-500/30 bg-yellow-500/10">
-                <CardContent className="py-4 space-y-3">
-                  <div className="flex items-center gap-2">
-                    <Edit3 className="w-4 h-4 text-yellow-400" />
-                    <p className="text-sm font-semibold text-yellow-400">Motorista solicita alteração</p>
-                  </div>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex items-start gap-2">
-                      <div className="mt-1.5 w-2 h-2 rounded-full bg-green-500 shrink-0" />
-                      <div>
-                        <p className="text-xs text-muted-foreground">Nova origem</p>
-                        <p className="font-medium">{activeRide.origem_editada}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-2">
-                      <div className="mt-1.5 w-2 h-2 rounded-full bg-accent shrink-0" />
-                      <div>
-                        <p className="text-xs text-muted-foreground">Novo destino</p>
-                        <p className="font-medium">{activeRide.destino_editado}</p>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="flex-1 border-red-500/30 text-red-400 hover:bg-red-500/10"
-                      onClick={() => respondToEdit(false)}
-                    >
-                      <X className="w-4 h-4 mr-1" /> Recusar
-                    </Button>
-                    <Button
-                      size="sm"
-                      className="flex-1 bg-green-600 hover:bg-green-700 text-white"
-                      onClick={() => respondToEdit(true)}
-                    >
-                      <Check className="w-4 h-4 mr-1" /> Aprovar
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-            {(activeRide.status === 'nova' || activeRide.status === 'aguardando_motorista') && (
-              <Button
-                variant="outline"
-                onClick={handleCancelRide}
-                disabled={isCancelling}
-                className="w-full border-red-500/30 text-red-400 hover:bg-red-500/10"
-              >
-                {isCancelling ? (
-                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                ) : (
-                  <X className="w-4 h-4 mr-2" />
-                )}
-                Cancelar Corrida
-              </Button>
-            )}
-            {isTracking && (
-              <p className="text-xs text-muted-foreground text-center">
-                {activeRide.status === 'aceita' ? 'Corrida aceita pelo motorista' :
-                 activeRide.status === 'a_caminho' ? 'Motorista está vindo até você' :
-                 'Você está em viagem — Boa viagem!'}
-              </p>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  if (lastCompletedRide && showCompletedSummary) {
-    return (
-      <div className="space-y-[3%]">
-        <Card className="border-green-500/30 bg-green-500/5 rounded-2xl">
-          <CardContent className="py-[5%] px-[4%] space-y-[3%]">
-            <div className="text-center">
-              <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-green-500/10 mx-auto mb-3">
-                <CheckCircle className="w-7 h-7 text-green-400" />
-              </div>
-              <h3 className="font-bold text-[clamp(1rem,3.5vw,1.25rem)]">Corrida Concluída!</h3>
-              <p className="text-xs text-muted-foreground mt-1">
-                {lastCompletedRide.concluida_at && new Date(lastCompletedRide.concluida_at).toLocaleString('pt-BR', {
-                  day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit',
-                })}
-              </p>
-            </div>
-            <div className="bg-muted/50 rounded-xl p-[4%] space-y-3">
-              <div className="flex items-start gap-2">
-                <div className="mt-1.5 w-2 h-2 rounded-full bg-green-500 shrink-0" />
-                <div>
-                  <p className="text-xs text-muted-foreground">Origem</p>
-                  <p className="text-sm font-medium">{lastCompletedRide.origem_texto}</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-2">
-                <div className="mt-1.5 w-2 h-2 rounded-full bg-accent shrink-0" />
-                <div>
-                  <p className="text-xs text-muted-foreground">Destino</p>
-                  <p className="text-sm font-medium">{lastCompletedRide.destino_texto}</p>
-                </div>
-              </div>
-            </div>
-            {lastCompletedRide.valor != null && (
-              <div className="text-center bg-muted/50 rounded-xl py-3">
-                <p className="text-xs text-muted-foreground">Valor da corrida</p>
-                <p className="text-[clamp(1.25rem,5vw,1.75rem)] font-bold text-green-400">
-                  R$ {Number(lastCompletedRide.valor).toFixed(2)}
-                </p>
-              </div>
-            )}
-
-            {/* Rating section */}
-            {lastCompletedRide.motorista_id && !existingRating && !ratingSubmitted ? (
-              <div className="bg-muted/50 rounded-xl p-[4%] space-y-3">
-                <p className="text-sm font-medium text-center">Como foi sua viagem?</p>
-                <div className="flex justify-center">
-                  <StarRating value={rating} onChange={setRating} size="lg" />
-                </div>
-                {rating > 0 && (
-                  <>
-                    <Input
-                      value={comentario}
-                      onChange={(e) => setComentario(e.target.value)}
-                      placeholder="Deixe um comentário (opcional)"
-                      className="text-sm"
-                    />
-                    <Button
-                      onClick={submitRating}
-                      disabled={isSendingRating}
-                      className="w-full bg-yellow-500 hover:bg-yellow-600 text-black font-semibold"
-                    >
-                      {isSendingRating ? (
-                        <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                      ) : (
-                        <Star className="w-4 h-4 mr-2" />
-                      )}
-                      Enviar Avaliação
-                    </Button>
-                  </>
-                )}
-              </div>
-            ) : (existingRating || ratingSubmitted) ? (
-              <div className="bg-muted/50 rounded-xl p-[4%] text-center space-y-2">
-                <p className="text-xs text-muted-foreground">Sua avaliação</p>
-                <div className="flex justify-center">
-                  <StarRating
-                    value={existingRating?.nota ?? rating}
-                    readOnly
-                    size="md"
-                  />
-                </div>
-                {(existingRating?.comentario || comentario) && (
-                  <p className="text-xs text-muted-foreground italic">
-                    "{existingRating?.comentario || comentario}"
-                  </p>
-                )}
-              </div>
-            ) : null}
-
-            <Button className="w-full" onClick={() => setShowCompletedSummary(false)}>
-              Solicitar Nova Corrida
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-[3%]">
@@ -783,7 +288,7 @@ const RideRequestForm: React.FC = () => {
               onFocus={() => setShowOrigemSuggestions(true)}
               onBlur={() => setTimeout(() => setShowOrigemSuggestions(false), 200)}
               onKeyDown={(e) => { if (e.key === 'Enter') { setShowOrigemSuggestions(false); destinoRef.current?.focus(); } }}
-              placeholder="De onde você sai?"
+              placeholder="De onde vocÃª sai?"
               className="h-12 text-base"
             />
             {showOrigemSuggestions && filteredOrigens.length > 0 && (
@@ -840,12 +345,12 @@ const RideRequestForm: React.FC = () => {
           <div className="space-y-1.5">
             <label className="text-sm font-medium flex items-center gap-2">
               <MessageSquare className="w-3.5 h-3.5 text-muted-foreground" />
-              Observação <span className="text-xs text-muted-foreground font-normal">(opcional)</span>
+              ObservaÃ§Ã£o <span className="text-xs text-muted-foreground font-normal">(opcional)</span>
             </label>
             <Textarea
               value={observacaoCliente}
               onChange={(e) => setObservacaoCliente(e.target.value)}
-              placeholder="Ponto de referência, número da casa, instruções..."
+              placeholder="Ponto de referÃªncia, nÃºmero da casa, instruÃ§Ãµes..."
               className="resize-none text-sm min-h-[60px]"
               rows={2}
             />
@@ -866,7 +371,7 @@ const RideRequestForm: React.FC = () => {
             </label>
           </div>
 
-          {/* -- Price preview: dinâmico > tabela RF -- */}
+          {/* -- Price preview: dinÃ¢mico > tabela RF -- */}
           <AnimatePresence>
             {(precoDinamico || precoTabela) && (
               <motion.div
@@ -883,14 +388,13 @@ const RideRequestForm: React.FC = () => {
               >
                 <div className="space-y-2">
                   {precoDinamico ? (
-                    /* -- Preço do motor dinâmico (prioridade) -- */
                     <>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <Zap className="w-4 h-4 text-blue-400" />
                           <div>
                             <p className="text-[10px] text-muted-foreground">
-                              Preço dinâmico
+                              PreÃ§o dinÃ¢mico
                             </p>
                             <p className="text-[clamp(1.1rem,3.5vw,1.35rem)] font-bold text-blue-400">
                               R$ {precoDinamico.preco_base.toFixed(2)}
@@ -903,10 +407,10 @@ const RideRequestForm: React.FC = () => {
                               ? precoDinamico.ajuste_aplicado
                               : dynamicAdj
                                 ? dynamicAdj.label
-                                : 'Sem ajuste horário'}
+                                : 'Sem ajuste horÃ¡rio'}
                           </p>
                           <p className="text-[10px] text-muted-foreground truncate max-w-[160px]">
-                            {precoDinamico.origem_localidade?.nome} ? {precoDinamico.destino_localidade?.nome}
+                            {precoDinamico.origem_localidade?.nome} â†’ {precoDinamico.destino_localidade?.nome}
                           </p>
                         </div>
                       </div>
@@ -937,14 +441,13 @@ const RideRequestForm: React.FC = () => {
                       )}
                     </>
                   ) : precoTabela ? (
-                    /* -- Preço da tabela RF (fallback) -- */
                     <>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <TableProperties className={`w-4 h-4 ${precoTabela.estimado ? 'text-amber-400' : 'text-green-400'}`} />
                           <div>
                             <p className="text-[10px] text-muted-foreground">
-                              {precoTabela.estimado ? 'Preço estimado' : 'Preço tabelado'}
+                              {precoTabela.estimado ? 'PreÃ§o estimado' : 'PreÃ§o tabelado'}
                             </p>
                             <p className={`text-[clamp(1.1rem,3.5vw,1.35rem)] font-bold ${precoTabela.estimado ? 'text-amber-400' : 'text-green-400'}`}>
                               R$ {precoTabela.valor.toFixed(2)}
@@ -953,10 +456,10 @@ const RideRequestForm: React.FC = () => {
                         </div>
                         <div className="text-right">
                           <p className="text-[10px] text-muted-foreground">
-                            {precoTabela.estimado ? 'Média via Centro do Cabo' : precoTabela.match_exato ? 'Correspondência exata' : 'Melhor correspondência'}
+                            {precoTabela.estimado ? 'MÃ©dia via Centro do Cabo' : precoTabela.match_exato ? 'CorrespondÃªncia exata' : 'Melhor correspondÃªncia'}
                           </p>
                           <p className="text-[10px] text-muted-foreground truncate max-w-[160px]">
-                            {precoTabela.origem_tabela} ? {precoTabela.destino_tabela}
+                            {precoTabela.origem_tabela} â†’ {precoTabela.destino_tabela}
                           </p>
                         </div>
                       </div>
@@ -987,14 +490,13 @@ const RideRequestForm: React.FC = () => {
                   {temBagagem && (
                     <div className="flex items-center justify-between bg-orange-500/10 border border-orange-500/20 rounded-lg px-3 py-2">
                       <div className="flex items-center gap-2">
-                        <span className="text-orange-400 text-xs">??</span>
+                        <span className="text-orange-400 text-xs">ðŸ§³</span>
                         <span className="text-xs text-muted-foreground">Taxa Feira/Bagagem</span>
                       </div>
                       <span className="text-sm font-bold text-orange-400">+R$ {(configTarifas?.taxa_bagagem ?? 5).toFixed(2)}</span>
                     </div>
                   )}
                   {(() => {
-                    // Compute raw total (before tarifa mínima)
                     let rawTotal = precoDinamico
                       ? ((!precoDinamico.regra_horario && dynamicAdj) ? dynamicAdj.aplicar(precoDinamico.preco_final) : precoDinamico.preco_final)
                       : precoTabela
@@ -1025,7 +527,7 @@ const RideRequestForm: React.FC = () => {
                         {usaMinima && (
                           <div className="flex items-center gap-2 bg-yellow-500/10 border border-yellow-500/20 rounded-lg px-3 py-2">
                             <AlertTriangle className="w-3.5 h-3.5 text-yellow-400 shrink-0" />
-                            <span className="text-xs text-yellow-400">Tarifa mínima aplicada</span>
+                            <span className="text-xs text-yellow-400">Tarifa mÃ­nima aplicada</span>
                           </div>
                         )}
                       </>
@@ -1053,11 +555,11 @@ const RideRequestForm: React.FC = () => {
           {/* Submit button */}
           <Button
             onClick={handleSolicitar}
-            disabled={!origem.trim() || !destino.trim() || isSending || hasActiveRide}
+            disabled={!origem.trim() || !destino.trim() || isSending}
             className="w-full h-12 rounded-2xl text-base font-bold gradient-accent text-white shadow-lg shadow-[hsl(45_100%_50%/0.3)] glow-accent hover:opacity-90 transition-opacity"
           >
             {isSending ? (
-              <><Loader2 className="w-5 h-5 animate-spin mr-2" />Solicitando...</>
+              <><Loader2 className="w-5 h-5 animate-spin mr-2" />Registrando...</>
             ) : (
               <><Send className="w-5 h-5 mr-2" />Solicitar Corrida</>
             )}

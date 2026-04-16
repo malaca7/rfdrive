@@ -216,14 +216,12 @@ const AdminDashboardPage: React.FC = () => {
             ))}
           </div>
 
-          {/* ── Status breakdown ── */}
+          {/* ── Canal de Origem ── */}
           <Card>
             <CardContent className="py-4">
-              <h3 className="text-sm font-semibold mb-3 flex items-center gap-2"><Activity className="w-4 h-4 text-accent" /> Status das Corridas</h3>
+              <h3 className="text-sm font-semibold mb-3 flex items-center gap-2"><Activity className="w-4 h-4 text-accent" /> Origem das Corridas</h3>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {[
-                  { label: 'Recusadas', value: stats.recusadas, color: 'text-red-400', icon: <XCircle className="w-3.5 h-3.5" /> },
-                  { label: 'Não Realizadas', value: stats.naoRealizadas, color: 'text-gray-400', icon: <AlertTriangle className="w-3.5 h-3.5" /> },
                   { label: 'Via WhatsApp', value: stats.whatsapp, color: 'text-green-400', icon: <Car className="w-3.5 h-3.5" /> },
                   { label: 'Via App', value: stats.app, color: 'text-blue-400', icon: <Car className="w-3.5 h-3.5" /> },
                 ].map(s => (
