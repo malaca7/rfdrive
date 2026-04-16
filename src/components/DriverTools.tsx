@@ -550,41 +550,6 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
   const [avatarDataUrl, setAvatarDataUrl] = useState<string>('');
   useEffect(() => {
     if (!profile.avatar_url) { setAvatarDataUrl(''); return; }
-    fetch(profile.avatar_url)
-      .then(r => r.blob())
-      .then(blob => {
-        const reader = new FileReader();
-        reader.onloadend = () => setAvatarDataUrl(reader.result as string);
-        reader.readAsDataURL(blob);
-      })
-      .catch(() => setAvatarDataUrl(''));
-  }, [profile.avatar_url]);
-
-  // Convert car image to base64 for reliable html2canvas capture
-  const [carDataUrl, setCarDataUrl] = useState<string>('');
-  const carUrl = useMemo(() => {
-    if (!hasVehicle) return '';
-    const corMap: Record<string, string> = {
-      'preto': 'pspc0029', 'preta': 'pspc0029', 'black': 'pspc0029',
-      'branco': 'pspc0001', 'branca': 'pspc0001', 'white': 'pspc0001',
-      'prata': 'pspc0022', 'silver': 'pspc0022',
-      'cinza': 'pspc0032', 'cinzento': 'pspc0032', 'grey': 'pspc0032', 'gray': 'pspc0032',
-      'vermelho': 'pspc0015', 'vermelha': 'pspc0015', 'red': 'pspc0015',
-      'azul': 'pspc0012', 'blue': 'pspc0012',
-      'verde': 'pspc0005', 'green': 'pspc0005',
-      'amarelo': 'pspc0004', 'amarela': 'pspc0004', 'yellow': 'pspc0004',
-      'marrom': 'pspc0031', 'brown': 'pspc0031', 'bege': 'pspc0031', 'beige': 'pspc0031',
-      'dourado': 'pspc0025', 'dourada': 'pspc0025', 'gold': 'pspc0025',
-      'vinho': 'pspc0017', 'bordo': 'pspc0017', 'burgundy': 'pspc0017',
-      'laranja': 'pspc0021', 'orange': 'pspc0021',
-      'rosa': 'pspc0020', 'pink': 'pspc0020',
-    };
-    const corNorm = (profile.veiculo_cor || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
-    const paintId = corMap[corNorm] || 'pspc0029';
-    return `https://cdn.imagin.studio/getimage?customer=hrjavascript-mastery&make=${encodeURIComponent(profile.veiculo_marca || '')}&modelFamily=${encodeURIComponent(profile.veiculo_modelo || '')}&paintId=${paintId}&angle=01&width=900&zoomType=fullscreen`;
-  }, [hasVehicle, profile.veiculo_marca, profile.veiculo_modelo, profile.veiculo_cor]);
-  useEffect(() => {
-    if (!carUrl) { setCarDataUrl(''); return; }
     const img = new Image();
     img.crossOrigin = 'anonymous';
     img.onload = () => {
@@ -593,11 +558,32 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
       canvas.height = img.naturalHeight;
       const ctx = canvas.getContext('2d')!;
       ctx.drawImage(img, 0, 0);
-      try { setCarDataUrl(canvas.toDataURL('image/png')); } catch { setCarDataUrl(carUrl); }
+      try { setAvatarDataUrl(canvas.toDataURL('image/png')); } catch { setAvatarDataUrl(profile.avatar_url || ''); }
     };
-    img.onerror = () => setCarDataUrl('');
-    img.src = carUrl;
-  }, [carUrl]);
+    img.onerror = () => setAvatarDataUrl(profile.avatar_url || '');
+    img.src = profile.avatar_url;
+  }, [profile.avatar_url]);
+
+  // Map vehicle color name to hex for the illustrative SVG car
+  const carColor = useMemo(() => {
+    const corMap: Record<string, string> = {
+      'preto': '#1a1a1a', 'preta': '#1a1a1a', 'black': '#1a1a1a',
+      'branco': '#f0f0f0', 'branca': '#f0f0f0', 'white': '#f0f0f0',
+      'prata': '#c0c0c0', 'silver': '#c0c0c0',
+      'cinza': '#808080', 'cinzento': '#808080', 'grey': '#808080', 'gray': '#808080',
+      'vermelho': '#cc2222', 'vermelha': '#cc2222', 'red': '#cc2222',
+      'azul': '#2255cc', 'blue': '#2255cc',
+      'verde': '#228833', 'green': '#228833',
+      'amarelo': '#ddaa00', 'amarela': '#ddaa00', 'yellow': '#ddaa00',
+      'marrom': '#6b3a1f', 'brown': '#6b3a1f', 'bege': '#c8ad7f', 'beige': '#c8ad7f',
+      'dourado': '#b8860b', 'dourada': '#b8860b', 'gold': '#b8860b',
+      'vinho': '#5c1a2a', 'bordo': '#5c1a2a', 'burgundy': '#5c1a2a',
+      'laranja': '#dd6600', 'orange': '#dd6600',
+      'rosa': '#cc5599', 'pink': '#cc5599',
+    };
+    const corNorm = (profile.veiculo_cor || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+    return corMap[corNorm] || '#c0c0c0';
+  }, [profile.veiculo_cor]);
 
   const handleShare = async () => {
     if (!badgeRef.current) return;
@@ -667,7 +653,6 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
             overflow: 'hidden',
             width: '420px',
             maxWidth: '100%',
-            aspectRatio: '1 / 1',
             margin: '0 auto',
           }}
         >
@@ -690,16 +675,12 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
           }} />
 
           {/* ── Gold corner decorations ── */}
-          {/* Top-left */}
           <div style={{ position: 'absolute', top: '12px', left: '12px', width: '30px', height: '30px', borderTop: `2px solid ${corPrimaria}`, borderLeft: `2px solid ${corPrimaria}` }} />
-          {/* Top-right */}
           <div style={{ position: 'absolute', top: '12px', right: '12px', width: '30px', height: '30px', borderTop: `2px solid ${corPrimaria}`, borderRight: `2px solid ${corPrimaria}` }} />
-          {/* Bottom-left */}
           <div style={{ position: 'absolute', bottom: '56px', left: '12px', width: '30px', height: '30px', borderBottom: `2px solid ${corPrimaria}`, borderLeft: `2px solid ${corPrimaria}` }} />
-          {/* Bottom-right */}
           <div style={{ position: 'absolute', bottom: '56px', right: '12px', width: '30px', height: '30px', borderBottom: `2px solid ${corPrimaria}`, borderRight: `2px solid ${corPrimaria}` }} />
 
-          {/* ── Gold accent lines on sides ── */}
+          {/* ── Accent lines on sides ── */}
           <div style={{ position: 'absolute', top: '20%', left: 0, width: '3px', height: '25%', background: `linear-gradient(180deg, transparent, ${corPrimaria}, transparent)` }} />
           <div style={{ position: 'absolute', top: '20%', right: 0, width: '3px', height: '25%', background: `linear-gradient(180deg, transparent, ${corPrimaria}, transparent)` }} />
 
@@ -707,25 +688,25 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
           <div style={{
             position: 'relative' as const, zIndex: 1,
             display: 'flex', flexDirection: 'column' as const,
-            height: '100%', padding: '5% 5% 0',
+            padding: '20px 20px 0',
           }}>
 
             {/* ══ HEADER: RF + Motorista ══ */}
-            <div style={{ textAlign: 'center' as const, marginBottom: '2%' }}>
+            <div style={{ textAlign: 'center' as const, marginBottom: '8px' }}>
               <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: '1px' }}>
                 <span style={{
-                  fontSize: 'clamp(38px, 10vw, 52px)', fontWeight: '900', color: corPrimaria,
+                  fontSize: '48px', fontWeight: '900', color: corPrimaria,
                   letterSpacing: '-2px', lineHeight: '1', fontStyle: 'italic',
                   textShadow: `0 2px 20px ${corPrimaria}4D`,
                 }}>R</span>
                 <span style={{
-                  fontSize: 'clamp(38px, 10vw, 52px)', fontWeight: '900', color: '#ffffff',
+                  fontSize: '48px', fontWeight: '900', color: '#ffffff',
                   letterSpacing: '-2px', lineHeight: '1', fontStyle: 'italic',
                   textShadow: '0 2px 10px rgba(255,255,255,0.15)',
                 }}>F</span>
               </div>
               <div style={{
-                fontSize: 'clamp(11px, 3vw, 15px)', fontWeight: '400', color: 'rgba(255,255,255,0.85)',
+                fontSize: '14px', fontWeight: '400', color: 'rgba(255,255,255,0.85)',
                 letterSpacing: '4px', textTransform: 'uppercase' as const, marginTop: '-2px',
               }}>
                 Motorista
@@ -733,7 +714,7 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
             </div>
 
             {/* ══ Status pill (centered) ══ */}
-            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '4%' }}>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '14px' }}>
               <div style={{
                 display: 'flex', alignItems: 'center', gap: '6px',
                 background: profile.status === 'ativo'
@@ -756,43 +737,63 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
               </div>
             </div>
 
-            {/* ══ CAR + AVATAR side by side ══ */}
+            {/* ══ CAR SVG (illustrative) + AVATAR side by side ══ */}
             <div style={{
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              marginBottom: '3%', gap: '0', position: 'relative' as const,
-              minHeight: '110px',
+              marginBottom: '10px', position: 'relative' as const,
+              height: '120px',
             }}>
-              {/* Car image (left) */}
-              {hasVehicle && (carDataUrl || carUrl) && (
+              {/* Illustrative car SVG (left) */}
+              {hasVehicle && (
                 <div style={{
                   flex: '1 1 55%', display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}>
-                  <img
-                    src={carDataUrl || carUrl}
-                    alt=""
-                    style={{
-                      width: '100%', maxHeight: '110px', objectFit: 'contain',
-                      filter: 'drop-shadow(0 8px 20px rgba(0,0,0,0.7))',
-                    }}
-                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                  />
+                  <svg viewBox="0 0 300 120" width="220" height="88" style={{ filter: 'drop-shadow(0 6px 16px rgba(0,0,0,0.6))' }}>
+                    {/* Car body */}
+                    <path d="M45,72 L55,42 C58,35 65,28 75,25 L155,20 C170,18 190,22 205,30 L240,50 C250,55 260,62 265,68 L270,72 Z" fill={carColor} />
+                    {/* Car roof / cabin */}
+                    <path d="M85,42 L95,22 C100,16 115,12 140,12 L175,14 C190,16 200,22 205,30 L215,48 C195,40 160,38 130,38 C105,38 90,40 85,42 Z" fill={carColor} style={{ opacity: 0.85 }} />
+                    {/* Window glass */}
+                    <path d="M92,40 L100,24 C104,18 118,15 140,15 L172,16 C186,18 196,24 200,30 L208,45 C190,40 160,38 135,38 C112,38 98,39 92,40 Z" fill="rgba(150,200,255,0.3)" />
+                    {/* Window divider */}
+                    <line x1="150" y1="15" x2="148" y2="42" stroke="rgba(255,255,255,0.15)" strokeWidth="1.5" />
+                    {/* Bottom line */}
+                    <rect x="35" y="72" width="245" height="6" rx="3" fill={carColor} style={{ opacity: 0.9 }} />
+                    {/* Headlight front */}
+                    <ellipse cx="262" cy="65" rx="8" ry="5" fill="rgba(255,255,200,0.8)" />
+                    {/* Tail light */}
+                    <ellipse cx="48" cy="65" rx="6" ry="4" fill="rgba(255,50,50,0.7)" />
+                    {/* Front wheel */}
+                    <circle cx="215" cy="80" r="18" fill="#111" />
+                    <circle cx="215" cy="80" r="12" fill="#333" />
+                    <circle cx="215" cy="80" r="5" fill="#555" />
+                    {/* Rear wheel */}
+                    <circle cx="85" cy="80" r="18" fill="#111" />
+                    <circle cx="85" cy="80" r="12" fill="#333" />
+                    <circle cx="85" cy="80" r="5" fill="#555" />
+                    {/* Highlight/shine on body */}
+                    <path d="M60,55 Q130,45 250,58" stroke="rgba(255,255,255,0.15)" strokeWidth="1" fill="none" />
+                    {/* Door handle */}
+                    <rect x="140" y="50" width="12" height="3" rx="1.5" fill="rgba(255,255,255,0.2)" />
+                  </svg>
                 </div>
               )}
-              {/* Avatar (right) */}
+              {/* Avatar (right, overlapping car slightly) */}
               <div style={{
                 flex: '0 0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                marginLeft: hasVehicle ? '-15px' : '0',
+                marginLeft: hasVehicle ? '-20px' : '0',
+                zIndex: 2,
               }}>
                 <div style={{
-                  width: '105px', height: '105px',
+                  width: '110px', height: '110px',
                   borderRadius: '50%',
                   border: `3px solid ${corPrimaria}`,
                   overflow: 'hidden', background: '#1a1a1a',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   boxShadow: `0 0 25px ${corPrimaria}33, 0 8px 30px rgba(0,0,0,0.6)`,
                 }}>
-                  {avatarDataUrl ? (
-                    <img src={avatarDataUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  {(avatarDataUrl || profile.avatar_url) ? (
+                    <img src={avatarDataUrl || profile.avatar_url} alt="" crossOrigin="anonymous" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   ) : (
                     <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke={corPrimaria} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
@@ -805,16 +806,16 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
 
             {/* ══ VEHICLE NAME + PLATE ══ */}
             {hasVehicle && (
-              <div style={{ textAlign: 'center' as const, marginBottom: '3%' }}>
+              <div style={{ textAlign: 'center' as const, marginBottom: '10px' }}>
                 <div style={{
-                  fontSize: 'clamp(13px, 3.5vw, 17px)', fontWeight: '800', color: '#ffffff',
+                  fontSize: '16px', fontWeight: '800', color: '#ffffff',
                   textTransform: 'uppercase' as const, letterSpacing: '2px', lineHeight: '1.3',
                 }}>
                   {[profile.veiculo_marca, profile.veiculo_modelo].filter(Boolean).join(' ')}
                 </div>
                 {profile.veiculo_placa && (
                   <div style={{
-                    fontSize: 'clamp(12px, 3.2vw, 16px)', fontWeight: '700',
+                    fontSize: '15px', fontWeight: '700',
                     color: corPrimaria, marginTop: '2px',
                     letterSpacing: '3px', textTransform: 'uppercase' as const,
                   }}>
@@ -825,15 +826,15 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
             )}
 
             {/* ══ DRIVER NAME + ROLE ══ */}
-            <div style={{ textAlign: 'center' as const, marginBottom: '4%', marginTop: 'auto' }}>
+            <div style={{ textAlign: 'center' as const, marginBottom: '14px' }}>
               <div style={{
-                fontSize: 'clamp(22px, 6vw, 30px)', fontWeight: '800', color: '#ffffff',
+                fontSize: '28px', fontWeight: '800', color: '#ffffff',
                 textTransform: 'uppercase' as const, letterSpacing: '2px', lineHeight: '1.15',
               }}>
                 {profile.nome}
               </div>
               <div style={{
-                fontSize: 'clamp(11px, 3vw, 14px)', fontWeight: '600',
+                fontSize: '13px', fontWeight: '600',
                 color: corPrimaria, marginTop: '4px',
                 letterSpacing: '3px', textTransform: 'uppercase' as const,
               }}>
@@ -845,7 +846,7 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
             <div style={{
               background: 'linear-gradient(180deg, #111111, #0a0a0a)',
               borderTop: `1px solid ${corPrimaria}33`,
-              margin: '0 -5.3%',
+              margin: '0 -20px',
               padding: '10px 16px',
               display: 'flex', flexDirection: 'column' as const,
               alignItems: 'center', justifyContent: 'center', gap: '3px',
