@@ -35,7 +35,6 @@ import { buscarPrecoTabela } from '@/lib/tabela-preco';
 const AdminPricing = React.lazy(() => import('@/components/AdminPricing'));
 const AdminTabelaPrecos = React.lazy(() => import('@/components/AdminTabelaPrecos'));
 const AdminStatsDashboard = React.lazy(() => import('@/components/AdminStatsDashboard'));
-const AdminMotoristas = React.lazy(() => import('@/components/AdminMotoristas'));
 const AdminTracking = React.lazy(() => import('@/components/AdminTracking'));
 const AdminDispatch = React.lazy(() => import('@/components/AdminDispatch'));
 
@@ -92,6 +91,7 @@ type UserRecord = {
   veiculo_modelo?: string | null;
   veiculo_cor?: string | null;
   veiculo_placa?: string | null;
+  avatar_url?: string | null;
 };
 
 // ── Vehicle options ──
@@ -141,6 +141,22 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.
 
 const ALL_STATUSES = ['nova', 'aguardando_motorista', 'aceita', 'em_analise', 'aprovada', 'nao_realizada', 'recusada'] as const;
 
+// ── Phone format: (81) 9 9613.8924 ──
+function formatPhone(value: string): string {
+  const digits = value.replace(/\D/g, '').slice(0, 11);
+  if (digits.length <= 2) return digits.length ? `(${digits}` : '';
+  if (digits.length <= 3) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+  if (digits.length <= 7) return `(${digits.slice(0, 2)}) ${digits.slice(2, 3)} ${digits.slice(3, 7)}`;
+  return `(${digits.slice(0, 2)}) ${digits.slice(2, 3)} ${digits.slice(3, 7)}.${digits.slice(7, 11)}`;
+}
+
+// ── Plate format: ABC-1234 ──
+function formatPlate(value: string): string {
+  const clean = value.replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 7);
+  if (clean.length <= 3) return clean;
+  return `${clean.slice(0, 3)}-${clean.slice(3)}`;
+}
+
 const AdminDashboard: React.FC = () => {
   const { user: adminUser } = useAuth();
   const { toast } = useToast();
@@ -188,6 +204,7 @@ const AdminDashboard: React.FC = () => {
     roles: [] as string[],
     status: '',
     senha: '',
+    isAdmin: false,
     veiculo_marca: '',
     veiculo_modelo: '',
     veiculo_cor: '',
@@ -201,8 +218,8 @@ const AdminDashboard: React.FC = () => {
   const [createUserForm, setCreateUserForm] = useState({
     nome: '',
     telefone: '',
-    tipo: 'cliente' as string,
     senha: '',
+    isAdmin: false,
     veiculo_marca: '',
     veiculo_modelo: '',
     veiculo_cor: '',
@@ -344,21 +361,29 @@ const AdminDashboard: React.FC = () => {
   // ── Create user mutation ──
   const createUserMutation = useMutation({
     mutationFn: async (form: typeof createUserForm) => {
+      const phoneDigits = form.telefone.replace(/\D/g, '');
+      // Check duplicate phone
+      const { data: existing } = await supabase.from('users').select('id').eq('telefone', form.telefone.trim()).limit(1);
+      if (existing && existing.length > 0) throw new Error('Já existe um usuário com este telefone');
+      // Also check digits-only format
+      const { data: existing2 } = await supabase.from('users').select('id').eq('telefone', phoneDigits).limit(1);
+      if (existing2 && existing2.length > 0) throw new Error('Já existe um usuário com este telefone');
+
+      const roles = form.isAdmin ? ['motorista', 'admin'] : ['motorista'];
+      const tipo = form.isAdmin ? 'admin' : 'motorista';
       const newUser: Record<string, unknown> = {
         nome: form.nome.trim(),
         telefone: form.telefone.trim(),
-        tipo: form.tipo,
-        roles: [form.tipo],
+        tipo,
+        roles,
         senha: form.senha.trim(),
         status: 'ativo',
         ativo: true,
       };
-      if (form.tipo === 'motorista') {
-        if (form.veiculo_marca) newUser.veiculo_marca = form.veiculo_marca;
-        if (form.veiculo_modelo) newUser.veiculo_modelo = form.veiculo_modelo;
-        if (form.veiculo_cor) newUser.veiculo_cor = form.veiculo_cor;
-        if (form.veiculo_placa) newUser.veiculo_placa = form.veiculo_placa.toUpperCase();
-      }
+      if (form.veiculo_marca) newUser.veiculo_marca = form.veiculo_marca;
+      if (form.veiculo_modelo) newUser.veiculo_modelo = form.veiculo_modelo;
+      if (form.veiculo_cor) newUser.veiculo_cor = form.veiculo_cor;
+      if (form.veiculo_placa) newUser.veiculo_placa = form.veiculo_placa;
       const { error } = await supabase.from('users').insert(newUser);
       if (error) throw error;
     },
@@ -366,7 +391,7 @@ const AdminDashboard: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['admin-users'] });
       toast({ title: 'Usuário criado com sucesso!' });
       setShowCreateUserDialog(false);
-      setCreateUserForm({ nome: '', telefone: '', tipo: 'cliente', senha: '', veiculo_marca: '', veiculo_modelo: '', veiculo_cor: '', veiculo_placa: '' });
+      setCreateUserForm({ nome: '', telefone: '', senha: '', isAdmin: false, veiculo_marca: '', veiculo_modelo: '', veiculo_cor: '', veiculo_placa: '' });
     },
     onError: (e: any) => {
       toast({ title: 'Erro ao criar usuário', description: e?.message || 'Erro desconhecido', variant: 'destructive' });
@@ -476,21 +501,22 @@ const AdminDashboard: React.FC = () => {
   const openEditUserDialog = (u: UserRecord) => {
     setSelectedUser(u);
     const derivedRoles = u.roles && u.roles.length > 0 ? u.roles : (
-      u.tipo === 'admin' ? ['admin'] :
-      u.tipo === 'motorista' ? ['motorista'] :
-      ['cliente']
+      u.tipo === 'admin' ? ['admin', 'motorista'] :
+      ['motorista']
     );
+    const isAdmin = derivedRoles.includes('admin');
     setEditUserForm({
       nome: u.nome,
-      telefone: u.telefone,
-      tipo: u.tipo,
+      telefone: formatPhone(u.telefone),
+      tipo: 'motorista',
       roles: derivedRoles,
       status: u.status,
       senha: '',
+      isAdmin,
       veiculo_marca: u.veiculo_marca || '',
       veiculo_modelo: u.veiculo_modelo || '',
       veiculo_cor: u.veiculo_cor || '',
-      veiculo_placa: u.veiculo_placa || '',
+      veiculo_placa: u.veiculo_placa ? formatPlate(u.veiculo_placa) : '',
     });
     setShowEditUserDialog(true);
   };
@@ -525,7 +551,6 @@ const AdminDashboard: React.FC = () => {
     if (!selectedUser) return;
     const updates: Record<string, unknown> = {};
 
-    // Só envia campos que realmente mudaram
     if (editUserForm.nome.trim() !== selectedUser.nome) {
       updates.nome = editUserForm.nome.trim();
     }
@@ -540,7 +565,16 @@ const AdminDashboard: React.FC = () => {
       updates.senha = editUserForm.senha.trim();
     }
 
-    // Veículo — só envia campos que mudaram
+    // Admin permission
+    const newRoles = editUserForm.isAdmin ? ['motorista', 'admin'] : ['motorista'];
+    const newTipo = editUserForm.isAdmin ? 'admin' : 'motorista';
+    const currentRoles = selectedUser.roles || [selectedUser.tipo];
+    if (JSON.stringify(newRoles.sort()) !== JSON.stringify([...currentRoles].sort())) {
+      updates.roles = newRoles;
+      updates.tipo = newTipo;
+    }
+
+    // Veículo
     if ((editUserForm.veiculo_marca || '') !== (selectedUser.veiculo_marca || '')) {
       updates.veiculo_marca = editUserForm.veiculo_marca || null;
     }
@@ -554,7 +588,6 @@ const AdminDashboard: React.FC = () => {
       updates.veiculo_placa = editUserForm.veiculo_placa || null;
     }
 
-    // Não altera tipo nem roles — preserva o que está no banco
     if (Object.keys(updates).length === 0) {
       toast({ title: 'Nenhuma alteração detectada' });
       return;
@@ -584,7 +617,10 @@ const AdminDashboard: React.FC = () => {
   });
 
   const filteredUsers = users?.filter((u) => {
-    const matchType = userTypeFilter === 'all' || u.tipo === userTypeFilter || (u.roles && u.roles.includes(userTypeFilter));
+    const matchType = userTypeFilter === 'all' ||
+      (userTypeFilter === 'ativo' && u.status === 'ativo') ||
+      (userTypeFilter === 'banido' && u.status === 'banido') ||
+      (userTypeFilter === 'admin' && (u.roles?.includes('admin') || u.tipo === 'admin'));
     const matchSearch = !userSearchTerm ||
       u.nome?.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').includes(
         userSearchTerm.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
@@ -632,9 +668,7 @@ const AdminDashboard: React.FC = () => {
             <TabsTrigger value="usuarios" className="flex-1 min-w-[80px] gap-1 rounded-xl h-10 text-[11px] sm:text-xs font-semibold data-[state=active]:bg-[hsl(22_100%_55%)] data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-[hsl(22_100%_55%/0.2)]">
               <Users className="w-3.5 h-3.5 shrink-0" /> Usuários
             </TabsTrigger>
-            <TabsTrigger value="motoristas" className="flex-1 min-w-[80px] gap-1 rounded-xl h-10 text-[11px] sm:text-xs font-semibold data-[state=active]:bg-[hsl(22_100%_55%)] data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-[hsl(22_100%_55%/0.2)]">
-              <Car className="w-3.5 h-3.5 shrink-0" /> Motoristas
-            </TabsTrigger>
+
             <TabsTrigger value="precificacao" className="flex-1 min-w-[80px] gap-1 rounded-xl h-10 text-[11px] sm:text-xs font-semibold data-[state=active]:bg-[hsl(22_100%_55%)] data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-[hsl(22_100%_55%/0.2)]">
               <DollarSign className="w-3.5 h-3.5 shrink-0" /> Preços
             </TabsTrigger>
@@ -878,16 +912,16 @@ const AdminDashboard: React.FC = () => {
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-bold flex items-center gap-2">
                 <Users className="w-5 h-5 text-accent" />
-                Gerenciar Usuários
+                Gerenciar Motoristas
               </h2>
               <Button
                 className="gap-1.5"
                 onClick={() => {
-                  setCreateUserForm({ nome: '', telefone: '', tipo: 'cliente', senha: '', veiculo_marca: '', veiculo_modelo: '', veiculo_cor: '', veiculo_placa: '' });
+                  setCreateUserForm({ nome: '', telefone: '', senha: '', isAdmin: false, veiculo_marca: '', veiculo_modelo: '', veiculo_cor: '', veiculo_placa: '' });
                   setShowCreateUserDialog(true);
                 }}
               >
-                <UserPlus className="w-4 h-4" /> Novo Usuário
+                <UserPlus className="w-4 h-4" /> Novo Motorista
               </Button>
             </div>
 
@@ -905,13 +939,13 @@ const AdminDashboard: React.FC = () => {
               <Select value={userTypeFilter} onValueChange={setUserTypeFilter}>
                 <SelectTrigger className="w-full sm:w-48">
                   <Filter className="w-4 h-4 mr-2" />
-                  <SelectValue placeholder="Filtrar por tipo" />
+                  <SelectValue placeholder="Filtrar" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Todos os Tipos</SelectItem>
-                  <SelectItem value="cliente">Clientes</SelectItem>
-                  <SelectItem value="motorista">Motoristas</SelectItem>
-                  <SelectItem value="admin">Admins</SelectItem>
+                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="ativo">Ativos</SelectItem>
+                  <SelectItem value="banido">Inativos</SelectItem>
+                  <SelectItem value="admin">Administradores</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -931,34 +965,34 @@ const AdminDashboard: React.FC = () => {
               </Card>
               <Card>
                 <CardContent className="py-3 px-4 flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-blue-500/10 flex items-center justify-center">
-                    <User className="w-4 h-4 text-blue-400" />
+                  <div className="w-9 h-9 rounded-xl bg-green-500/10 flex items-center justify-center">
+                    <CheckCircle className="w-4 h-4 text-green-400" />
                   </div>
                   <div>
-                    <p className="text-lg font-bold leading-none text-blue-400">{stats.clientes}</p>
-                    <p className="text-[10px] text-muted-foreground mt-0.5">Clientes</p>
+                    <p className="text-lg font-bold leading-none text-green-400">{users?.filter(u => u.status === 'ativo').length || 0}</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">Ativos</p>
                   </div>
                 </CardContent>
               </Card>
               <Card>
                 <CardContent className="py-3 px-4 flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-accent/10 flex items-center justify-center">
-                    <Car className="w-4 h-4 text-accent" />
+                  <div className="w-9 h-9 rounded-xl bg-purple-500/10 flex items-center justify-center">
+                    <Shield className="w-4 h-4 text-purple-400" />
                   </div>
                   <div>
-                    <p className="text-lg font-bold leading-none text-accent">{stats.motoristas}</p>
-                    <p className="text-[10px] text-muted-foreground mt-0.5">Motoristas</p>
+                    <p className="text-lg font-bold leading-none text-purple-400">{users?.filter(u => u.roles?.includes('admin') || u.tipo === 'admin').length || 0}</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">Admins</p>
                   </div>
                 </CardContent>
               </Card>
               <Card>
                 <CardContent className="py-3 px-4 flex items-center gap-3">
                   <div className="w-9 h-9 rounded-xl bg-red-500/10 flex items-center justify-center">
-                    <Ban className="w-4 h-4 text-red-400" />
+                    <XCircle className="w-4 h-4 text-red-400" />
                   </div>
                   <div>
                     <p className="text-lg font-bold leading-none text-red-400">{stats.banidos}</p>
-                    <p className="text-[10px] text-muted-foreground mt-0.5">Banidos</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">Inativos</p>
                   </div>
                 </CardContent>
               </Card>
@@ -974,11 +1008,11 @@ const AdminDashboard: React.FC = () => {
                   <Button
                     variant="outline" className="mt-4 gap-1"
                     onClick={() => {
-                      setCreateUserForm({ nome: '', telefone: '', tipo: 'cliente', senha: '', veiculo_marca: '', veiculo_modelo: '', veiculo_cor: '', veiculo_placa: '' });
+                      setCreateUserForm({ nome: '', telefone: '', senha: '', isAdmin: false, veiculo_marca: '', veiculo_modelo: '', veiculo_cor: '', veiculo_placa: '' });
                       setShowCreateUserDialog(true);
                     }}
                   >
-                    <UserPlus className="w-4 h-4" /> Criar primeiro usuário
+                    <UserPlus className="w-4 h-4" /> Criar primeiro motorista
                   </Button>
                 </CardContent>
               </Card>
@@ -986,37 +1020,30 @@ const AdminDashboard: React.FC = () => {
               <div className="space-y-2">
                 {filteredUsers.map((u, i) => {
                   const rideCount = rides?.filter(r => r.cliente_id === u.id || r.motorista_id === u.id).length || 0;
-                  const tipos: string[] = u.roles && u.roles.length > 0 
-                    ? u.roles 
-                    : u.tipo === 'admin' 
-                      ? ['admin'] 
-                      : u.tipo === 'motorista' 
-                        ? ['motorista'] 
-                        : ['cliente'];
+                  const isAdmin = u.roles?.includes('admin') || u.tipo === 'admin';
                   return (
                     <motion.div key={u.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.015 }}>
-                      <Card className={`transition-colors hover:border-white/10 ${u.status === 'banido' ? 'border-red-500/30 bg-red-500/5' : ''}`}>
+                      <Card className={`transition-colors hover:border-white/10 ${u.status === 'banido' ? 'border-red-500/30 bg-red-500/5 opacity-60' : ''}`}>
                         <CardContent className="py-3 px-4">
                           <div className="flex items-center gap-3">
-                            {/* Avatar */}
-                            <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
-                              u.tipo === 'motorista' ? 'bg-accent/20' : u.tipo === 'admin' ? 'bg-purple-500/20' : 'bg-blue-500/20'
-                            }`}>
-                              {u.tipo === 'motorista' ? <Car className="w-5 h-5 text-accent" /> :
-                               u.tipo === 'admin' ? <Shield className="w-5 h-5 text-purple-400" /> :
-                               <User className="w-5 h-5 text-blue-400" />}
+                            {/* Avatar / Foto */}
+                            <div className="w-10 h-10 rounded-full shrink-0 overflow-hidden bg-accent/20 flex items-center justify-center">
+                              {u.avatar_url ? (
+                                <img src={u.avatar_url} alt={u.nome} className="w-full h-full object-cover" />
+                              ) : (
+                                <Car className="w-5 h-5 text-accent" />
+                              )}
                             </div>
 
                             {/* Info */}
                             <div className="min-w-0 flex-1">
                               <div className="flex items-center gap-2">
                                 <p className="font-medium truncate text-sm">{u.nome || 'Sem nome'}</p>
-                                <Badge
-                                  variant={u.status === 'ativo' ? 'outline' : 'destructive'}
-                                  className="text-[9px] px-1.5 py-0 h-4"
-                                >
-                                  {u.status === 'ativo' ? 'Ativo' : 'Banido'}
-                                </Badge>
+                                {isAdmin && (
+                                  <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 bg-purple-500/20 text-purple-400 border-purple-500/30">
+                                    Admin
+                                  </Badge>
+                                )}
                               </div>
                               <div className="flex items-center gap-3 mt-0.5">
                                 <span className="text-xs text-muted-foreground flex items-center gap-1">
@@ -1026,25 +1053,26 @@ const AdminDashboard: React.FC = () => {
                                   {rideCount} corrida{rideCount !== 1 ? 's' : ''}
                                 </span>
                               </div>
-                              <div className="flex gap-1 mt-1 flex-wrap">
-                                {tipos.map(r => {
-                                  const rl: Record<string, string> = { cliente: '👤 Cliente', motorista: '🚗 Motorista', admin: '🛡️ Admin' };
-                                  const rc: Record<string, string> = {
-                                    cliente: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
-                                    motorista: 'bg-green-500/20 text-green-400 border-green-500/30',
-                                    admin: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
-                                  };
-                                  return (
-                                    <Badge key={r} variant="outline" className={`text-[9px] px-1.5 py-0 h-4 ${rc[r] || ''}`}>
-                                      {rl[r] || r}
-                                    </Badge>
-                                  );
-                                })}
-                              </div>
                             </div>
 
                             {/* Actions */}
                             <div className="flex items-center gap-1.5 shrink-0">
+                              {/* Admin toggle */}
+                              <Button
+                                size="icon" variant="ghost"
+                                className={`h-8 w-8 ${isAdmin ? 'text-purple-400 hover:text-purple-300' : 'text-muted-foreground hover:text-purple-400'}`}
+                                title={isAdmin ? 'Remover admin' : 'Tornar admin'}
+                                onClick={() => {
+                                  const newRoles = isAdmin ? ['motorista'] : ['motorista', 'admin'];
+                                  const newTipo = isAdmin ? 'motorista' : 'admin';
+                                  updateUserMutation.mutate({
+                                    userId: u.id,
+                                    updates: { roles: newRoles, tipo: newTipo },
+                                  });
+                                }}
+                              >
+                                <Shield className="w-3.5 h-3.5" />
+                              </Button>
                               <Button
                                 size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:text-white"
                                 title="Editar"
@@ -1052,10 +1080,11 @@ const AdminDashboard: React.FC = () => {
                               >
                                 <Pencil className="w-3.5 h-3.5" />
                               </Button>
+                              {/* Ativar/Desativar */}
                               <Button
                                 size="icon" variant="ghost"
-                                className={`h-8 w-8 ${u.status === 'ativo' ? 'text-muted-foreground hover:text-red-400' : 'text-green-400 hover:text-green-300'}`}
-                                title={u.status === 'ativo' ? 'Banir' : 'Ativar'}
+                                className={`h-8 w-8 ${u.status === 'ativo' ? 'text-green-400 hover:text-red-400' : 'text-red-400 hover:text-green-400'}`}
+                                title={u.status === 'ativo' ? 'Desativar' : 'Ativar'}
                                 onClick={() =>
                                   updateUserMutation.mutate({
                                     userId: u.id,
@@ -1066,18 +1095,16 @@ const AdminDashboard: React.FC = () => {
                                   })
                                 }
                               >
-                                {u.status === 'ativo' ? <Ban className="w-3.5 h-3.5" /> : <CheckCircle className="w-3.5 h-3.5" />}
+                                {u.status === 'ativo' ? <CheckCircle className="w-3.5 h-3.5" /> : <XCircle className="w-3.5 h-3.5" />}
                               </Button>
-                              {u.tipo !== 'admin' && (
-                                <Button
-                                  size="icon" variant="ghost"
-                                  className="h-8 w-8 text-muted-foreground hover:text-red-400"
-                                  title="Excluir"
-                                  onClick={() => confirmDelete('user', u.id, u.nome)}
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </Button>
-                              )}
+                              <Button
+                                size="icon" variant="ghost"
+                                className="h-8 w-8 text-muted-foreground hover:text-red-400"
+                                title="Excluir"
+                                onClick={() => confirmDelete('user', u.id, u.nome)}
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </Button>
                             </div>
                           </div>
                         </CardContent>
@@ -1087,13 +1114,6 @@ const AdminDashboard: React.FC = () => {
                 })}
               </div>
             )}
-          </TabsContent>
-
-          {/* ═══════════════════════════════ MOTORISTAS TAB ═══════════════════════════════ */}
-          <TabsContent value="motoristas">
-            <Suspense fallback={<TabLoader />}>
-              <AdminMotoristas users={users || []} rides={rides || []} loading={loadingUsers || loadingRides} />
-            </Suspense>
           </TabsContent>
 
           {/* ═══════════════════════════════ PRECIFICAÇÃO TAB ═══════════════════════════════ */}
@@ -1351,14 +1371,14 @@ const AdminDashboard: React.FC = () => {
 
       {/* ═══════════════════ EDIT USER DIALOG ═══════════════════ */}
       <Dialog open={showEditUserDialog} onOpenChange={setShowEditUserDialog}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Pencil className="w-5 h-5 text-accent" />
-              Editar Usuário
+              Editar Motorista
             </DialogTitle>
             <DialogDescription>
-              Altere os dados do usuário. Deixe a senha em branco para manter a atual.
+              Altere os dados do motorista. Deixe a senha em branco para manter a atual.
             </DialogDescription>
           </DialogHeader>
 
@@ -1374,17 +1394,21 @@ const AdminDashboard: React.FC = () => {
               <Label className="text-xs">Telefone</Label>
               <Input
                 value={editUserForm.telefone}
-                onChange={(e) => setEditUserForm(f => ({ ...f, telefone: e.target.value }))}
+                onChange={(e) => setEditUserForm(f => ({ ...f, telefone: formatPhone(e.target.value) }))}
+                placeholder="(81) 9 9613.8924"
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label className="text-xs">Tipo / Cargos</Label>
-                <div className="flex items-center gap-2 h-10 px-3 rounded-md border bg-muted/30 text-sm">
-                  <span className="capitalize">{editUserForm.tipo}</span>
-                  {editUserForm.roles.length > 0 && (
-                    <span className="text-muted-foreground text-xs">({editUserForm.roles.join(', ')})</span>
-                  )}
+                <Label className="text-xs">Permissão Admin</Label>
+                <div
+                  className={`flex items-center gap-2 h-10 px-3 rounded-md border cursor-pointer transition-colors ${editUserForm.isAdmin ? 'bg-purple-500/10 border-purple-500/30' : 'bg-muted/30'}`}
+                  onClick={() => setEditUserForm(f => ({ ...f, isAdmin: !f.isAdmin }))}
+                >
+                  <div className={`w-9 h-5 rounded-full transition-colors relative ${editUserForm.isAdmin ? 'bg-purple-500' : 'bg-white/20'}`}>
+                    <div className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${editUserForm.isAdmin ? 'translate-x-4' : ''}`} />
+                  </div>
+                  <span className="text-xs">{editUserForm.isAdmin ? 'Ativado' : 'Desativado'}</span>
                 </div>
               </div>
               <div>
@@ -1393,7 +1417,7 @@ const AdminDashboard: React.FC = () => {
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="ativo">✅ Ativo</SelectItem>
-                    <SelectItem value="banido">🚫 Banido</SelectItem>
+                    <SelectItem value="banido">❌ Inativo</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -1406,6 +1430,47 @@ const AdminDashboard: React.FC = () => {
                 onChange={(e) => setEditUserForm(f => ({ ...f, senha: e.target.value }))}
                 placeholder="Deixe em branco para manter"
               />
+            </div>
+
+            <Separator />
+            <p className="text-xs text-muted-foreground font-medium">DADOS DO VEÍCULO</p>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs">Marca</Label>
+                <Select value={editUserForm.veiculo_marca} onValueChange={(v) => setEditUserForm(f => ({ ...f, veiculo_marca: v, veiculo_modelo: '' }))}>
+                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectContent>
+                    {VEHICLE_BRANDS.map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs">Modelo</Label>
+                <Select value={editUserForm.veiculo_modelo} onValueChange={(v) => setEditUserForm(f => ({ ...f, veiculo_modelo: v }))}>
+                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectContent>
+                    {(VEHICLE_MODELS[editUserForm.veiculo_marca] || ['Outro']).map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs">Cor</Label>
+                <Select value={editUserForm.veiculo_cor} onValueChange={(v) => setEditUserForm(f => ({ ...f, veiculo_cor: v }))}>
+                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectContent>
+                    {VEHICLE_COLORS.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs">Placa</Label>
+                <Input
+                  value={editUserForm.veiculo_placa}
+                  onChange={(e) => setEditUserForm(f => ({ ...f, veiculo_placa: formatPlate(e.target.value) }))}
+                  placeholder="ABC-1234"
+                  maxLength={8}
+                />
+              </div>
             </div>
 
             {selectedUser && (
@@ -1436,10 +1501,10 @@ const AdminDashboard: React.FC = () => {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <UserPlus className="w-5 h-5 text-accent" />
-              Novo Usuário
+              Novo Motorista
             </DialogTitle>
             <DialogDescription>
-              Preencha os dados para criar um novo usuário.
+              Preencha os dados para criar um novo motorista.
             </DialogDescription>
           </DialogHeader>
 
@@ -1456,21 +1521,22 @@ const AdminDashboard: React.FC = () => {
               <Label className="text-xs">Telefone *</Label>
               <Input
                 value={createUserForm.telefone}
-                onChange={(e) => setCreateUserForm(f => ({ ...f, telefone: e.target.value }))}
-                placeholder="(81) 99999-9999"
+                onChange={(e) => setCreateUserForm(f => ({ ...f, telefone: formatPhone(e.target.value) }))}
+                placeholder="(81) 9 9613.8924"
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label className="text-xs">Tipo *</Label>
-                <Select value={createUserForm.tipo} onValueChange={(v) => setCreateUserForm(f => ({ ...f, tipo: v }))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="cliente">👤 Cliente</SelectItem>
-                    <SelectItem value="motorista">🚗 Motorista</SelectItem>
-                    <SelectItem value="admin">🛡️ Admin</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Label className="text-xs">Permissão Admin</Label>
+                <div
+                  className={`flex items-center gap-2 h-10 px-3 rounded-md border cursor-pointer transition-colors ${createUserForm.isAdmin ? 'bg-purple-500/10 border-purple-500/30' : 'bg-muted/30'}`}
+                  onClick={() => setCreateUserForm(f => ({ ...f, isAdmin: !f.isAdmin }))}
+                >
+                  <div className={`w-9 h-5 rounded-full transition-colors relative ${createUserForm.isAdmin ? 'bg-purple-500' : 'bg-white/20'}`}>
+                    <div className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${createUserForm.isAdmin ? 'translate-x-4' : ''}`} />
+                  </div>
+                  <span className="text-xs">{createUserForm.isAdmin ? 'Ativado' : 'Desativado'}</span>
+                </div>
               </div>
               <div>
                 <Label className="text-xs">Senha *</Label>
@@ -1483,48 +1549,46 @@ const AdminDashboard: React.FC = () => {
               </div>
             </div>
 
-            {/* Vehicle fields - only for motorista */}
-            {createUserForm.tipo === 'motorista' && (
-              <>
-                <Separator />
-                <p className="text-xs text-muted-foreground font-medium">DADOS DO VEÍCULO (opcional)</p>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label className="text-xs">Marca</Label>
-                    <Input
-                      value={createUserForm.veiculo_marca}
-                      onChange={(e) => setCreateUserForm(f => ({ ...f, veiculo_marca: e.target.value }))}
-                      placeholder="Ex: Fiat"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-xs">Modelo</Label>
-                    <Input
-                      value={createUserForm.veiculo_modelo}
-                      onChange={(e) => setCreateUserForm(f => ({ ...f, veiculo_modelo: e.target.value }))}
-                      placeholder="Ex: Argo"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-xs">Cor</Label>
-                    <Input
-                      value={createUserForm.veiculo_cor}
-                      onChange={(e) => setCreateUserForm(f => ({ ...f, veiculo_cor: e.target.value }))}
-                      placeholder="Ex: Branco"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-xs">Placa</Label>
-                    <Input
-                      value={createUserForm.veiculo_placa}
-                      onChange={(e) => setCreateUserForm(f => ({ ...f, veiculo_placa: e.target.value.toUpperCase() }))}
-                      placeholder="ABC-1234"
-                      maxLength={8}
-                    />
-                  </div>
-                </div>
-              </>
-            )}
+            <Separator />
+            <p className="text-xs text-muted-foreground font-medium">DADOS DO VEÍCULO (opcional)</p>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs">Marca</Label>
+                <Select value={createUserForm.veiculo_marca} onValueChange={(v) => setCreateUserForm(f => ({ ...f, veiculo_marca: v, veiculo_modelo: '' }))}>
+                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectContent>
+                    {VEHICLE_BRANDS.map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs">Modelo</Label>
+                <Select value={createUserForm.veiculo_modelo} onValueChange={(v) => setCreateUserForm(f => ({ ...f, veiculo_modelo: v }))}>
+                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectContent>
+                    {(VEHICLE_MODELS[createUserForm.veiculo_marca] || ['Outro']).map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs">Cor</Label>
+                <Select value={createUserForm.veiculo_cor} onValueChange={(v) => setCreateUserForm(f => ({ ...f, veiculo_cor: v }))}>
+                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectContent>
+                    {VEHICLE_COLORS.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs">Placa</Label>
+                <Input
+                  value={createUserForm.veiculo_placa}
+                  onChange={(e) => setCreateUserForm(f => ({ ...f, veiculo_placa: formatPlate(e.target.value) }))}
+                  placeholder="ABC-1234"
+                  maxLength={8}
+                />
+              </div>
+            </div>
           </div>
 
           <DialogFooter>

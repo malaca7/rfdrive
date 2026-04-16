@@ -15,6 +15,11 @@ const DriverDashboard = React.lazy(() => import("./pages/DriverDashboard"));
 const AdminDashboard = React.lazy(() => import("./pages/AdminDashboard"));
 const NotFound = React.lazy(() => import("./pages/NotFound"));
 const CalculadoraDigitalRF = React.lazy(() => import("./pages/CalculadoraDigitalRF"));
+const MotoristaDashboard = React.lazy(() => import("./pages/MotoristaDashboard"));
+const MotoristaViagens = React.lazy(() => import("./pages/MotoristaViagens"));
+const MotoristaDashboardAll = React.lazy(() => import("./pages/MotoristaDashboardAll"));
+const MotoristaCredencial = React.lazy(() => import("./pages/MotoristaCredencial"));
+const MotoristaEditPerfil = React.lazy(() => import("./pages/MotoristaEditPerfil"));
 
 const PageLoader = () => (
   <div className="min-h-screen flex items-center justify-center bg-background">
@@ -59,9 +64,18 @@ const AppRoutes = () => {
         {!user && <Route path="/admin/*" element={<Navigate to="/admin/login" replace />} />}
 
         {user && effectiveScreen === 'admin' && <Route path="/admin" element={<AdminDashboard />} />}
-        {user && effectiveScreen === 'motorista' && <Route path="/admin" element={<DriverDashboard />} />}
-        {user && effectiveScreen === 'cliente' && <Route path="/admin" element={<DriverDashboard />} />}
-        {user && !effectiveScreen && <Route path="/admin" element={<DriverDashboard />} />}
+
+        {/* Motorista routes */}
+        {user && <Route path="/motorista/dashboard" element={<MotoristaDashboard />} />}
+        {user && <Route path="/motorista/viagens" element={<MotoristaViagens />} />}
+        {user && <Route path="/motorista/dashboardall" element={<MotoristaDashboardAll />} />}
+        {user && <Route path="/motorista/credencial" element={<MotoristaCredencial />} />}
+        {user && <Route path="/motorista/editperfil" element={<MotoristaEditPerfil />} />}
+
+        {/* Redirect /admin for motorista to /motorista/dashboard */}
+        {user && effectiveScreen === 'motorista' && <Route path="/admin" element={<Navigate to="/motorista/dashboard" replace />} />}
+        {user && effectiveScreen === 'cliente' && <Route path="/admin" element={<Navigate to="/motorista/dashboard" replace />} />}
+        {user && !effectiveScreen && <Route path="/admin" element={<Navigate to="/motorista/dashboard" replace />} />}
         {user && <Route path="/admin/login" element={<Navigate to="/admin" replace />} />}
         {user && <Route path="/admin/*" element={<Navigate to="/admin" replace />} />}
 

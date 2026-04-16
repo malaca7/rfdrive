@@ -1,15 +1,10 @@
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { Navigation, LogOut, User, Shield, Truck, ChevronDown } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { Navigation, LogOut, User, Shield, Truck, BarChart3, Calculator, Trophy, IdCard, UserCog } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const SCREEN_CONFIG: Record<string, { label: string; icon: React.ReactNode; activeClass: string; dotColor: string }> = {
-  cliente: {
-    label: 'Cliente',
-    icon: <User className="w-5 h-5" />,
-    activeClass: 'text-accent',
-    dotColor: 'bg-accent',
-  },
   motorista: {
     label: 'Motorista',
     icon: <Truck className="w-5 h-5" />,
@@ -24,15 +19,27 @@ const SCREEN_CONFIG: Record<string, { label: string; icon: React.ReactNode; acti
   },
 };
 
+const MOTORISTA_NAV = [
+  { path: '/motorista/dashboard', label: 'Dashboard', icon: <BarChart3 className="w-5 h-5" /> },
+  { path: '/motorista/viagens', label: 'Viagens', icon: <Calculator className="w-5 h-5" /> },
+  { path: '/motorista/dashboardall', label: 'Geral', icon: <Trophy className="w-5 h-5" /> },
+  { path: '/motorista/credencial', label: 'Credencial', icon: <IdCard className="w-5 h-5" /> },
+  { path: '/motorista/editperfil', label: 'Perfil', icon: <UserCog className="w-5 h-5" /> },
+];
+
 const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { profile, signOut, availableScreens, activeScreen, setActiveScreen, roles, user } = useAuth();
-
-  // Só mostra telas disponíveis (motorista só aparece com veículo cadastrado)
-  const showNav = true;
+  const navigate = useNavigate();
+  const location = useLocation();
 
   // Verificar se usuário é admin via tipo ou roles
   const isAdmin = user?.tipo === 'admin' || roles.includes('admin');
-  // Telas disponíveis considerando também o tipo de usuário (sem 'cliente')
+
+  // Check if we're in a motorista route
+  const isMotoristaRoute = location.pathname.startsWith('/motorista/');
+  const isAdminScreen = activeScreen === 'admin' && isAdmin;
+
+  // Telas disponíveis para screen switcher (só admin/motorista)
   const effectiveAvailableScreens = (isAdmin && !availableScreens.includes('admin')
     ? [...availableScreens, 'admin']
     : availableScreens
@@ -74,44 +81,83 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       </main>
 
       {/* ── Bottom Navigation ── */}
-      {showNav && (
-        <nav className="shrink-0 z-50 bg-[hsl(0_0%_6%)]/95 backdrop-blur-2xl border-t border-white/[0.06] safe-bottom">
-          <div className="w-full px-[4%] flex items-stretch justify-around h-16">
-            {effectiveAvailableScreens.map(screen => {
-              const cfg = SCREEN_CONFIG[screen];
-              if (!cfg) return null;
-              const isActive = screen === activeScreen;
-              return (
+      <nav className="shrink-0 z-50 bg-[hsl(0_0%_6%)]/95 backdrop-blur-2xl border-t border-white/[0.06] safe-bottom">
+        <div className="w-full px-[4%] flex items-stretch justify-around h-16">
+          {(isMotoristaRoute || !isAdminScreen) ? (
+            /* ── Motorista: 5 route-based nav items ── */
+            <>
+              {MOTORISTA_NAV.map(item => {
+                const isActive = location.pathname === item.path;
+                return (
+                  <button
+                    key={item.path}
+                    onClick={() => navigate(item.path)}
+                    className={`relative flex flex-col items-center justify-center gap-0.5 flex-1 transition-all duration-200 ${isActive ? 'text-accent' : 'text-white/30'}`}
+                    title={item.label}
+                  >
+                    {isActive && (
+                      <motion.div
+                        layoutId="nav-indicator"
+                        className="absolute top-0 left-[25%] right-[25%] h-[3px] rounded-b-full bg-accent"
+                        transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                      />
+                    )}
+                    <span className={`transition-transform duration-200 ${isActive ? 'scale-110' : 'scale-100'}`}>
+                      {item.icon}
+                    </span>
+                    <span className={`text-[10px] font-semibold ${isActive ? '' : 'opacity-60'}`}>{item.label}</span>
+                  </button>
+                );
+              })}
+              {/* If admin, add admin switch button */}
+              {isAdmin && (
                 <button
-                  key={screen}
-                  onClick={() => setActiveScreen(screen)}
-                  className={`
-                    relative flex flex-col items-center justify-center gap-0.5 flex-1
-                    transition-all duration-200
-                    ${isActive ? cfg.activeClass : 'text-white/30'}
-                  `}
-                  tabIndex={0}
-                  title={cfg.label}
+                  onClick={() => { setActiveScreen('admin'); navigate('/admin'); }}
+                  className="relative flex flex-col items-center justify-center gap-0.5 flex-1 transition-all duration-200 text-white/30"
+                  title="Admin"
                 >
-                  {isActive && (
-                    <motion.div
-                      layoutId="nav-indicator"
-                      className="absolute top-0 left-[25%] right-[25%] h-[3px] rounded-b-full bg-accent"
-                      transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-                    />
-                  )}
-                  <span className={`transition-transform duration-200 ${isActive ? 'scale-110' : 'scale-100'}`}>
-                    {cfg.icon}
-                  </span>
-                  <span className={`text-[10px] font-semibold ${isActive ? '' : 'opacity-60'}`}>
-                    {cfg.label}
-                  </span>
+                  <Shield className="w-5 h-5" />
+                  <span className="text-[10px] font-semibold opacity-60">Admin</span>
                 </button>
-              );
-            })}
-          </div>
-        </nav>
-      )}
+              )}
+            </>
+          ) : (
+            /* ── Admin screen: show screen switcher ── */
+            <>
+              {effectiveAvailableScreens.map(screen => {
+                const cfg = SCREEN_CONFIG[screen];
+                if (!cfg) return null;
+                const isActive = screen === activeScreen;
+                return (
+                  <button
+                    key={screen}
+                    onClick={() => {
+                      if (screen === 'motorista') {
+                        setActiveScreen('motorista');
+                        navigate('/motorista/dashboard');
+                      } else {
+                        setActiveScreen(screen);
+                      }
+                    }}
+                    className={`relative flex flex-col items-center justify-center gap-0.5 flex-1 transition-all duration-200 ${isActive ? cfg.activeClass : 'text-white/30'}`}
+                    title={cfg.label}
+                  >
+                    {isActive && (
+                      <motion.div
+                        layoutId="nav-indicator"
+                        className="absolute top-0 left-[25%] right-[25%] h-[3px] rounded-b-full bg-accent"
+                        transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                      />
+                    )}
+                    <span className={`transition-transform duration-200 ${isActive ? 'scale-110' : 'scale-100'}`}>{cfg.icon}</span>
+                    <span className={`text-[10px] font-semibold ${isActive ? '' : 'opacity-60'}`}>{cfg.label}</span>
+                  </button>
+                );
+              })}
+            </>
+          )}
+        </div>
+      </nav>
     </div>
   );
 };

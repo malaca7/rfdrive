@@ -201,7 +201,7 @@ function findBestOrigin(input: string): { nome: string; normalized: string; scor
       best = { nome: originalOrigem, normalized: normalizedOrigem, score };
     }
   }
-  return best && best.score >= 150 ? best : null;
+  return best && best.score >= 400 ? best : null;
 }
 
 function findBestDestino(input: string, origemNorm: string): { nome: string; score: number } | null {
@@ -214,7 +214,7 @@ function findBestDestino(input: string, origemNorm: string): { nome: string; sco
       best = { nome: destino, score };
     }
   }
-  return best && best.score >= 150 ? best : null;
+  return best && best.score >= 400 ? best : null;
 }
 
 // Also search destination across ALL origins (not just the best)
@@ -314,58 +314,20 @@ function getBaseToCentro(local: string): number | null {
 export function buscarPrecoTabela(origem: string, destino: string): LookupResult | null {
   if (!origem.trim() || !destino.trim()) return null;
 
-  // ── 1. Busca direta A→B e B→A — prevalece o MAIOR valor ──
+  // ── 1. Busca direta na tabela ──
   const direct = lookupDirect(origem, destino);
-  const reverse = lookupDirect(destino, origem);
-
-  if (direct && reverse) {
-    // Ambas direções existem: usa o maior valor
-    const winner = direct.valor >= reverse.valor ? direct : reverse;
-    return {
-      valor: winner.valor,
-      origem_tabela: direct.origem_tabela,
-      destino_tabela: direct.destino_tabela,
-      regiao: winner.regiao,
-      match_exato: winner.match_exato,
-    };
-  }
   if (direct) return direct;
-  if (reverse) {
-    return {
-      valor: reverse.valor,
-      origem_tabela: reverse.destino_tabela,
-      destino_tabela: reverse.origem_tabela,
-      regiao: reverse.regiao,
-      match_exato: reverse.match_exato,
-    };
-  }
 
-  // ── 2. Estimativa via Hub Central ──
-  // Fórmula: MAX(preço_origem→Centro, preço_Centro→destino)
-  // Validada contra 4.881 rotas: 46% match exato, 63% dentro de R$3
+  // ── 2. Sem correspondência exata: estimar via Centro ──
+  // Pega Origem→Centro e Destino→Centro, aplica: MAIOR + (MENOR / 10) + R$1
   const precoOrigemCentro = getBaseToCentro(origem);
   const precoCentroDestino = getBaseToCentro(destino);
 
   if (precoOrigemCentro != null && precoCentroDestino != null) {
-    const estimado = Math.max(precoOrigemCentro, precoCentroDestino);
-    // Arredondar para .99 (padrão dos preços da tabela)
-    const valorFinal = Math.floor(estimado) + 0.99;
-    return {
-      valor: valorFinal,
-      origem_tabela: origem.trim(),
-      destino_tabela: destino.trim(),
-      regiao: 'Cabo',
-      match_exato: false,
-      estimado: true,
-    };
-  }
-
-  // ── 3. Só um trecho conhecido → usar como base com margem ──
-  const precoConhecido = precoOrigemCentro ?? precoCentroDestino;
-  if (precoConhecido != null) {
-    // Adicionar 30% de margem para destino desconhecido
-    const comMargem = precoConhecido * 1.3;
-    const valorFinal = Math.floor(comMargem) + 0.99;
+    const maior = Math.max(precoOrigemCentro, precoCentroDestino);
+    const menor = Math.min(precoOrigemCentro, precoCentroDestino);
+    const estimado = maior + (menor / 10) + 1;
+    const valorFinal = Math.round(estimado * 100) / 100;
     return {
       valor: valorFinal,
       origem_tabela: origem.trim(),
