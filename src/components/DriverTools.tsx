@@ -661,13 +661,14 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
     if (!canvas) return;
 
     const W = 840;
-    const H = 1400;
+    const H = 840;
     canvas.width = W;
     canvas.height = H;
     const ctx = canvas.getContext('2d')!;
     const FONT = '"Plus Jakarta Sans", system-ui, sans-serif';
     const GOLD1 = '#f5d442';    // amarelo dourado
     const GOLD2 = '#c9a227';    // dourado escuro
+    const BORDER = 8;
 
     // ══ 1) Gray-black gradient background ══
     const bgGrad = ctx.createLinearGradient(0, 0, 0, H);
@@ -678,68 +679,81 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
     ctx.fillStyle = bgGrad;
     ctx.fillRect(0, 0, W, H);
 
-    // ══ 2) Top bar — branding (moved from footer) ══
-    const topBarH = 100;
+    // ══ THICK GOLD GRADIENT BORDER ══
+    const borderGradOuter = ctx.createLinearGradient(0, 0, W, H);
+    borderGradOuter.addColorStop(0, GOLD1);
+    borderGradOuter.addColorStop(0.5, '#ffe066');
+    borderGradOuter.addColorStop(1, GOLD2);
+    ctx.save();
+    ctx.strokeStyle = borderGradOuter;
+    ctx.lineWidth = BORDER;
+    ctx.strokeRect(BORDER / 2, BORDER / 2, W - BORDER, H - BORDER);
+    ctx.restore();
+
+    // ══ 2) Top bar — branding ══
+    const topBarH = 60;
     ctx.fillStyle = '#111111';
-    ctx.fillRect(0, 0, W, topBarH);
-    // Subtle gold line at bottom of top bar
+    ctx.fillRect(BORDER, BORDER, W - BORDER * 2, topBarH);
+    // Gold line at bottom of top bar
     const goldLine = ctx.createLinearGradient(100, 0, W - 100, 0);
     goldLine.addColorStop(0, 'transparent');
     goldLine.addColorStop(0.3, GOLD1);
     goldLine.addColorStop(0.7, GOLD2);
     goldLine.addColorStop(1, 'transparent');
     ctx.fillStyle = goldLine;
-    ctx.fillRect(0, topBarH - 2, W, 2);
+    ctx.fillRect(BORDER, BORDER + topBarH - 2, W - BORDER * 2, 2);
 
-    // RF branding in top bar
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'alphabetic';
-    ctx.font = `italic 900 38px ${FONT}`;
-    const tbY = 50;
+    // RF + MOBILIDADE COM EXCELÊNCIA — single baseline, side by side
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    const tbCY = BORDER + topBarH / 2;
+    ctx.font = `italic 900 30px ${FONT}`;
     ctx.fillStyle = GOLD1;
-    ctx.fillText('R', W / 2 - 120, tbY);
+    ctx.fillText('R', 28, tbCY);
+    const rW = ctx.measureText('R').width;
     ctx.fillStyle = '#ffffff';
-    ctx.fillText('F', W / 2 - 94, tbY);
+    ctx.fillText('F', 28 + rW, tbCY);
+    const rfW = rW + ctx.measureText('F').width;
 
-    ctx.font = `700 16px ${FONT}`;
-    ctx.fillStyle = 'rgba(255,255,255,0.7)';
-    ctx.letterSpacing = '2.5px';
-    ctx.fillText('MOBILIDADE COM EXCELÊNCIA', W / 2 + 25, tbY - 2);
+    ctx.font = `600 12px ${FONT}`;
+    ctx.fillStyle = 'rgba(255,255,255,0.6)';
+    ctx.letterSpacing = '2px';
+    ctx.fillText('MOBILIDADE COM EXCELÊNCIA', 28 + rfW + 14, tbCY);
     ctx.letterSpacing = '0px';
 
-    // Small stars in top bar
-    const tbStarY = tbY + 24;
+    // Small stars right-aligned in top bar
+    ctx.textAlign = 'center';
     for (let i = 0; i < 5; i++) {
-      const sx = W / 2 - 36 + i * 18;
-      drawStarShape(ctx, sx, tbStarY, 8, 3.5);
+      const sx = W - 28 - (4 - i) * 16 - 8;
+      drawStarShape(ctx, sx, tbCY, 6, 2.5);
       ctx.fillStyle = GOLD1;
       ctx.fill();
     }
 
-    // ══ 3) Diamond overlays (decorative, subtle on dark bg) ══
+    // ══ 3) Diamond overlays (decorative) ══
     ctx.save();
-    drawDiamond(ctx, W / 2, 340, 340, 340);
+    drawDiamond(ctx, W / 2, 280, 220, 220);
     ctx.fillStyle = 'rgba(255,255,255,0.03)';
     ctx.fill();
     ctx.restore();
     ctx.save();
-    drawDiamond(ctx, W / 2, 320, 250, 250);
+    drawDiamond(ctx, W / 2, 270, 160, 160);
     ctx.fillStyle = 'rgba(255,255,255,0.05)';
     ctx.fill();
     ctx.restore();
 
     // ══ 4) Diamond avatar frame ══
     const avCX = W / 2;
-    const avCY = 340;
-    const diamHalf = 130;
+    const avCY = 250;
+    const diamHalf = 90;
 
     // Gold diamond border
     ctx.save();
     ctx.shadowColor = 'rgba(245,212,66,0.3)';
-    ctx.shadowBlur = 30;
-    ctx.shadowOffsetY = 8;
-    drawDiamond(ctx, avCX, avCY, diamHalf + 14, diamHalf + 14);
-    const borderGrad = ctx.createLinearGradient(avCX, avCY - diamHalf - 14, avCX, avCY + diamHalf + 14);
+    ctx.shadowBlur = 20;
+    ctx.shadowOffsetY = 4;
+    drawDiamond(ctx, avCX, avCY, diamHalf + 10, diamHalf + 10);
+    const borderGrad = ctx.createLinearGradient(avCX, avCY - diamHalf - 10, avCX, avCY + diamHalf + 10);
     borderGrad.addColorStop(0, GOLD1);
     borderGrad.addColorStop(1, GOLD2);
     ctx.fillStyle = borderGrad;
@@ -769,13 +783,13 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
     }
     if (!avatarLoaded) {
       ctx.strokeStyle = '#888';
-      ctx.lineWidth = 4;
+      ctx.lineWidth = 3;
       ctx.lineCap = 'round';
-      ctx.beginPath(); ctx.arc(avCX, avCY - 18, 28, 0, Math.PI * 2); ctx.stroke();
+      ctx.beginPath(); ctx.arc(avCX, avCY - 14, 22, 0, Math.PI * 2); ctx.stroke();
       ctx.beginPath();
-      ctx.moveTo(avCX - 44, avCY + 50);
-      ctx.bezierCurveTo(avCX - 44, avCY + 16, avCX - 34, avCY + 10, avCX, avCY + 10);
-      ctx.bezierCurveTo(avCX + 34, avCY + 10, avCX + 44, avCY + 16, avCX + 44, avCY + 50);
+      ctx.moveTo(avCX - 34, avCY + 38);
+      ctx.bezierCurveTo(avCX - 34, avCY + 12, avCX - 26, avCY + 8, avCX, avCY + 8);
+      ctx.bezierCurveTo(avCX + 26, avCY + 8, avCX + 34, avCY + 12, avCX + 34, avCY + 38);
       ctx.stroke();
     }
     ctx.restore();
@@ -784,29 +798,34 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
     ctx.textAlign = 'center';
     ctx.textBaseline = 'alphabetic';
     const firstName = (profile.nome || '').split(' ')[0].toUpperCase();
-    ctx.font = `800 56px ${FONT}`;
+    ctx.font = `800 42px ${FONT}`;
     const nameGrad = ctx.createLinearGradient(W / 2 - 150, 0, W / 2 + 150, 0);
     nameGrad.addColorStop(0, GOLD1);
     nameGrad.addColorStop(0.5, '#ffe066');
     nameGrad.addColorStop(1, GOLD2);
     ctx.fillStyle = nameGrad;
-    ctx.fillText(firstName, W / 2, 540);
+    ctx.fillText(firstName, W / 2, 390);
 
     // ══ 6) Subtitle — white ══
-    ctx.font = `400 28px ${FONT}`;
+    ctx.font = `400 20px ${FONT}`;
     ctx.fillStyle = 'rgba(255,255,255,0.75)';
-    ctx.fillText('Motorista Credenciado', W / 2, 585);
+    ctx.fillText('Motorista Credenciado', W / 2, 420);
 
-    // ══ 7) Rating stars + nota value ══
-    const ratingY = 645;
+    // ══ 7) Rating stars + nota value — gold gradient like name ══
+    const ratingY = 460;
     const ratingVal = avgRating?.avg ?? 0;
     const filledStars = Math.round(ratingVal);
 
+    const starGrad = ctx.createLinearGradient(W / 2 - 100, 0, W / 2 + 100, 0);
+    starGrad.addColorStop(0, GOLD1);
+    starGrad.addColorStop(0.5, '#ffe066');
+    starGrad.addColorStop(1, GOLD2);
+
     for (let i = 0; i < 5; i++) {
-      const sx = W / 2 - 100 + i * 50;
-      drawStarShape(ctx, sx, ratingY, 22, 10);
+      const sx = W / 2 - 80 + i * 40;
+      drawStarShape(ctx, sx, ratingY, 18, 8);
       if (i < filledStars) {
-        ctx.fillStyle = GOLD1;
+        ctx.fillStyle = starGrad;
       } else {
         ctx.fillStyle = 'rgba(255,255,255,0.15)';
       }
@@ -815,30 +834,30 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
 
     // Nota text
     if (avgRating) {
-      ctx.font = `700 32px ${FONT}`;
-      ctx.fillStyle = GOLD1;
-      ctx.fillText(ratingVal.toFixed(1), W / 2, ratingY + 55);
-      ctx.font = `400 18px ${FONT}`;
+      ctx.font = `700 26px ${FONT}`;
+      ctx.fillStyle = starGrad;
+      ctx.fillText(ratingVal.toFixed(1), W / 2, ratingY + 40);
+      ctx.font = `400 14px ${FONT}`;
       ctx.fillStyle = 'rgba(255,255,255,0.5)';
-      ctx.fillText(`(${avgRating.count} avaliação${avgRating.count !== 1 ? 'ões' : ''})`, W / 2, ratingY + 80);
+      ctx.fillText(`(${avgRating.count} avaliação${avgRating.count !== 1 ? 'ões' : ''})`, W / 2, ratingY + 58);
     }
 
     // ══ 8) Car ══
-    const carCenterY = avgRating ? 850 : 810;
+    const carCenterY = avgRating ? 580 : 560;
     let carDrawn = false;
     if (profile.veiculo_foto) {
       try {
         const carImg = await loadImageAny(profile.veiculo_foto);
         if (carImg) {
-          const maxCW = 520, maxCH = 280;
+          const maxCW = 400, maxCH = 200;
           const ratio = Math.min(maxCW / carImg.width, maxCH / carImg.height);
           const cw = carImg.width * ratio, ch = carImg.height * ratio;
           const cx = W / 2 - cw / 2, cy = carCenterY - ch / 2;
-          const radius = 20;
+          const radius = 16;
           ctx.save();
           ctx.shadowColor = 'rgba(0,0,0,0.6)';
-          ctx.shadowBlur = 30;
-          ctx.shadowOffsetY = 12;
+          ctx.shadowBlur = 20;
+          ctx.shadowOffsetY = 8;
           // Rounded rectangle clip
           ctx.beginPath();
           ctx.moveTo(cx + radius, cy);
@@ -854,23 +873,6 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
           ctx.clip();
           ctx.drawImage(carImg, cx, cy, cw, ch);
           ctx.restore();
-          // Gold border around photo
-          ctx.save();
-          ctx.beginPath();
-          ctx.moveTo(cx + radius, cy);
-          ctx.lineTo(cx + cw - radius, cy);
-          ctx.quadraticCurveTo(cx + cw, cy, cx + cw, cy + radius);
-          ctx.lineTo(cx + cw, cy + ch - radius);
-          ctx.quadraticCurveTo(cx + cw, cy + ch, cx + cw - radius, cy + ch);
-          ctx.lineTo(cx + radius, cy + ch);
-          ctx.quadraticCurveTo(cx, cy + ch, cx, cy + ch - radius);
-          ctx.lineTo(cx, cy + radius);
-          ctx.quadraticCurveTo(cx, cy, cx + radius, cy);
-          ctx.closePath();
-          ctx.strokeStyle = GOLD1;
-          ctx.lineWidth = 3;
-          ctx.stroke();
-          ctx.restore();
           carDrawn = true;
         }
       } catch { /* fallback illustration */ }
@@ -878,9 +880,9 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
     if (!carDrawn && hasVehicle) {
       ctx.save();
       ctx.shadowColor = 'rgba(0,0,0,0.5)';
-      ctx.shadowBlur = 20;
-      ctx.shadowOffsetY = 8;
-      drawCarOnCanvas(ctx, W / 2 - 260, carCenterY - 65, 520, 208, carColor);
+      ctx.shadowBlur = 16;
+      ctx.shadowOffsetY = 6;
+      drawCarOnCanvas(ctx, W / 2 - 200, carCenterY - 50, 400, 160, carColor);
       ctx.restore();
     }
 
@@ -888,38 +890,38 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
     if (hasVehicle) {
       const vehName = [profile.veiculo_marca, profile.veiculo_modelo].filter(Boolean).join(' ').toUpperCase();
       ctx.textAlign = 'center';
-      ctx.font = `700 28px ${FONT}`;
+      ctx.font = `700 22px ${FONT}`;
       const vehGrad = ctx.createLinearGradient(W / 2 - 120, 0, W / 2 + 120, 0);
       vehGrad.addColorStop(0, GOLD1);
       vehGrad.addColorStop(1, GOLD2);
       ctx.fillStyle = vehGrad;
-      ctx.fillText(vehName, W / 2, carCenterY + 155);
+      ctx.fillText(vehName, W / 2, carCenterY + 120);
 
       // ══ 9) Mercosul plate ══
       if (profile.veiculo_placa) {
         const plateText = profile.veiculo_placa.toUpperCase().replace(/[^A-Z0-9]/g, '');
-        const plateW = 280;
-        const plateH = 90;
+        const plateW = 220;
+        const plateH = 70;
         const plateX = W / 2 - plateW / 2;
-        const plateY = carCenterY + 175;
-        const plateR = 8;
+        const plateY = carCenterY + 135;
+        const plateR = 6;
 
         // Plate background (white)
         ctx.save();
         ctx.shadowColor = 'rgba(0,0,0,0.4)';
-        ctx.shadowBlur = 12;
-        ctx.shadowOffsetY = 4;
+        ctx.shadowBlur = 8;
+        ctx.shadowOffsetY = 3;
         ctx.beginPath();
         ctx.roundRect(plateX, plateY, plateW, plateH, plateR);
         ctx.fillStyle = '#ffffff';
         ctx.fill();
         ctx.strokeStyle = '#222';
-        ctx.lineWidth = 3;
+        ctx.lineWidth = 2;
         ctx.stroke();
         ctx.restore();
 
         // Blue top band (Mercosul)
-        const bandH = 22;
+        const bandH = 18;
         ctx.beginPath();
         ctx.roundRect(plateX, plateY, plateW, bandH, [plateR, plateR, 0, 0]);
         ctx.fillStyle = '#003399';
@@ -927,13 +929,13 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
 
         // "BRASIL" text in blue band
         ctx.textAlign = 'center';
-        ctx.font = `700 12px ${FONT}`;
+        ctx.font = `700 10px ${FONT}`;
         ctx.fillStyle = '#ffffff';
-        ctx.fillText('BRASIL', W / 2, plateY + 15);
+        ctx.fillText('BRASIL', W / 2, plateY + 13);
 
         // Mercosul logo dots (simplified)
-        const logoX = plateX + 24;
-        const logoY2 = plateY + 11;
+        const logoX = plateX + 20;
+        const logoY2 = plateY + 9;
         ctx.beginPath();
         for (let i = 0; i < 4; i++) {
           const a = (i / 4) * Math.PI * 2 - Math.PI / 2;
@@ -945,7 +947,7 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
 
         // Plate characters
         ctx.textAlign = 'center';
-        ctx.font = `800 48px "FE-Schrift", "Segoe UI", ${FONT}`;
+        ctx.font = `800 38px "FE-Schrift", "Segoe UI", ${FONT}`;
         ctx.fillStyle = '#1a1a1a';
         // Format: LLL-NLNN with red middle character for Mercosul
         let displayPlate = plateText;
@@ -953,9 +955,9 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
           displayPlate = plateText.slice(0, 3) + plateText.slice(3, 4) + plateText.slice(4);
         }
         // Draw chars with proper spacing
-        const charStartX = plateX + 32;
-        const charY = plateY + bandH + 48;
-        const charSpacing = (plateW - 64) / (displayPlate.length > 0 ? displayPlate.length : 1);
+        const charStartX = plateX + 24;
+        const charY = plateY + bandH + 38;
+        const charSpacing = (plateW - 48) / (displayPlate.length > 0 ? displayPlate.length : 1);
         for (let i = 0; i < displayPlate.length; i++) {
           const cx = charStartX + i * charSpacing + charSpacing / 2;
           // Mercosul: 5th char (index 4) is red
