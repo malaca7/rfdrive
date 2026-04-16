@@ -146,6 +146,15 @@ const AuthPage: React.FC = () => {
 
           </CardContent>
         </Card>
+        <div className="mt-4 text-center">
+          <button
+            type="button"
+            onClick={() => { window.location.hash = '/'; }}
+            className="text-[clamp(0.75rem,2.2vw,0.85rem)] text-white/40 hover:text-[hsl(22_100%_55%)] transition-colors"
+          >
+            ← Voltar para Calculadora
+          </button>
+        </div>
       </motion.div>
     </div>
   );
