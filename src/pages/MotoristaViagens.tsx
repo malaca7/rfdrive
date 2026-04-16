@@ -181,8 +181,8 @@ const MotoristaViagens: React.FC = () => {
         .from('corridas')
         .select('id, origem_texto, destino_texto, valor, status, concluida_at, created_at')
         .eq('motorista_id', user!.id)
-        .in('status', ['em_analise', 'aprovada', 'finalizada', 'recusada'])
-        .order('concluida_at', { ascending: false })
+        .eq('status', 'em_analise')
+        .order('created_at', { ascending: false })
         .limit(20);
       if (error) throw error;
       return data || [];
@@ -470,16 +470,16 @@ const MotoristaViagens: React.FC = () => {
         {minhasViagens && minhasViagens.length > 0 && (
           <div>
             <h3 className="text-sm font-bold mb-3 flex items-center gap-2">
-              <CheckCircle className="w-4 h-4 text-accent" />
-              Viagens Registradas
+              <Clock className="w-4 h-4 text-yellow-400" />
+              Viagens em Análise
             </h3>
             <div className="space-y-2">
               {minhasViagens.map(ride => (
-                <Card key={ride.id} className="border-border/50">
+                <Card key={ride.id} className="border-yellow-500/30 bg-yellow-500/5">
                   <CardContent className="py-3 space-y-1.5">
                     <div className="flex items-center justify-between">
                       <span className="text-xs text-muted-foreground">
-                        {ride.concluida_at ? new Date(ride.concluida_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : ''}
+                        {new Date(ride.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
                       </span>
                       <div className="flex items-center gap-2">
                         {ride.valor != null && (
@@ -487,14 +487,8 @@ const MotoristaViagens: React.FC = () => {
                             R$ {ride.valor.toFixed(2)}
                           </Badge>
                         )}
-                        <Badge variant="outline" className={
-                          ride.status === 'aprovada' || ride.status === 'finalizada'
-                            ? 'text-green-400 border-green-500/30 text-[10px]'
-                            : ride.status === 'recusada'
-                              ? 'text-red-400 border-red-500/30 text-[10px]'
-                              : 'text-yellow-400 border-yellow-500/30 text-[10px]'
-                        }>
-                          {ride.status === 'aprovada' || ride.status === 'finalizada' ? '✅ Aprovada' : ride.status === 'recusada' ? '❌ Recusada' : '⏳ Em Análise'}
+                        <Badge variant="outline" className="text-yellow-400 border-yellow-500/30 text-[10px]">
+                          ⏳ Em Análise
                         </Badge>
                       </div>
                     </div>

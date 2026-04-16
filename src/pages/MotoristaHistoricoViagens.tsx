@@ -95,10 +95,10 @@ const MotoristaHistoricoViagens: React.FC = () => {
       transition={{ delay: Math.min(idx * 0.03, 0.5) }}
     >
       <Card className={
-        highlight === 'analise' ? 'border-orange-500/30 bg-orange-500/5' :
+        highlight === 'analise' ? 'border-gray-500/30 bg-gray-500/5' :
         highlight === 'recusada' ? 'border-red-500/30 bg-red-500/5' :
-        highlight === 'nao_realizada' ? 'border-gray-500/30 bg-gray-500/5' :
-        'border-border/50'
+        highlight === 'nao_realizada' ? 'border-yellow-500/30 bg-yellow-500/5' :
+        'border-green-500/30 bg-green-500/5'
       }>
         <CardContent className="py-3 space-y-1.5">
           <div className="flex items-center justify-between">
