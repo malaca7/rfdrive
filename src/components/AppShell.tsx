@@ -32,10 +32,11 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
   // Verificar se usuário é admin via tipo ou roles
   const isAdmin = user?.tipo === 'admin' || roles.includes('admin');
-  // Telas disponíveis considerando também o tipo de usuário
-  const effectiveAvailableScreens = isAdmin && !availableScreens.includes('admin')
+  // Telas disponíveis considerando também o tipo de usuário (sem 'cliente')
+  const effectiveAvailableScreens = (isAdmin && !availableScreens.includes('admin')
     ? [...availableScreens, 'admin']
-    : availableScreens;
+    : availableScreens
+  ).filter(s => s !== 'cliente');
 
   return (
     <div className="h-[100dvh] w-full flex flex-col bg-[hsl(0_0%_4%)] overflow-hidden">

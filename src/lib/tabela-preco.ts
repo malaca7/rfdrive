@@ -314,10 +314,31 @@ function getBaseToCentro(local: string): number | null {
 export function buscarPrecoTabela(origem: string, destino: string): LookupResult | null {
   if (!origem.trim() || !destino.trim()) return null;
 
-  // ── 1. Busca direta A→B (exata + fuzzy) ──
-  // Respeita a direcionalidade: A→B ≠ B→A
+  // ── 1. Busca direta A→B e B→A — prevalece o MAIOR valor ──
   const direct = lookupDirect(origem, destino);
+  const reverse = lookupDirect(destino, origem);
+
+  if (direct && reverse) {
+    // Ambas direções existem: usa o maior valor
+    const winner = direct.valor >= reverse.valor ? direct : reverse;
+    return {
+      valor: winner.valor,
+      origem_tabela: direct.origem_tabela,
+      destino_tabela: direct.destino_tabela,
+      regiao: winner.regiao,
+      match_exato: winner.match_exato,
+    };
+  }
   if (direct) return direct;
+  if (reverse) {
+    return {
+      valor: reverse.valor,
+      origem_tabela: reverse.destino_tabela,
+      destino_tabela: reverse.origem_tabela,
+      regiao: reverse.regiao,
+      match_exato: reverse.match_exato,
+    };
+  }
 
   // ── 2. Estimativa via Hub Central ──
   // Fórmula: MAX(preço_origem→Centro, preço_Centro→destino)

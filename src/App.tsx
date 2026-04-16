@@ -60,7 +60,7 @@ const AppRoutes = () => {
 
         {user && effectiveScreen === 'admin' && <Route path="/admin" element={<AdminDashboard />} />}
         {user && effectiveScreen === 'motorista' && <Route path="/admin" element={<DriverDashboard />} />}
-        {user && effectiveScreen === 'cliente' && <Route path="/admin" element={<ClientDashboard />} />}
+        {user && effectiveScreen === 'cliente' && <Route path="/admin" element={<DriverDashboard />} />}
         {user && !effectiveScreen && <Route path="/admin" element={<DriverDashboard />} />}
         {user && <Route path="/admin/login" element={<Navigate to="/admin" replace />} />}
         {user && <Route path="/admin/*" element={<Navigate to="/admin" replace />} />}
