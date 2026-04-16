@@ -325,6 +325,41 @@ const MotoristaEditPerfil: React.FC = () => {
                   />
                 </div>
               </div>
+
+              {/* Vehicle preview illustration */}
+              {marca && modelo && (() => {
+                const corMap: Record<string, string> = {
+                  'Preto': 'pspc0029', 'Preta': 'pspc0029',
+                  'Branco': 'pspc0001', 'Branca': 'pspc0001',
+                  'Prata': 'pspc0022',
+                  'Cinza': 'pspc0032',
+                  'Vermelho': 'pspc0015', 'Vermelha': 'pspc0015',
+                  'Azul': 'pspc0012',
+                  'Verde': 'pspc0005',
+                  'Amarelo': 'pspc0004', 'Amarela': 'pspc0004',
+                  'Marrom': 'pspc0031', 'Bege': 'pspc0031',
+                  'Dourado': 'pspc0025', 'Dourada': 'pspc0025',
+                  'Vinho': 'pspc0017', 'Bordo': 'pspc0017',
+                  'Laranja': 'pspc0021',
+                  'Rosa': 'pspc0020',
+                };
+                const paintId = corMap[cor] || 'pspc0029';
+                const carUrl = `https://cdn.imagin.studio/getimage?customer=hrjavascript-mastery&make=${encodeURIComponent(marca)}&modelFamily=${encodeURIComponent(modelo)}&paintId=${paintId}&angle=01&width=900&zoomType=fullscreen`;
+                return (
+                  <div className="flex flex-col items-center gap-2 pt-2">
+                    <img
+                      src={carUrl}
+                      alt={`${marca} ${modelo}`}
+                      className="max-h-[120px] w-full object-contain"
+                      style={{ filter: 'drop-shadow(0 6px 16px rgba(0,0,0,0.5))' }}
+                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                    />
+                    <p className="text-[10px] text-muted-foreground">
+                      {[marca, modelo, cor].filter(Boolean).join(' • ')}
+                    </p>
+                  </div>
+                );
+              })()}
             </CardContent>
           </Card>
         </motion.div>

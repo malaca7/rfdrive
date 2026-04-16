@@ -27,6 +27,7 @@ const MotoristaViagens = React.lazy(() => import("./pages/MotoristaViagens"));
 const MotoristaDashboardAll = React.lazy(() => import("./pages/MotoristaDashboardAll"));
 const MotoristaCredencial = React.lazy(() => import("./pages/MotoristaCredencial"));
 const MotoristaEditPerfil = React.lazy(() => import("./pages/MotoristaEditPerfil"));
+const MotoristaHistoricoViagens = React.lazy(() => import("./pages/MotoristaHistoricoViagens"));
 
 const PageLoader = () => (
   <div className="min-h-screen flex items-center justify-center bg-background">
@@ -87,6 +88,7 @@ const AppRoutes = () => {
         {user && <Route path="/motorista/dashboardall" element={<MotoristaDashboardAll />} />}
         {user && <Route path="/motorista/credencial" element={<MotoristaCredencial />} />}
         {user && <Route path="/motorista/editperfil" element={<MotoristaEditPerfil />} />}
+        {user && <Route path="/motorista/historico" element={<MotoristaHistoricoViagens />} />}
 
         {/* Redirect /admin for motorista to /motorista/dashboard */}
         {user && effectiveScreen === 'motorista' && <Route path="/admin" element={<Navigate to="/motorista/dashboard" replace />} />}

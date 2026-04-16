@@ -47,6 +47,37 @@ const MotoristaDashboard: React.FC = () => {
     enabled: !!user,
   });
 
+  // ── Avaliações individuais ──
+  const { data: avaliacoes } = useQuery({
+    queryKey: ['driver-avaliacoes-list', user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('avaliacoes')
+        .select('id, nota, comentario, created_at, tipo')
+        .eq('motorista_id', user!.id)
+        .order('created_at', { ascending: false })
+        .limit(20);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!user,
+  });
+
+  const { data: avaliacoesAdmin } = useQuery({
+    queryKey: ['driver-avaliacoes-admin-list', user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('avaliacoes_admin')
+        .select('id, nota, comentario, created_at')
+        .eq('motorista_id', user!.id)
+        .order('created_at', { ascending: false })
+        .limit(10);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!user,
+  });
+
   // ── Stats computados ──
   const totalViagens = completedRides?.length || 0;
   const viagensAprovadas = completedRides?.filter(r => r.status === 'aprovada' || r.status === 'finalizada').length || 0;
@@ -147,6 +178,65 @@ const MotoristaDashboard: React.FC = () => {
                     <p className="text-xs text-muted-foreground">{avgRating.count} avaliação{avgRating.count > 1 ? 'ões' : ''}</p>
                   </CardContent>
                 </Card>
+              </motion.div>
+            )}
+
+            {/* Avaliações Recebidas */}
+            {((avaliacoes && avaliacoes.length > 0) || (avaliacoesAdmin && avaliacoesAdmin.length > 0)) && (
+              <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.28 }}>
+                <div className="flex items-center justify-between mb-3">
+                  <h2 className="text-sm font-bold flex items-center gap-2">
+                    <Star className="w-4 h-4 text-accent" />
+                    Avaliações Recebidas
+                  </h2>
+                  <Badge variant="outline" className="text-xs">
+                    {(avaliacoes?.length || 0) + (avaliacoesAdmin?.length || 0)} total
+                  </Badge>
+                </div>
+                <div className="space-y-2 mb-[4%]">
+                  {avaliacoesAdmin?.map(a => (
+                    <Card key={`admin-${a.id}`} className="border-purple-500/20">
+                      <CardContent className="py-3">
+                        <div className="flex items-center justify-between mb-1">
+                          <div className="flex items-center gap-1.5">
+                            <Badge variant="outline" className="text-purple-400 border-purple-500/30 text-[10px]">Admin</Badge>
+                            <div className="flex items-center gap-0.5">
+                              {[1,2,3,4,5].map(s => (
+                                <Star key={s} className={`w-3 h-3 ${s <= a.nota ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground/30'}`} />
+                              ))}
+                            </div>
+                          </div>
+                          <span className="text-[10px] text-muted-foreground">
+                            {new Date(a.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}
+                          </span>
+                        </div>
+                        {a.comentario && <p className="text-xs text-muted-foreground">{a.comentario}</p>}
+                      </CardContent>
+                    </Card>
+                  ))}
+                  {avaliacoes?.map(a => (
+                    <Card key={`av-${a.id}`} className="border-border/50">
+                      <CardContent className="py-3">
+                        <div className="flex items-center justify-between mb-1">
+                          <div className="flex items-center gap-1.5">
+                            <Badge variant="outline" className="text-accent border-accent/30 text-[10px]">
+                              {a.tipo === 'motorista' ? 'Você avaliou' : 'Passageiro'}
+                            </Badge>
+                            <div className="flex items-center gap-0.5">
+                              {[1,2,3,4,5].map(s => (
+                                <Star key={s} className={`w-3 h-3 ${s <= a.nota ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground/30'}`} />
+                              ))}
+                            </div>
+                          </div>
+                          <span className="text-[10px] text-muted-foreground">
+                            {new Date(a.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}
+                          </span>
+                        </div>
+                        {a.comentario && <p className="text-xs text-muted-foreground">{a.comentario}</p>}
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
               </motion.div>
             )}
 
