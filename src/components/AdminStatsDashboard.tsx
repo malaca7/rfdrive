@@ -93,12 +93,12 @@ const AdminStatsDashboard: React.FC<AdminStatsProps> = ({ rides, users }) => {
     const ridesWeek = filteredRides.filter(r => new Date(r.created_at) >= weekAgo);
     const ridesMonth = filteredRides.filter(r => new Date(r.created_at) >= monthAgo);
 
-    // Revenue
-    const completedRides = filteredRides.filter(r => r.status === 'aprovada' || r.status === 'em_analise');
+    // Revenue (somente aprovadas)
+    const completedRides = filteredRides.filter(r => r.status === 'aprovada');
     const totalRevenue = completedRides.reduce((sum, r) => sum + (r.valor || r.valor_estimado || 0), 0);
-    const revenueToday = ridesToday.filter(r => r.status === 'aprovada' || r.status === 'em_analise')
+    const revenueToday = ridesToday.filter(r => r.status === 'aprovada')
       .reduce((sum, r) => sum + (r.valor || r.valor_estimado || 0), 0);
-    const revenueWeek = ridesWeek.filter(r => r.status === 'aprovada' || r.status === 'em_analise')
+    const revenueWeek = ridesWeek.filter(r => r.status === 'aprovada')
       .reduce((sum, r) => sum + (r.valor || r.valor_estimado || 0), 0);
 
     // Drivers

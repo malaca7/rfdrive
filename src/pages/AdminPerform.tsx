@@ -28,7 +28,7 @@ type UserRecord = {
 type Avaliacao = {
   id: string;
   motorista_id: string;
-  admin_id: string;
+  admin_id: string | null;
   nota: number;
   comentario: string;
   created_at: string;

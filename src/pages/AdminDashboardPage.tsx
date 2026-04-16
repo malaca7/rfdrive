@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import AdminLayout from '@/components/AdminLayout';
 import { motion } from 'framer-motion';
 import {
-  Car, Users, Star, DollarSign, CheckCircle, Clock, AlertTriangle,
+  Car, Users, Star, DollarSign, CheckCircle, AlertTriangle,
   TrendingUp, Calendar, Activity, Shield, XCircle, Trophy,
   BarChart3, Filter, Loader2,
 } from 'lucide-react';
@@ -103,37 +103,33 @@ const AdminDashboardPage: React.FC = () => {
 
   // ── Stats ──
   const stats = useMemo(() => {
-    const total = filteredRides.length;
     const aprovadas = filteredRides.filter(r => r.status === 'aprovada');
-    const emAnalise = filteredRides.filter(r => r.status === 'em_analise');
-    const recusadas = filteredRides.filter(r => r.status === 'recusada');
-    const naoRealizadas = filteredRides.filter(r => r.status === 'nao_realizada');
+    const total = aprovadas.length;
     const receitaTotal = aprovadas.reduce((sum, r) => sum + (r.valor || 0), 0);
-    const receitaEstimada = filteredRides.reduce((sum, r) => sum + (r.valor_estimado || r.valor || 0), 0);
 
-    // Admin vs common user rides
+    // Admin vs common user rides (somente aprovadas)
     const adminIds = new Set(users.filter(u => u.roles?.includes('admin') || u.tipo === 'admin').map(u => u.id));
-    const corridasAdmin = filteredRides.filter(r => adminIds.has(r.motorista_id || ''));
-    const corridasComum = filteredRides.filter(r => r.motorista_id && !adminIds.has(r.motorista_id));
+    const corridasAdmin = aprovadas.filter(r => adminIds.has(r.motorista_id || ''));
+    const corridasComum = aprovadas.filter(r => r.motorista_id && !adminIds.has(r.motorista_id));
 
     return {
-      total, aprovadas: aprovadas.length, emAnalise: emAnalise.length,
-      recusadas: recusadas.length, naoRealizadas: naoRealizadas.length,
-      receitaTotal, receitaEstimada,
+      total, aprovadas: total,
+      receitaTotal,
       corridasAdmin: corridasAdmin.length, corridasComum: corridasComum.length,
-      receitaAdmin: corridasAdmin.filter(r => r.status === 'aprovada').reduce((s, r) => s + (r.valor || 0), 0),
-      receitaComum: corridasComum.filter(r => r.status === 'aprovada').reduce((s, r) => s + (r.valor || 0), 0),
+      receitaAdmin: corridasAdmin.reduce((s, r) => s + (r.valor || 0), 0),
+      receitaComum: corridasComum.reduce((s, r) => s + (r.valor || 0), 0),
     };
   }, [filteredRides, users]);
 
   // ── Driver ranking ──
   const driverRanking = useMemo(() => {
-    const motoristasMap = new Map<string, { viagens: number; receita: number; aprovadas: number }>();
-    filteredRides.forEach(r => {
+    const aprovadas = filteredRides.filter(r => r.status === 'aprovada');
+    const motoristasMap = new Map<string, { viagens: number; receita: number }>();
+    aprovadas.forEach(r => {
       if (!r.motorista_id) return;
-      const existing = motoristasMap.get(r.motorista_id) || { viagens: 0, receita: 0, aprovadas: 0 };
+      const existing = motoristasMap.get(r.motorista_id) || { viagens: 0, receita: 0 };
       existing.viagens++;
-      if (r.status === 'aprovada') { existing.aprovadas++; existing.receita += (r.valor || 0); }
+      existing.receita += (r.valor || 0);
       motoristasMap.set(r.motorista_id, existing);
     });
 
@@ -197,10 +193,10 @@ const AdminDashboardPage: React.FC = () => {
           {/* ── Summary Cards ── */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {[
-              { label: 'Total Corridas', value: stats.total, icon: <Car className="w-4 h-4" />, color: 'text-white', bg: 'bg-white/[0.06]' },
-              { label: 'Aprovadas', value: stats.aprovadas, icon: <CheckCircle className="w-4 h-4" />, color: 'text-green-400', bg: 'bg-green-500/10' },
-              { label: 'Em Análise', value: stats.emAnalise, icon: <Clock className="w-4 h-4" />, color: 'text-orange-400', bg: 'bg-orange-500/10' },
-              { label: 'Receita Total', value: `R$ ${stats.receitaTotal.toFixed(2)}`, icon: <DollarSign className="w-4 h-4" />, color: 'text-green-400', bg: 'bg-green-500/10' },
+              { label: 'Total Aprovadas', value: stats.total, icon: <CheckCircle className="w-4 h-4" />, color: 'text-green-400', bg: 'bg-green-500/10' },
+              { label: 'Receita Total', value: `R$ ${stats.receitaTotal.toFixed(0)}`, icon: <DollarSign className="w-4 h-4" />, color: 'text-green-400', bg: 'bg-green-500/10' },
+              { label: 'Corridas Admin', value: stats.corridasAdmin, icon: <Shield className="w-4 h-4" />, color: 'text-purple-400', bg: 'bg-purple-500/10' },
+              { label: 'Corridas Motoristas', value: stats.corridasComum, icon: <Car className="w-4 h-4" />, color: 'text-accent', bg: 'bg-accent/10' },
             ].map(s => (
               <Card key={s.label}>
                 <CardContent className="py-3 px-4">
@@ -274,7 +270,7 @@ const AdminDashboardPage: React.FC = () => {
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium truncate">{driver.nome}</p>
-                          <p className="text-[10px] text-muted-foreground">{driver.aprovadas} aprovadas de {driver.viagens}</p>
+                          <p className="text-[10px] text-muted-foreground">{driver.viagens} aprovada{driver.viagens !== 1 ? 's' : ''}</p>
                         </div>
                         <div className="text-right shrink-0">
                           <p className="text-sm font-bold text-accent">{driver.viagens}</p>
