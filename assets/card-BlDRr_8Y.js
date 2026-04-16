@@ -1,6 +1,0 @@
-import{c as d,g as s}from"./index-DKUUjW5J.js";import{j as t}from"./vendor-query-CVTOqb6o.js";import{r as o}from"./vendor-react-iNZsg3tm.js";/**
- * @license lucide-react v0.462.0 - ISC
- *
- * This source code is licensed under the ISC license.
- * See the LICENSE file in the root directory of this source tree.
- */const N=d("Navigation",[["polygon",{points:"3 11 22 2 13 21 11 13 3 11",key:"1ltx0t"}]]),i=o.forwardRef(({className:a,...e},r)=>t.jsx("div",{ref:r,className:s("rounded-2xl border border-white/[0.06] bg-[hsl(0_0%_8%)] text-card-foreground shadow-sm",a),...e}));i.displayName="Card";const n=o.forwardRef(({className:a,...e},r)=>t.jsx("div",{ref:r,className:s("flex flex-col space-y-1.5 p-6",a),...e}));n.displayName="CardHeader";const c=o.forwardRef(({className:a,...e},r)=>t.jsx("h3",{ref:r,className:s("text-2xl font-semibold leading-none tracking-tight",a),...e}));c.displayName="CardTitle";const l=o.forwardRef(({className:a,...e},r)=>t.jsx("p",{ref:r,className:s("text-sm text-muted-foreground",a),...e}));l.displayName="CardDescription";const m=o.forwardRef(({className:a,...e},r)=>t.jsx("div",{ref:r,className:s("p-6 pt-0",a),...e}));m.displayName="CardContent";const p=o.forwardRef(({className:a,...e},r)=>t.jsx("div",{ref:r,className:s("flex items-center p-6 pt-0",a),...e}));p.displayName="CardFooter";export{i as C,N,n as a,c as b,l as c,m as d};
