@@ -174,10 +174,6 @@ const MotoristaEditPerfil: React.FC = () => {
       const updates: Record<string, unknown> = {
         nome: nome.trim(),
         telefone: telefone.replace(/\D/g, ''),
-        veiculo_marca: marca || null,
-        veiculo_modelo: modelo || null,
-        veiculo_cor: cor || null,
-        veiculo_placa: placa.replace('-', '') || null,
       };
       if (senha.trim()) {
         updates.senha = senha.trim();
@@ -288,10 +284,14 @@ const MotoristaEditPerfil: React.FC = () => {
               <p className="text-xs text-muted-foreground font-medium flex items-center gap-2">
                 <Car className="w-3.5 h-3.5" /> DADOS DO VEÍCULO
               </p>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="flex items-center gap-2 text-[11px] text-amber-400 bg-amber-400/10 border border-amber-400/20 rounded-lg px-3 py-2">
+                <Lock className="w-3 h-3 shrink-0" />
+                <span>Dados do veículo gerenciados pelo administrador</span>
+              </div>
+              <div className="grid grid-cols-2 gap-3 opacity-60 pointer-events-none select-none">
                 <div>
                   <Label className="text-xs">Marca</Label>
-                  <Select value={marca} onValueChange={v => { setMarca(v); setModelo(''); }}>
+                  <Select value={marca} onValueChange={v => { setMarca(v); setModelo(''); }} disabled>
                     <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                     <SelectContent>
                       {VEHICLE_BRANDS.map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}
@@ -300,7 +300,7 @@ const MotoristaEditPerfil: React.FC = () => {
                 </div>
                 <div>
                   <Label className="text-xs">Modelo</Label>
-                  <Select value={modelo} onValueChange={v => setModelo(v)}>
+                  <Select value={modelo} onValueChange={v => setModelo(v)} disabled>
                     <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                     <SelectContent>
                       {(VEHICLE_MODELS[marca] || ['Outro']).map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
@@ -309,7 +309,7 @@ const MotoristaEditPerfil: React.FC = () => {
                 </div>
                 <div>
                   <Label className="text-xs">Cor</Label>
-                  <Select value={cor} onValueChange={v => setCor(v)}>
+                  <Select value={cor} onValueChange={v => setCor(v)} disabled>
                     <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                     <SelectContent>
                       {VEHICLE_COLORS.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
@@ -320,7 +320,7 @@ const MotoristaEditPerfil: React.FC = () => {
                   <Label className="text-xs">Placa</Label>
                   <Input
                     value={placa}
-                    onChange={e => setPlaca(formatPlate(e.target.value))}
+                    readOnly
                     placeholder="ABC-1234"
                     maxLength={8}
                   />
