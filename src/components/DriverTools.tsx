@@ -540,80 +540,10 @@ export const TripCalculator: React.FC<{
 // ═══════════════════════════════════════════════
 export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, completedCount }) => {
   const { toast } = useToast();
-  const queryClient = useQueryClient();
   const badgeRef = useRef<HTMLDivElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const hasVehicle = profile.veiculo_marca || profile.veiculo_placa;
 
-  // ── Avatar crop state ──
-  const [avatarUrl, setAvatarUrl] = useState(profile.avatar_url || '');
-  // Sync avatarUrl when profile.avatar_url changes (e.g. after query refetch)
-  React.useEffect(() => {
-    if (profile.avatar_url) setAvatarUrl(profile.avatar_url);
-  }, [profile.avatar_url]);
-  const [showCropDialog, setShowCropDialog] = useState(false);
-  const [rawImage, setRawImage] = useState<string | null>(null);
-  const [crop, setCrop] = useState({ x: 0, y: 0 });
-  const [zoom, setZoom] = useState(1);
-  const [croppedArea, setCroppedArea] = useState<Area | null>(null);
-  const [uploading, setUploading] = useState(false);
-
-  const onCropComplete = useCallback((_: Area, croppedAreaPixels: Area) => {
-    setCroppedArea(croppedAreaPixels);
-  }, []);
-
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (!file.type.startsWith('image/')) {
-      toast({ title: 'Selecione uma imagem', variant: 'destructive' });
-      return;
-    }
-    if (file.size > 10 * 1024 * 1024) {
-      toast({ title: 'Imagem muito grande (máx. 10MB)', variant: 'destructive' });
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = () => {
-      setRawImage(reader.result as string);
-      setCrop({ x: 0, y: 0 });
-      setZoom(1);
-      setShowCropDialog(true);
-    };
-    reader.readAsDataURL(file);
-    e.target.value = '';
-  };
-
-  const handleCropConfirm = async () => {
-    if (!rawImage || !croppedArea) return;
-    setUploading(true);
-    try {
-      // Avatar upload (square, JPEG)
-      const blob = await getCroppedBlob(rawImage, croppedArea);
-      const filePath = `avatars/${profile.id}.jpg`;
-
-        const { error: uploadError } = await supabase.storage
-          .from('avatars')
-          .upload(filePath, blob, { upsert: true, contentType: 'image/jpeg', cacheControl: '3600' });
-        if (uploadError) throw uploadError;
-
-        const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(filePath);
-        const publicUrl = `${urlData.publicUrl}?t=${Date.now()}`;
-        setAvatarUrl(publicUrl);
-
-        await supabase.from('users').update({ avatar_url: publicUrl }).eq('id', profile.id);
-        queryClient.invalidateQueries({ queryKey: ['driver-full-profile'] });
-
-        toast({ title: 'Foto atualizada!' });
-      setShowCropDialog(false);
-      setRawImage(null);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Erro ao enviar foto';
-      toast({ title: msg, variant: 'destructive' });
-    } finally {
-      setUploading(false);
-    }
-  };
+  const avatarUrl = profile.avatar_url || '';
 
   const handleShare = async () => {
     if (!badgeRef.current) return;
@@ -668,20 +598,8 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
     }
   };
 
-  // Hidden file inputs
-  const fileInput = (
-    <input
-      ref={fileInputRef}
-      type="file"
-      accept="image/*"
-      className="hidden"
-      onChange={handleFileSelect}
-    />
-  );
-
   return (
     <>
-      {fileInput}
       <div className="space-y-3">
         {/* ── Badge Card (captured as image) ── */}
         <div
@@ -990,14 +908,6 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
         {/* Action buttons */}
         <div className="flex gap-2">
           <Button
-            variant="outline"
-            className="flex-1 h-11 rounded-xl gap-2 font-semibold"
-            onClick={() => fileInputRef.current?.click()}
-          >
-            <Camera className="w-4 h-4" />
-            {avatarUrl ? 'Trocar Foto' : 'Minha Foto'}
-          </Button>
-          <Button
             className="flex-1 h-11 rounded-xl gap-2 font-semibold"
             onClick={handleShare}
           >
@@ -1006,74 +916,6 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
           </Button>
         </div>
       </div>
-
-      {/* ── Crop Dialog ── */}
-      <Dialog open={showCropDialog} onOpenChange={setShowCropDialog}>
-        <DialogContent className="max-w-md p-0 overflow-hidden">
-          <DialogHeader className="p-4 pb-0">
-            <DialogTitle className="flex items-center gap-2 text-base">
-              <Camera className="w-5 h-5 text-accent" />
-              Recortar Foto
-            </DialogTitle>
-            <DialogDescription>
-              Arraste e ajuste o zoom para enquadrar seu rosto
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="relative w-full aspect-square bg-black">
-            {rawImage && (
-              <Cropper
-                image={rawImage}
-                crop={crop}
-                zoom={zoom}
-                aspect={1}
-                cropShape="round"
-                showGrid={false}
-                onCropChange={setCrop}
-                onZoomChange={setZoom}
-                onCropComplete={onCropComplete}
-              />
-            )}
-          </div>
-
-          {/* Zoom control */}
-          <div className="flex items-center gap-3 px-4 pb-2">
-            <ZoomOut className="w-4 h-4 text-muted-foreground shrink-0" />
-            <input
-              type="range"
-              min={1}
-              max={3}
-              step={0.05}
-              value={zoom}
-              onChange={e => setZoom(Number(e.target.value))}
-              className="flex-1 h-2 accent-accent"
-            />
-            <ZoomIn className="w-4 h-4 text-muted-foreground shrink-0" />
-          </div>
-
-          <div className="flex gap-2 p-4 pt-0">
-            <Button
-              variant="outline"
-              className="flex-1 rounded-xl"
-              onClick={() => { setShowCropDialog(false); setRawImage(null); }}
-            >
-              Cancelar
-            </Button>
-            <Button
-              onClick={handleCropConfirm}
-              disabled={uploading}
-              className="flex-1 rounded-xl bg-green-600 hover:bg-green-700 text-white font-semibold"
-            >
-              {uploading ? (
-                <Loader2 className="w-4 h-4 animate-spin mr-1" />
-              ) : (
-                <Check className="w-4 h-4 mr-1" />
-              )}
-              Aplicar
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
     </>
   );
 };
