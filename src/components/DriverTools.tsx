@@ -567,7 +567,6 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
         setAvatarDataUrl('');
       });
   }, [profile.avatar_url]);
-  }, [profile.avatar_url]);
 
   // Convert background image to base64 for html2canvas capture
   const [bgDataUrl, setBgDataUrl] = useState<string>('');
