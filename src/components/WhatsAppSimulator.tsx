@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MessageCircle, Send, Bot, User, Loader2, Phone, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { usePlatformConfig } from '@/hooks/usePlatformConfig';
 
 interface Message {
   id: string;
@@ -18,7 +19,7 @@ interface Message {
 const INITIAL_MESSAGES: Message[] = [
   {
     id: 'welcome',
-    text: '👋 Olá! Sou o assistente da RF Drive.\n\nMe diga de onde você quer sair e para onde quer ir.\n\nExemplo: "Me pega na Praça Barão de Muribeca e me leva pro Shopping Costa Dourada"',
+    text: '👋 Olá! Sou o assistente de viagens.\n\nMe diga de onde você quer sair e para onde quer ir.\n\nExemplo: "Me pega na Praça Barão de Muribeca e me leva pro Shopping Costa Dourada"',
     sender: 'bot',
     timestamp: new Date(),
   },
@@ -27,6 +28,7 @@ const INITIAL_MESSAGES: Message[] = [
 const WhatsAppSimulator: React.FC = () => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { nomePlataforma } = usePlatformConfig();
   const [messages, setMessages] = useState<Message[]>(INITIAL_MESSAGES);
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
@@ -131,7 +133,7 @@ const WhatsAppSimulator: React.FC = () => {
           <Bot className="w-5 h-5 text-white" />
         </div>
         <div className="flex-1">
-          <p className="text-white font-semibold text-sm">RF Drive</p>
+          <p className="text-white font-semibold text-sm">{nomePlataforma}</p>
           <p className="text-white/70 text-xs">Online</p>
         </div>
         <Phone className="w-4 h-4 text-white/70" />

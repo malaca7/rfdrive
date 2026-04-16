@@ -817,7 +817,7 @@ const DriverDashboard: React.FC = () => {
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="w-full mb-[4%] h-auto min-h-[48px] p-1 bg-white/[0.04] border border-white/[0.06] rounded-2xl flex flex-wrap gap-1">
-            <TabsTrigger value="disponiveis" className="flex-1 min-w-[70px] gap-1 text-[11px] sm:text-xs rounded-xl h-10 font-semibold data-[state=active]:bg-[hsl(22_100%_55%)] data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-[hsl(22_100%_55%/0.2)]">
+            <TabsTrigger value="disponiveis" className="flex-1 min-w-[70px] gap-1 text-[11px] sm:text-xs rounded-xl h-10 font-semibold data-[state=active]:bg-[hsl(45_100%_50%)] data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-[hsl(45_100%_50%/0.2)]">
               <Car className="w-3.5 h-3.5 shrink-0" />
               <span className="truncate">Disponíveis</span>
               {pendingCount > 0 && (
@@ -826,7 +826,7 @@ const DriverDashboard: React.FC = () => {
                 </span>
               )}
             </TabsTrigger>
-            <TabsTrigger value="ativas" className="flex-1 min-w-[70px] gap-1 text-[11px] sm:text-xs rounded-xl h-10 font-semibold data-[state=active]:bg-[hsl(22_100%_55%)] data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-[hsl(22_100%_55%/0.2)]">
+            <TabsTrigger value="ativas" className="flex-1 min-w-[70px] gap-1 text-[11px] sm:text-xs rounded-xl h-10 font-semibold data-[state=active]:bg-[hsl(45_100%_50%)] data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-[hsl(45_100%_50%/0.2)]">
               <Navigation className="w-3.5 h-3.5 shrink-0" />
               <span className="truncate">Ativas</span>
               {activeCount > 0 && (
@@ -835,15 +835,15 @@ const DriverDashboard: React.FC = () => {
                 </span>
               )}
             </TabsTrigger>
-            <TabsTrigger value="historico" className="flex-1 min-w-[70px] gap-1 text-[11px] sm:text-xs rounded-xl h-10 font-semibold data-[state=active]:bg-[hsl(22_100%_55%)] data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-[hsl(22_100%_55%/0.2)]">
+            <TabsTrigger value="historico" className="flex-1 min-w-[70px] gap-1 text-[11px] sm:text-xs rounded-xl h-10 font-semibold data-[state=active]:bg-[hsl(45_100%_50%)] data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-[hsl(45_100%_50%/0.2)]">
               <History className="w-3.5 h-3.5 shrink-0" />
               <span className="truncate">Histórico</span>
             </TabsTrigger>
-            <TabsTrigger value="calcular" className="flex-1 min-w-[70px] gap-1 text-[11px] sm:text-xs rounded-xl h-10 font-semibold data-[state=active]:bg-[hsl(22_100%_55%)] data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-[hsl(22_100%_55%/0.2)]">
+            <TabsTrigger value="calcular" className="flex-1 min-w-[70px] gap-1 text-[11px] sm:text-xs rounded-xl h-10 font-semibold data-[state=active]:bg-[hsl(45_100%_50%)] data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-[hsl(45_100%_50%/0.2)]">
               <Calculator className="w-3.5 h-3.5 shrink-0" />
               <span className="truncate">Calcular</span>
             </TabsTrigger>
-            <TabsTrigger value="cracha" className="flex-1 min-w-[70px] gap-1 text-[11px] sm:text-xs rounded-xl h-10 font-semibold data-[state=active]:bg-[hsl(22_100%_55%)] data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-[hsl(22_100%_55%/0.2)]">
+            <TabsTrigger value="cracha" className="flex-1 min-w-[70px] gap-1 text-[11px] sm:text-xs rounded-xl h-10 font-semibold data-[state=active]:bg-[hsl(45_100%_50%)] data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-[hsl(45_100%_50%/0.2)]">
               <IdCard className="w-3.5 h-3.5 shrink-0" />
               <span className="truncate">Crachá</span>
             </TabsTrigger>

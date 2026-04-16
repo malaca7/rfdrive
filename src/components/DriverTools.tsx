@@ -26,6 +26,7 @@ import { useDynamicAdjustment } from '@/hooks/useDynamicAdjustment';
 import { normalizeText } from '@/lib/tabela-preco';
 import { getConfigTarifas, type ConfigTarifas } from '@/lib/pricing-engine';
 import { useToast } from '@/hooks/use-toast';
+import { usePlatformConfig } from '@/hooks/usePlatformConfig';
 
 // ── Crop helper: canvas-based crop to blob ──
 async function getCroppedBlob(imageSrc: string, crop: Area, outputSize = 400): Promise<Blob> {
@@ -82,6 +83,7 @@ export const TripCalculator: React.FC<{
   onSendQuote?: (data: { origem: string; destino: string; valor: number; mensagem: string }) => void;
 }> = ({ onSendQuote }) => {
   const { toast } = useToast();
+  const { nomePlataforma } = usePlatformConfig();
   const allLocations = useAllLocations();
 
   const [origem, setOrigem] = useState('');
@@ -150,7 +152,7 @@ export const TripCalculator: React.FC<{
   const quoteMensagem = useMemo(() => {
     if (!preco || !origem.trim() || !destino.trim()) return '';
     const lines = [
-      `🚗 *Orçamento RF Drive*`,
+      `🚗 *Orçamento ${nomePlataforma}*`,
       ``,
       `📍 *Origem:* ${origem.trim()}`,
       `📍 *Destino:* ${destino.trim()}`,
@@ -168,7 +170,7 @@ export const TripCalculator: React.FC<{
     lines.push(``);
     if (clienteNome.trim()) lines.push(`👤 *Cliente:* ${clienteNome.trim()}`);
     if (observacao.trim()) lines.push(`📝 *Obs:* ${observacao.trim()}`);
-    lines.push(``, `_Consulta feita pela Tabela RF Drive_`);
+    lines.push(``, `_Consulta feita pela Tabela ${nomePlataforma}_`);
     return lines.filter(Boolean).join('\n');
   }, [preco, origem, destino, clienteNome, observacao, totalValue, dynamicAdj, temBagagem, taxaBagagemValor]);
 
@@ -540,6 +542,7 @@ export const TripCalculator: React.FC<{
 // ═══════════════════════════════════════════════
 export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, completedCount }) => {
   const { toast } = useToast();
+  const { nomePlataforma } = usePlatformConfig();
   const badgeRef = useRef<HTMLDivElement>(null);
   const hasVehicle = profile.veiculo_marca || profile.veiculo_placa;
 
@@ -565,7 +568,7 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
         const file = new File([blob], 'cracha-rf-drive.png', { type: 'image/png' });
 
         try {
-          await navigator.share({ title: 'RF Drive - Crachá', files: [file] });
+          await navigator.share({ title: `${nomePlataforma} - Crachá`, files: [file] });
           return;
         } catch { /* fallback below */ }
       }
@@ -577,7 +580,7 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
       toast({ title: 'Crachá baixado!' });
     } catch {
       const text = [
-        `🚗 RF Drive - Motorista Credenciado`,
+        `🚗 ${nomePlataforma} - Motorista Credenciado`,
         `👤 ${profile.nome}`,
         `📱 ${profile.telefone}`,
         hasVehicle ? `🚘 ${[profile.veiculo_marca, profile.veiculo_modelo].filter(Boolean).join(' ')} • ${profile.veiculo_cor || ''} • ${profile.veiculo_placa || ''}` : '',
@@ -586,7 +589,7 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
 
       try {
         if (navigator.share) {
-          await navigator.share({ title: 'RF Drive', text });
+          await navigator.share({ title: nomePlataforma, text });
         } else {
           await navigator.clipboard.writeText(text);
           toast({ title: 'Crachá copiado!' });
@@ -626,7 +629,7 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
           {/* ── Thin top accent line ── */}
           <div style={{
             position: 'absolute', top: 0, left: '15%', right: '15%', height: '2px',
-            background: 'linear-gradient(90deg, transparent, #E06616, transparent)',
+            background: 'linear-gradient(90deg, transparent, #FFD000, transparent)',
             borderRadius: '0 0 2px 2px',
           }} />
 
@@ -644,7 +647,7 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
             }}>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: '2px' }}>
                 <span style={{
-                  fontSize: 'clamp(28px, 8vw, 38px)', fontWeight: '900', color: '#E06616',
+                  fontSize: 'clamp(28px, 8vw, 38px)', fontWeight: '900', color: '#FFD000',
                   letterSpacing: '-1px', lineHeight: '1', fontStyle: 'italic',
                 }}>R</span>
                 <span style={{
@@ -686,7 +689,7 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
               <div style={{
                 width: 'clamp(90px, 28%, 120px)', aspectRatio: '1',
                 borderRadius: '50%',
-                border: '3px solid #E06616',
+                border: '3px solid #FFD000',
                 overflow: 'hidden', background: '#1a1a1a',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 boxShadow: '0 0 30px rgba(224,102,22,0.15), 0 8px 24px rgba(0,0,0,0.5)',
@@ -694,7 +697,7 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
                 {avatarUrl ? (
                   <img src={avatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} crossOrigin="anonymous" />
                 ) : (
-                  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#E06616" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#FFD000" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
                     <circle cx="12" cy="7" r="4" />
                   </svg>
@@ -712,7 +715,7 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
               </div>
               <div style={{
                 fontSize: 'clamp(10px, 2.8vw, 13px)', fontWeight: '600',
-                color: '#E06616', marginTop: '4px',
+                color: '#FFD000', marginTop: '4px',
                 letterSpacing: '3px', textTransform: 'uppercase' as const,
               }}>
                 {profile.tipo === 'admin' ? 'Administrador' : 'Motorista Credenciado'}
@@ -856,7 +859,7 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
               }}>
                 <div style={{ textAlign: 'center' as const }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="#E06616" stroke="none">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="#FFD000" stroke="none">
                       <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26" />
                     </svg>
                     <span style={{ fontSize: '16px', fontWeight: '800', color: '#ffffff' }}>
@@ -872,7 +875,7 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
 
             {/* ══ FOOTER: RF MOBILIDADE COM EXCELÊNCIA ══ */}
             <div style={{
-              background: 'linear-gradient(135deg, #E06616, #c85510)',
+              background: 'linear-gradient(135deg, #FFD000, #E6A800)',
               borderRadius: '10px',
               padding: '10px 14px',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',

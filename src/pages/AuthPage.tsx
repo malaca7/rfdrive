@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { motion } from 'framer-motion';
 import { Navigation, Loader2, Phone } from 'lucide-react';
+import { usePlatformConfig } from '@/hooks/usePlatformConfig';
 import { useToast } from '@/hooks/use-toast';
 
 const formatPhone = (value: string) => {
@@ -24,6 +25,7 @@ const AuthPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const { signIn, signUp } = useAuth();
   const { toast } = useToast();
+  const { nomePlataforma } = usePlatformConfig();
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setTelefone(formatPhone(e.target.value));
@@ -75,11 +77,11 @@ const AuthPage: React.FC = () => {
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ type: 'spring', stiffness: 200, delay: 0.1 }}
-            className="inline-flex items-center justify-center w-[18%] max-w-[72px] aspect-square rounded-2xl gradient-accent mb-[3%] shadow-lg shadow-[hsl(22_100%_55%/0.3)] glow-accent"
+            className="inline-flex items-center justify-center w-[18%] max-w-[72px] aspect-square rounded-2xl gradient-accent mb-[3%] shadow-lg shadow-[hsl(45_100%_50%/0.3)] glow-accent"
           >
             <Navigation className="w-[45%] h-[45%] text-white" />
           </motion.div>
-          <h1 className="text-[clamp(1.75rem,6vw,2.5rem)] font-extrabold text-white tracking-tight">RF Drive</h1>
+          <h1 className="text-[clamp(1.75rem,6vw,2.5rem)] font-extrabold text-white tracking-tight">{nomePlataforma}</h1>
           <p className="text-white/40 text-[clamp(0.8rem,2.5vw,0.95rem)] mt-1">Seu transporte inteligente</p>
         </div>
 
@@ -101,7 +103,7 @@ const AuthPage: React.FC = () => {
                     onChange={(e) => setNome(e.target.value)}
                     placeholder="Seu nome completo"
                     required={!isLogin}
-                    className="h-12 rounded-2xl text-sm bg-white/[0.05] border-white/[0.08] text-white placeholder:text-white/25 focus:border-[hsl(22_100%_55%)] focus:ring-[hsl(22_100%_55%/0.2)]"
+                    className="h-12 rounded-2xl text-sm bg-white/[0.05] border-white/[0.08] text-white placeholder:text-white/25 focus:border-[hsl(45_100%_50%)] focus:ring-[hsl(45_100%_50%/0.2)]"
                   />
                 </div>
               )}
@@ -115,7 +117,7 @@ const AuthPage: React.FC = () => {
                     value={telefone}
                     onChange={handlePhoneChange}
                     placeholder="(11) 99999-9999"
-                    className="pl-10 h-12 rounded-2xl text-sm bg-white/[0.05] border-white/[0.08] text-white placeholder:text-white/25 focus:border-[hsl(22_100%_55%)] focus:ring-[hsl(22_100%_55%/0.2)]"
+                    className="pl-10 h-12 rounded-2xl text-sm bg-white/[0.05] border-white/[0.08] text-white placeholder:text-white/25 focus:border-[hsl(45_100%_50%)] focus:ring-[hsl(45_100%_50%/0.2)]"
                     required
                     maxLength={16}
                   />
@@ -131,12 +133,12 @@ const AuthPage: React.FC = () => {
                   placeholder="••••••••"
                   required
                   minLength={6}
-                  className="h-12 rounded-2xl text-sm bg-white/[0.05] border-white/[0.08] text-white placeholder:text-white/25 focus:border-[hsl(22_100%_55%)] focus:ring-[hsl(22_100%_55%/0.2)]"
+                  className="h-12 rounded-2xl text-sm bg-white/[0.05] border-white/[0.08] text-white placeholder:text-white/25 focus:border-[hsl(45_100%_50%)] focus:ring-[hsl(45_100%_50%/0.2)]"
                 />
               </div>
               <Button
                 type="submit"
-                className="w-full h-12 rounded-2xl gradient-accent text-white font-bold text-sm hover:opacity-90 transition-opacity shadow-lg shadow-[hsl(22_100%_55%/0.3)] glow-accent"
+                className="w-full h-12 rounded-2xl gradient-accent text-white font-bold text-sm hover:opacity-90 transition-opacity shadow-lg shadow-[hsl(45_100%_50%/0.3)] glow-accent"
                 disabled={loading}
               >
                 {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
@@ -150,7 +152,7 @@ const AuthPage: React.FC = () => {
           <button
             type="button"
             onClick={() => { window.location.hash = '/'; }}
-            className="text-[clamp(0.75rem,2.2vw,0.85rem)] text-white/40 hover:text-[hsl(22_100%_55%)] transition-colors"
+            className="text-[clamp(0.75rem,2.2vw,0.85rem)] text-white/40 hover:text-[hsl(45_100%_50%)] transition-colors"
           >
             ← Voltar para Calculadora
           </button>

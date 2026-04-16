@@ -92,3 +92,15 @@ CREATE POLICY "historico_precos_all" ON historico_precos FOR ALL USING (true) WI
 ALTER PUBLICATION supabase_realtime ADD TABLE localidades;
 ALTER PUBLICATION supabase_realtime ADD TABLE precos_rotas;
 ALTER PUBLICATION supabase_realtime ADD TABLE regras_horario;
+
+-- ── GRANTs (anon key auth) ──
+GRANT ALL ON public.localidades TO anon, authenticated;
+GRANT ALL ON public.precos_rotas TO anon, authenticated;
+GRANT ALL ON public.regras_horario TO anon, authenticated;
+GRANT ALL ON public.historico_precos TO anon, authenticated;
+GRANT ALL ON public.corridas TO anon, authenticated;
+GRANT USAGE ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated;
+
+-- Force PostgREST to reload schema cache
+NOTIFY pgrst, 'reload schema';
+NOTIFY pgrst, 'reload config';

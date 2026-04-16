@@ -2,6 +2,7 @@ import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Navigation, LogOut, User, Shield, Truck, BarChart3, Calculator, Trophy, IdCard, UserCog } from 'lucide-react';
+import { usePlatformConfig } from '@/hooks/usePlatformConfig';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const SCREEN_CONFIG: Record<string, { label: string; icon: React.ReactNode; activeClass: string; dotColor: string }> = {
@@ -29,6 +30,7 @@ const MOTORISTA_NAV = [
 
 const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { profile, signOut, availableScreens, activeScreen, setActiveScreen, roles, user } = useAuth();
+  const { nomePlataforma } = usePlatformConfig();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -52,11 +54,11 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       <header className="shrink-0 z-50 bg-[hsl(0_0%_6%)]/95 backdrop-blur-2xl border-b border-white/[0.06] safe-top">
         <div className="w-full px-[4%] h-14 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-2xl gradient-accent flex items-center justify-center shadow-lg shadow-[hsl(22_100%_55%/0.3)] glow-accent">
+            <div className="w-9 h-9 rounded-2xl gradient-accent flex items-center justify-center shadow-lg shadow-[hsl(45_100%_50%/0.3)] glow-accent">
               <Navigation className="w-[18px] h-[18px] text-white" />
             </div>
             <div>
-              <span className="font-extrabold text-lg tracking-tight text-white">RF Drive</span>
+              <span className="font-extrabold text-lg tracking-tight text-white">{nomePlataforma}</span>
             </div>
           </div>
           <div className="flex items-center gap-2">

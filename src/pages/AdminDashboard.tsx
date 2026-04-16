@@ -659,23 +659,23 @@ const AdminDashboard: React.FC = () => {
 
         <Tabs defaultValue="dashboard">
           <TabsList className="w-full mb-[3%] h-auto min-h-[48px] p-1 bg-white/[0.04] border border-white/[0.06] rounded-2xl flex flex-wrap gap-1">
-            <TabsTrigger value="dashboard" className="flex-1 min-w-[80px] gap-1 rounded-xl h-10 text-[11px] sm:text-xs font-semibold data-[state=active]:bg-[hsl(22_100%_55%)] data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-[hsl(22_100%_55%/0.2)]">
+            <TabsTrigger value="dashboard" className="flex-1 min-w-[80px] gap-1 rounded-xl h-10 text-[11px] sm:text-xs font-semibold data-[state=active]:bg-[hsl(45_100%_50%)] data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-[hsl(45_100%_50%/0.2)]">
               <Activity className="w-3.5 h-3.5 shrink-0" /> <span className="hidden xs:inline">Dashboard</span><span className="xs:hidden">Stats</span>
             </TabsTrigger>
-            <TabsTrigger value="solicitacoes" className="flex-1 min-w-[80px] gap-1 rounded-xl h-10 text-[11px] sm:text-xs font-semibold data-[state=active]:bg-[hsl(22_100%_55%)] data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-[hsl(22_100%_55%/0.2)]">
+            <TabsTrigger value="solicitacoes" className="flex-1 min-w-[80px] gap-1 rounded-xl h-10 text-[11px] sm:text-xs font-semibold data-[state=active]:bg-[hsl(45_100%_50%)] data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-[hsl(45_100%_50%/0.2)]">
               <Car className="w-3.5 h-3.5 shrink-0" /> Corridas
             </TabsTrigger>
-            <TabsTrigger value="usuarios" className="flex-1 min-w-[80px] gap-1 rounded-xl h-10 text-[11px] sm:text-xs font-semibold data-[state=active]:bg-[hsl(22_100%_55%)] data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-[hsl(22_100%_55%/0.2)]">
+            <TabsTrigger value="usuarios" className="flex-1 min-w-[80px] gap-1 rounded-xl h-10 text-[11px] sm:text-xs font-semibold data-[state=active]:bg-[hsl(45_100%_50%)] data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-[hsl(45_100%_50%/0.2)]">
               <Users className="w-3.5 h-3.5 shrink-0" /> Usuários
             </TabsTrigger>
 
-            <TabsTrigger value="precificacao" className="flex-1 min-w-[80px] gap-1 rounded-xl h-10 text-[11px] sm:text-xs font-semibold data-[state=active]:bg-[hsl(22_100%_55%)] data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-[hsl(22_100%_55%/0.2)]">
+            <TabsTrigger value="precificacao" className="flex-1 min-w-[80px] gap-1 rounded-xl h-10 text-[11px] sm:text-xs font-semibold data-[state=active]:bg-[hsl(45_100%_50%)] data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-[hsl(45_100%_50%/0.2)]">
               <DollarSign className="w-3.5 h-3.5 shrink-0" /> Preços
             </TabsTrigger>
-            <TabsTrigger value="tracking" className="flex-1 min-w-[80px] gap-1 rounded-xl h-10 text-[11px] sm:text-xs font-semibold data-[state=active]:bg-[hsl(22_100%_55%)] data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-[hsl(22_100%_55%/0.2)]">
+            <TabsTrigger value="tracking" className="flex-1 min-w-[80px] gap-1 rounded-xl h-10 text-[11px] sm:text-xs font-semibold data-[state=active]:bg-[hsl(45_100%_50%)] data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-[hsl(45_100%_50%/0.2)]">
               <Navigation className="w-3.5 h-3.5 shrink-0" /> Tracking
             </TabsTrigger>
-            <TabsTrigger value="despacho" className="flex-1 min-w-[80px] gap-1 rounded-xl h-10 text-[11px] sm:text-xs font-semibold data-[state=active]:bg-[hsl(22_100%_55%)] data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-[hsl(22_100%_55%/0.2)]">
+            <TabsTrigger value="despacho" className="flex-1 min-w-[80px] gap-1 rounded-xl h-10 text-[11px] sm:text-xs font-semibold data-[state=active]:bg-[hsl(45_100%_50%)] data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-[hsl(45_100%_50%/0.2)]">
               <Activity className="w-3.5 h-3.5 shrink-0" /> Despacho
             </TabsTrigger>
           </TabsList>

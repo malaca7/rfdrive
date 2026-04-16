@@ -9,6 +9,7 @@ import {
   TableProperties, Zap, MessageCircle, Car, Package,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { usePlatformConfig } from '@/hooks/usePlatformConfig';
 import { calcularPreco, getConfigTarifas, type PricingResult, type ConfigTarifas } from '@/lib/pricing-engine';
 import { usePrecoTabela, useAllLocations } from '@/hooks/usePrecoTabela';
 import { useDynamicAdjustment } from '@/hooks/useDynamicAdjustment';
@@ -22,6 +23,7 @@ const STEPS = [
 
 const CalculadoraDigitalRF: React.FC = () => {
   const { toast } = useToast();
+  const { nomePlataforma } = usePlatformConfig();
 
   const [etapa, setEtapa] = useState(0);
   const [origem, setOrigem] = useState('');
@@ -106,7 +108,7 @@ const CalculadoraDigitalRF: React.FC = () => {
     const dataStr = agora.toLocaleDateString('pt-BR');
     const horaStr = agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
-    let msg = `🚗 *VIAGENS - RF Driver*\n`;
+    let msg = `🚗 *VIAGENS - ${nomePlataforma}*\n`;
     msg += `━━━━━━━━━━━━━━━━━━━━━\n\n`;
     msg += `📍 *Origem:* ${o}\n`;
     msg += `🏁 *Destino:* ${d}\n`;
@@ -128,7 +130,7 @@ const CalculadoraDigitalRF: React.FC = () => {
     msg += `\n━━━━━━━━━━━━━━━━━━━━━\n`;
     msg += `📅 ${dataStr} às ${horaStr} \n`;
     msg += `━━━━━━━━━━━━━━━━━━━━━\n`;
-    msg += `_Calculadora Digital - RF Driver_`;
+    msg += `_Calculadora Digital - ${nomePlataforma}_`;
 
     setMensagemGerada(msg);
     return msg;
@@ -171,11 +173,11 @@ const CalculadoraDigitalRF: React.FC = () => {
       {/* Header */}
       <div className="sticky top-0 z-40 bg-[#0a0a0a]/95 backdrop-blur-sm border-b border-white/[0.06]">
         <div className="max-w-lg mx-auto px-4 py-3 flex items-center gap-3">
-          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#E06616] to-[#ff8a3d] flex items-center justify-center">
+          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#FFD000] to-[#FFE14D] flex items-center justify-center">
             <Car className="w-5 h-5 text-white" />
           </div>
           <div>
-            <h1 className="text-base font-bold leading-tight">RF Driver</h1>
+            <h1 className="text-base font-bold leading-tight">{nomePlataforma}</h1>
             <p className="text-[10px] text-white/50">Calculadora Digital</p>
           </div>
         </div>
@@ -191,9 +193,9 @@ const CalculadoraDigitalRF: React.FC = () => {
                 onClick={() => { if (i < etapa) setEtapa(i); }}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
                   i === etapa
-                    ? 'bg-[#E06616] text-white shadow-lg shadow-[#E06616]/30'
+                    ? 'bg-[#FFD000] text-white shadow-lg shadow-[#FFD000]/30'
                     : i < etapa
-                      ? 'bg-[#E06616]/20 text-[#E06616] cursor-pointer'
+                      ? 'bg-[#FFD000]/20 text-[#FFD000] cursor-pointer'
                       : 'bg-white/[0.04] text-white/30'
                 }`}
               >
@@ -202,7 +204,7 @@ const CalculadoraDigitalRF: React.FC = () => {
                 <span className="sm:hidden">{i + 1}</span>
               </button>
               {i < STEPS.length - 1 && (
-                <div className={`w-6 h-0.5 rounded-full ${i < etapa ? 'bg-[#E06616]/40' : 'bg-white/[0.06]'}`} />
+                <div className={`w-6 h-0.5 rounded-full ${i < etapa ? 'bg-[#FFD000]/40' : 'bg-white/[0.06]'}`} />
               )}
             </React.Fragment>
           ))}
@@ -221,8 +223,8 @@ const CalculadoraDigitalRF: React.FC = () => {
               <Card className="rounded-2xl bg-white/[0.03] border-white/[0.06]">
                 <CardContent className="pt-5 pb-4 px-4 space-y-4">
                   <div className="text-center space-y-1">
-                    <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-[#E06616]/10 mx-auto">
-                      <Navigation className="w-6 h-6 text-[#E06616]" />
+                    <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-[#FFD000]/10 mx-auto">
+                      <Navigation className="w-6 h-6 text-[#FFD000]" />
                     </div>
                     <h2 className="text-lg font-bold">Para onde vai?</h2>
                     <p className="text-xs text-white/50">Escolha a origem e o destino</p>
@@ -263,7 +265,7 @@ const CalculadoraDigitalRF: React.FC = () => {
                   {/* Destino */}
                   <div className="space-y-1.5 relative">
                     <label className="text-sm font-medium flex items-center gap-2">
-                      <div className="w-2.5 h-2.5 rounded-full bg-[#E06616]" />
+                      <div className="w-2.5 h-2.5 rounded-full bg-[#FFD000]" />
                       Destino
                     </label>
                     <Input
@@ -296,7 +298,7 @@ const CalculadoraDigitalRF: React.FC = () => {
                   <Button
                     onClick={avancar}
                     disabled={!podeAvancar}
-                    className="w-full h-12 rounded-2xl text-base font-bold gradient-accent text-white shadow-lg shadow-[#E06616]/30 hover:opacity-90 transition-opacity"
+                    className="w-full h-12 rounded-2xl text-base font-bold gradient-accent text-white shadow-lg shadow-[#FFD000]/30 hover:opacity-90 transition-opacity"
                   >
                     Calcular Valor <ArrowRight className="w-5 h-5 ml-2" />
                   </Button>
@@ -323,7 +325,7 @@ const CalculadoraDigitalRF: React.FC = () => {
                       <span className="text-white/70 truncate">{origem}</span>
                     </div>
                     <div className="flex items-center gap-2 text-sm">
-                      <div className="w-2 h-2 rounded-full bg-[#E06616]" />
+                      <div className="w-2 h-2 rounded-full bg-[#FFD000]" />
                       <span className="text-white/70 truncate">{destino}</span>
                     </div>
                   </div>
@@ -335,7 +337,7 @@ const CalculadoraDigitalRF: React.FC = () => {
                       id="temBagagemCalc"
                       checked={temBagagem}
                       onChange={(e) => { setTemBagagem(e.target.checked); setMensagemGerada(''); }}
-                      className="w-5 h-5 rounded border-white/[0.15] bg-white/[0.05] text-[#E06616] focus:ring-[#E06616]"
+                      className="w-5 h-5 rounded border-white/[0.15] bg-white/[0.05] text-[#FFD000] focus:ring-[#FFD000]"
                     />
                     <label htmlFor="temBagagemCalc" className="text-sm cursor-pointer">
                       <span className="font-medium">Levando Feira ou Bagagem?</span>
@@ -475,7 +477,7 @@ const CalculadoraDigitalRF: React.FC = () => {
                     <Button
                       onClick={avancar}
                       disabled={!temPreco}
-                      className="flex-1 h-11 rounded-2xl text-base font-bold gradient-accent text-white shadow-lg shadow-[#E06616]/30 hover:opacity-90 transition-opacity"
+                      className="flex-1 h-11 rounded-2xl text-base font-bold gradient-accent text-white shadow-lg shadow-[#FFD000]/30 hover:opacity-90 transition-opacity"
                     >
                       Gerar Mensagem <ArrowRight className="w-5 h-5 ml-2" />
                     </Button>
@@ -553,12 +555,12 @@ const CalculadoraDigitalRF: React.FC = () => {
         <div className="text-center py-4 space-y-1.5">
           <button
             onClick={() => { window.location.hash = '/admin/login'; }}
-            className="text-[11px] text-white/30 hover:text-[hsl(22_100%_55%)] transition-colors underline underline-offset-2"
+            className="text-[11px] text-white/30 hover:text-[hsl(45_100%_50%)] transition-colors underline underline-offset-2"
           >
             Painel Administrativo
           </button>
           <p className="text-[10px] text-white/25">
-            RF Driver © {new Date().getFullYear()} — Calculadora Digital
+            {nomePlataforma} © {new Date().getFullYear()} — Calculadora Digital
           </p>
           <p className="text-[10px] text-white/25">
             ・desenvolvido por <span className="font-bold">malaca</span>

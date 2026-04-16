@@ -1,4 +1,4 @@
-ï»¿import React, { useState, useRef, useMemo, useCallback } from 'react';
+import React, { useState, useRef, useMemo, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
@@ -45,20 +45,20 @@ const RideRequestForm: React.FC = () => {
   const [showOrigemSuggestions, setShowOrigemSuggestions] = useState(false);
   const [showDestinoSuggestions, setShowDestinoSuggestions] = useState(false);
 
-  // â”€â”€ Tabela de preÃ§o: lookup em tempo real (reativo) â”€â”€
+  // -- Tabela de preço: lookup em tempo real (reativo) --
   const precoTabela = usePrecoTabela(origem, destino);
 
-  // â”€â”€ Regra de horÃ¡rio dinÃ¢mica (noturno, madrugada, etc.) â”€â”€
+  // -- Regra de horário dinâmica (noturno, madrugada, etc.) --
   const dynamicAdj = useDynamicAdjustment();
 
-  // â”€â”€ ConfiguraÃ§Ã£o global de tarifas â”€â”€
+  // -- Configuração global de tarifas --
   const { data: configTarifas } = useQuery<ConfigTarifas | null>({
     queryKey: ['config-tarifas-form'],
     queryFn: () => getConfigTarifas(),
     staleTime: 10_000,
   });
 
-  // â”€â”€ Motor dinÃ¢mico: preÃ§o reativo via localidades + precos_rotas + regras_horario â”€â”€
+  // -- Motor dinâmico: preço reativo via localidades + precos_rotas + regras_horario --
   const origemTrim = origem.trim();
   const destinoTrim = destino.trim();
   const { data: precoDinamico } = useQuery<PricingResult | null>({
@@ -68,7 +68,7 @@ const RideRequestForm: React.FC = () => {
     staleTime: 10_000,
   });
 
-  // â”€â”€ Autocomplete: all locations bidirectional (reativo) â”€â”€
+  // -- Autocomplete: all locations bidirectional (reativo) --
   const allLocations = useAllLocations();
 
   const filteredOrigens = useMemo(() => {
@@ -109,7 +109,7 @@ const RideRequestForm: React.FC = () => {
     refetchInterval: 1000,
   });
 
-  // â”€â”€ Fetch motorista info when ride is accepted â”€â”€
+  // -- Fetch motorista info when ride is accepted --
   const { data: motoristaInfo } = useQuery({
     queryKey: ['motorista-info', activeRide?.motorista_id],
     queryFn: async () => {
@@ -175,10 +175,10 @@ const RideRequestForm: React.FC = () => {
         tipo: 'cliente',
       });
       if (error) throw error;
-      toast({ title: 'AvaliaÃ§Ã£o enviada!', description: 'Obrigado pelo seu feedback.' });
+      toast({ title: 'Avaliação enviada!', description: 'Obrigado pelo seu feedback.' });
       setRatingSubmitted(true);
     } catch (_e) {
-      toast({ title: 'Erro ao enviar avaliaÃ§Ã£o', variant: 'destructive' });
+      toast({ title: 'Erro ao enviar avaliação', variant: 'destructive' });
     } finally {
       setIsSendingRating(false);
     }
@@ -190,7 +190,7 @@ const RideRequestForm: React.FC = () => {
     const o = origem.trim();
     const d = destino.trim();
     if (!o || !d) {
-      toast({ title: 'Preencha os dois campos', description: 'Informe de onde vocÃª sai e para onde vai.', variant: 'destructive' });
+      toast({ title: 'Preencha os dois campos', description: 'Informe de onde você sai e para onde vai.', variant: 'destructive' });
       return;
     }
     if (!user || hasActiveRide) return;
@@ -202,7 +202,7 @@ const RideRequestForm: React.FC = () => {
       let preco_regra_aplicada: string | null = null;
       let preco_detalhes: Record<string, unknown> | null = null;
 
-      // IA local: calcula distÃ¢ncia e preÃ§o client-side (non-blocking)
+      // IA local: calcula distância e preço client-side (non-blocking)
       try {
         const routeResult = await calculateRoute(o, d);
         if (routeResult) {
@@ -213,7 +213,7 @@ const RideRequestForm: React.FC = () => {
         // route calc is optional
       }
 
-      // 1) Motor dinÃ¢mico: prioridade mÃ¡xima (usa localidades + precos_rotas + regras_horario do admin)
+      // 1) Motor dinâmico: prioridade máxima (usa localidades + precos_rotas + regras_horario do admin)
       let motorDinamicoAplicouRegra = false;
       try {
         const precoDinamicoResult = await calcularPreco(o, d);
@@ -238,7 +238,7 @@ const RideRequestForm: React.FC = () => {
         // dynamic engine is optional
       }
 
-      // 2) Tabela oficial RF: fallback se motor dinÃ¢mico nÃ£o encontrou
+      // 2) Tabela oficial RF: fallback se motor dinâmico não encontrou
       if (!preco_regra_aplicada) {
         await syncCacheFromSupabase(); // Garantir dados frescos da tabela
         const tabelaResult = buscarPrecoTabela(o, d);
@@ -255,11 +255,11 @@ const RideRequestForm: React.FC = () => {
         }
       }
 
-      // 3) Aplicar regra de horÃ¡rio dinÃ¢mica se nenhuma fonte jÃ¡ a aplicou
+      // 3) Aplicar regra de horário dinâmica se nenhuma fonte já a aplicou
       //    Busca DIRETO do DB (dados frescos) em vez de depender do hook closure
       if (valor_estimado != null && !motorDinamicoAplicouRegra) {
         try {
-          invalidatePricingCache(); // ForÃ§ar dados frescos
+          invalidatePricingCache(); // Forçar dados frescos
           const regraAtiva = await getActiveTimeRule();
           console.log('[handleSolicitar] Regra ativa fresca:', regraAtiva);
           if (regraAtiva) {
@@ -291,14 +291,14 @@ const RideRequestForm: React.FC = () => {
         }
       }
 
-      // Adicionar taxa de bagagem se aplicÃ¡vel
+      // Adicionar taxa de bagagem se aplicável
       const taxaBagagemValor = configTarifas?.taxa_bagagem ?? 5.00;
       const taxaBagagem = temBagagem ? taxaBagagemValor : 0;
       if (taxaBagagem > 0) {
         valor_estimado = (valor_estimado || 0) + taxaBagagem;
       }
 
-      // Aplicar tarifa mÃ­nima global
+      // Aplicar tarifa mínima global
       const tarifaMinima = configTarifas?.tarifa_minima ?? 0;
       if (tarifaMinima > 0 && valor_estimado != null && valor_estimado < tarifaMinima) {
         valor_estimado = tarifaMinima;
@@ -339,7 +339,7 @@ const RideRequestForm: React.FC = () => {
         corridaData = d1;
       }
 
-      // Salvar histÃ³rico de preÃ§o (non-critical)
+      // Salvar histórico de preço (non-critical)
       if (preco_regra_aplicada && corridaData?.id) {
         try {
           const precoDinamico = await calcularPreco(o, d);
@@ -385,7 +385,7 @@ const RideRequestForm: React.FC = () => {
     if (error) {
       toast({ title: 'Erro ao responder', variant: 'destructive' });
     } else {
-      toast({ title: approved ? 'EndereÃ§o atualizado!' : 'AlteraÃ§Ã£o recusada' });
+      toast({ title: approved ? 'Endereço atualizado!' : 'Alteração recusada' });
       refetchActiveRide();
     }
   };
@@ -446,14 +446,14 @@ const RideRequestForm: React.FC = () => {
                 {activeRide.status === 'nova' ? 'Pedido recebido' :
                  activeRide.status === 'aguardando_motorista' ? 'Corrida solicitada' :
                  activeRide.status === 'aceita' ? 'Motorista aceitou!' :
-                 activeRide.status === 'a_caminho' ? 'Motorista vindo atÃ© vocÃª' :
-                 activeRide.status === 'em_corrida' ? 'VocÃª estÃ¡ em viagem' :
+                 activeRide.status === 'a_caminho' ? 'Motorista vindo até você' :
+                 activeRide.status === 'em_corrida' ? 'Você está em viagem' :
                  'Corrida em andamento'}
               </h3>
               <p className="text-sm text-muted-foreground mt-1">{statusLabel}</p>
             </div>
 
-            {/* â”€â”€ Tracking Progress Bar â”€â”€ */}
+            {/* -- Tracking Progress Bar -- */}
             {isTracking && (
               <div className="flex items-center gap-1.5 px-2">
                 <div className={`flex-1 h-1.5 rounded-full ${['aceita','a_caminho','em_corrida'].includes(activeRide.status) ? 'bg-green-500' : 'bg-muted'}`} />
@@ -496,7 +496,7 @@ const RideRequestForm: React.FC = () => {
                       </div>
                     </div>
                   </div>
-                  {/* Detalhes do preÃ§o dinÃ¢mico */}
+                  {/* Detalhes do preço dinâmico */}
                   {activeRide.preco_detalhes && (
                     <div className="space-y-1.5 px-1">
                       {(activeRide.preco_detalhes as any)?.preco_base != null && (activeRide.preco_detalhes as any).preco_base !== activeRide.valor_estimado && (
@@ -507,7 +507,7 @@ const RideRequestForm: React.FC = () => {
                       )}
                       {(activeRide.preco_detalhes as any)?.preco_base_antes_ajuste != null && (
                         <div className="flex items-center justify-between text-xs text-muted-foreground">
-                          <span>PreÃ§o antes do ajuste</span>
+                          <span>Preço antes do ajuste</span>
                           <span className="line-through">R$ {Number((activeRide.preco_detalhes as any).preco_base_antes_ajuste).toFixed(2)}</span>
                         </div>
                       )}
@@ -518,14 +518,14 @@ const RideRequestForm: React.FC = () => {
                             <span className="text-xs text-muted-foreground">{(activeRide.preco_detalhes as any).regra_horario}</span>
                           </div>
                           <span className="text-xs font-bold text-purple-400">
-                            {(activeRide.preco_detalhes as any)?.ajuste_horario || (activeRide.preco_detalhes as any)?.ajuste || 'DinÃ¢mico'}
+                            {(activeRide.preco_detalhes as any)?.ajuste_horario || (activeRide.preco_detalhes as any)?.ajuste || 'Dinâmico'}
                           </span>
                         </div>
                       )}
                       {activeRide.tem_bagagem && (
                         <div className="flex items-center justify-between bg-orange-500/10 border border-orange-500/20 rounded-lg px-3 py-1.5">
                           <div className="flex items-center gap-2">
-                            <span className="text-orange-400 text-xs">ðŸ“¦</span>
+                            <span className="text-orange-400 text-xs">??</span>
                             <span className="text-xs text-muted-foreground">Feira/Bagagem</span>
                           </div>
                           <span className="text-xs font-bold text-orange-400">Inclusa</span>
@@ -533,18 +533,18 @@ const RideRequestForm: React.FC = () => {
                       )}
                     </div>
                   )}
-                  {/* Caso nÃ£o tenha preco_detalhes mas tenha preco_regra_aplicada */}
+                  {/* Caso não tenha preco_detalhes mas tenha preco_regra_aplicada */}
                   {!activeRide.preco_detalhes && activeRide.preco_regra_aplicada && activeRide.preco_regra_aplicada.includes('+') && (
                     <div className="flex items-center justify-center">
                       <span className="text-[10px] text-purple-400 bg-purple-500/10 px-2 py-1 rounded">
-                        âš¡ PreÃ§o dinÃ¢mico aplicado
+                        ? Preço dinâmico aplicado
                       </span>
                     </div>
                   )}
                 </div>
               )}
             </div>
-            {/* â”€â”€ Motorista info when ride is accepted/tracking â”€â”€ */}
+            {/* -- Motorista info when ride is accepted/tracking -- */}
             {isTracking && motoristaInfo && (
               <div className="bg-accent/5 border border-accent/20 rounded-xl p-[4%] space-y-3">
                 <div className="flex items-center gap-3">
@@ -561,7 +561,7 @@ const RideRequestForm: React.FC = () => {
                 </div>
                 {(motoristaInfo.veiculo_marca || motoristaInfo.veiculo_modelo || motoristaInfo.veiculo_cor || motoristaInfo.veiculo_placa) && (
                   <div className="bg-muted/50 rounded-xl p-3 space-y-1.5">
-                    <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide">VeÃ­culo</p>
+                    <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide">Veículo</p>
                     {(motoristaInfo.veiculo_marca || motoristaInfo.veiculo_modelo) && (
                       <p className="text-sm font-medium">
                         {[motoristaInfo.veiculo_marca, motoristaInfo.veiculo_modelo].filter(Boolean).join(' ')}
@@ -593,7 +593,7 @@ const RideRequestForm: React.FC = () => {
                 <CardContent className="py-4 space-y-3">
                   <div className="flex items-center gap-2">
                     <Edit3 className="w-4 h-4 text-yellow-400" />
-                    <p className="text-sm font-semibold text-yellow-400">Motorista solicita alteraÃ§Ã£o</p>
+                    <p className="text-sm font-semibold text-yellow-400">Motorista solicita alteração</p>
                   </div>
                   <div className="space-y-2 text-sm">
                     <div className="flex items-start gap-2">
@@ -649,8 +649,8 @@ const RideRequestForm: React.FC = () => {
             {isTracking && (
               <p className="text-xs text-muted-foreground text-center">
                 {activeRide.status === 'aceita' ? 'Corrida aceita pelo motorista' :
-                 activeRide.status === 'a_caminho' ? 'Motorista estÃ¡ vindo atÃ© vocÃª' :
-                 'VocÃª estÃ¡ em viagem â€” Boa viagem!'}
+                 activeRide.status === 'a_caminho' ? 'Motorista está vindo até você' :
+                 'Você está em viagem — Boa viagem!'}
               </p>
             )}
           </CardContent>
@@ -668,7 +668,7 @@ const RideRequestForm: React.FC = () => {
               <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-green-500/10 mx-auto mb-3">
                 <CheckCircle className="w-7 h-7 text-green-400" />
               </div>
-              <h3 className="font-bold text-[clamp(1rem,3.5vw,1.25rem)]">Corrida ConcluÃ­da!</h3>
+              <h3 className="font-bold text-[clamp(1rem,3.5vw,1.25rem)]">Corrida Concluída!</h3>
               <p className="text-xs text-muted-foreground mt-1">
                 {lastCompletedRide.concluida_at && new Date(lastCompletedRide.concluida_at).toLocaleString('pt-BR', {
                   day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit',
@@ -712,7 +712,7 @@ const RideRequestForm: React.FC = () => {
                     <Input
                       value={comentario}
                       onChange={(e) => setComentario(e.target.value)}
-                      placeholder="Deixe um comentÃ¡rio (opcional)"
+                      placeholder="Deixe um comentário (opcional)"
                       className="text-sm"
                     />
                     <Button
@@ -725,14 +725,14 @@ const RideRequestForm: React.FC = () => {
                       ) : (
                         <Star className="w-4 h-4 mr-2" />
                       )}
-                      Enviar AvaliaÃ§Ã£o
+                      Enviar Avaliação
                     </Button>
                   </>
                 )}
               </div>
             ) : (existingRating || ratingSubmitted) ? (
               <div className="bg-muted/50 rounded-xl p-[4%] text-center space-y-2">
-                <p className="text-xs text-muted-foreground">Sua avaliaÃ§Ã£o</p>
+                <p className="text-xs text-muted-foreground">Sua avaliação</p>
                 <div className="flex justify-center">
                   <StarRating
                     value={existingRating?.nota ?? rating}
@@ -783,7 +783,7 @@ const RideRequestForm: React.FC = () => {
               onFocus={() => setShowOrigemSuggestions(true)}
               onBlur={() => setTimeout(() => setShowOrigemSuggestions(false), 200)}
               onKeyDown={(e) => { if (e.key === 'Enter') { setShowOrigemSuggestions(false); destinoRef.current?.focus(); } }}
-              placeholder="De onde vocÃª sai?"
+              placeholder="De onde você sai?"
               className="h-12 text-base"
             />
             {showOrigemSuggestions && filteredOrigens.length > 0 && (
@@ -840,12 +840,12 @@ const RideRequestForm: React.FC = () => {
           <div className="space-y-1.5">
             <label className="text-sm font-medium flex items-center gap-2">
               <MessageSquare className="w-3.5 h-3.5 text-muted-foreground" />
-              ObservaÃ§Ã£o <span className="text-xs text-muted-foreground font-normal">(opcional)</span>
+              Observação <span className="text-xs text-muted-foreground font-normal">(opcional)</span>
             </label>
             <Textarea
               value={observacaoCliente}
               onChange={(e) => setObservacaoCliente(e.target.value)}
-              placeholder="Ponto de referÃªncia, nÃºmero da casa, instruÃ§Ãµes..."
+              placeholder="Ponto de referência, número da casa, instruções..."
               className="resize-none text-sm min-h-[60px]"
               rows={2}
             />
@@ -866,7 +866,7 @@ const RideRequestForm: React.FC = () => {
             </label>
           </div>
 
-          {/* â”€â”€ Price preview: dinÃ¢mico > tabela RF â”€â”€ */}
+          {/* -- Price preview: dinâmico > tabela RF -- */}
           <AnimatePresence>
             {(precoDinamico || precoTabela) && (
               <motion.div
@@ -883,14 +883,14 @@ const RideRequestForm: React.FC = () => {
               >
                 <div className="space-y-2">
                   {precoDinamico ? (
-                    /* â”€â”€ PreÃ§o do motor dinÃ¢mico (prioridade) â”€â”€ */
+                    /* -- Preço do motor dinâmico (prioridade) -- */
                     <>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <Zap className="w-4 h-4 text-blue-400" />
                           <div>
                             <p className="text-[10px] text-muted-foreground">
-                              PreÃ§o dinÃ¢mico
+                              Preço dinâmico
                             </p>
                             <p className="text-[clamp(1.1rem,3.5vw,1.35rem)] font-bold text-blue-400">
                               R$ {precoDinamico.preco_base.toFixed(2)}
@@ -903,10 +903,10 @@ const RideRequestForm: React.FC = () => {
                               ? precoDinamico.ajuste_aplicado
                               : dynamicAdj
                                 ? dynamicAdj.label
-                                : 'Sem ajuste horÃ¡rio'}
+                                : 'Sem ajuste horário'}
                           </p>
                           <p className="text-[10px] text-muted-foreground truncate max-w-[160px]">
-                            {precoDinamico.origem_localidade?.nome} â†’ {precoDinamico.destino_localidade?.nome}
+                            {precoDinamico.origem_localidade?.nome} ? {precoDinamico.destino_localidade?.nome}
                           </p>
                         </div>
                       </div>
@@ -937,14 +937,14 @@ const RideRequestForm: React.FC = () => {
                       )}
                     </>
                   ) : precoTabela ? (
-                    /* â”€â”€ PreÃ§o da tabela RF (fallback) â”€â”€ */
+                    /* -- Preço da tabela RF (fallback) -- */
                     <>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <TableProperties className={`w-4 h-4 ${precoTabela.estimado ? 'text-amber-400' : 'text-green-400'}`} />
                           <div>
                             <p className="text-[10px] text-muted-foreground">
-                              {precoTabela.estimado ? 'PreÃ§o estimado' : 'PreÃ§o tabelado'}
+                              {precoTabela.estimado ? 'Preço estimado' : 'Preço tabelado'}
                             </p>
                             <p className={`text-[clamp(1.1rem,3.5vw,1.35rem)] font-bold ${precoTabela.estimado ? 'text-amber-400' : 'text-green-400'}`}>
                               R$ {precoTabela.valor.toFixed(2)}
@@ -953,10 +953,10 @@ const RideRequestForm: React.FC = () => {
                         </div>
                         <div className="text-right">
                           <p className="text-[10px] text-muted-foreground">
-                            {precoTabela.estimado ? 'MÃ©dia via Centro do Cabo' : precoTabela.match_exato ? 'CorrespondÃªncia exata' : 'Melhor correspondÃªncia'}
+                            {precoTabela.estimado ? 'Média via Centro do Cabo' : precoTabela.match_exato ? 'Correspondência exata' : 'Melhor correspondência'}
                           </p>
                           <p className="text-[10px] text-muted-foreground truncate max-w-[160px]">
-                            {precoTabela.origem_tabela} â†’ {precoTabela.destino_tabela}
+                            {precoTabela.origem_tabela} ? {precoTabela.destino_tabela}
                           </p>
                         </div>
                       </div>
@@ -987,14 +987,14 @@ const RideRequestForm: React.FC = () => {
                   {temBagagem && (
                     <div className="flex items-center justify-between bg-orange-500/10 border border-orange-500/20 rounded-lg px-3 py-2">
                       <div className="flex items-center gap-2">
-                        <span className="text-orange-400 text-xs">ðŸ“¦</span>
+                        <span className="text-orange-400 text-xs">??</span>
                         <span className="text-xs text-muted-foreground">Taxa Feira/Bagagem</span>
                       </div>
                       <span className="text-sm font-bold text-orange-400">+R$ {(configTarifas?.taxa_bagagem ?? 5).toFixed(2)}</span>
                     </div>
                   )}
                   {(() => {
-                    // Compute raw total (before tarifa mÃ­nima)
+                    // Compute raw total (before tarifa mínima)
                     let rawTotal = precoDinamico
                       ? ((!precoDinamico.regra_horario && dynamicAdj) ? dynamicAdj.aplicar(precoDinamico.preco_final) : precoDinamico.preco_final)
                       : precoTabela
@@ -1025,7 +1025,7 @@ const RideRequestForm: React.FC = () => {
                         {usaMinima && (
                           <div className="flex items-center gap-2 bg-yellow-500/10 border border-yellow-500/20 rounded-lg px-3 py-2">
                             <AlertTriangle className="w-3.5 h-3.5 text-yellow-400 shrink-0" />
-                            <span className="text-xs text-yellow-400">Tarifa mÃ­nima aplicada</span>
+                            <span className="text-xs text-yellow-400">Tarifa mínima aplicada</span>
                           </div>
                         )}
                       </>
@@ -1054,7 +1054,7 @@ const RideRequestForm: React.FC = () => {
           <Button
             onClick={handleSolicitar}
             disabled={!origem.trim() || !destino.trim() || isSending || hasActiveRide}
-            className="w-full h-12 rounded-2xl text-base font-bold gradient-accent text-white shadow-lg shadow-[hsl(22_100%_55%/0.3)] glow-accent hover:opacity-90 transition-opacity"
+            className="w-full h-12 rounded-2xl text-base font-bold gradient-accent text-white shadow-lg shadow-[hsl(45_100%_50%/0.3)] glow-accent hover:opacity-90 transition-opacity"
           >
             {isSending ? (
               <><Loader2 className="w-5 h-5 animate-spin mr-2" />Solicitando...</>

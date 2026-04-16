@@ -20,10 +20,12 @@ import { useDynamicAdjustment } from '@/hooks/useDynamicAdjustment';
 import { normalizeText } from '@/lib/tabela-preco';
 import { getConfigTarifas, type ConfigTarifas } from '@/lib/pricing-engine';
 import { useToast } from '@/hooks/use-toast';
+import { usePlatformConfig } from '@/hooks/usePlatformConfig';
 
 const MotoristaViagens: React.FC = () => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { nomePlataforma } = usePlatformConfig();
   const queryClient = useQueryClient();
   const allLocations = useAllLocations();
   const destinoRef = useRef<HTMLInputElement>(null);
@@ -94,7 +96,7 @@ const MotoristaViagens: React.FC = () => {
   const quoteMensagem = useMemo(() => {
     if (!preco || !origem.trim() || !destino.trim()) return '';
     const lines = [
-      `🚗 *Orçamento RF Drive*`,
+      `🚗 *Orçamento ${nomePlataforma}*`,
       ``,
       `📍 *Origem:* ${origem.trim()}`,
       `📍 *Destino:* ${destino.trim()}`,
@@ -103,7 +105,7 @@ const MotoristaViagens: React.FC = () => {
     ];
     if (clienteNome.trim()) lines.push(`👤 *Cliente:* ${clienteNome.trim()}`);
     if (observacao.trim()) lines.push(`📝 *Obs:* ${observacao.trim()}`);
-    lines.push(``, `_Consulta feita pela Tabela RF Drive_`);
+    lines.push(``, `_Consulta feita pela Tabela ${nomePlataforma}_`);
     return lines.join('\n');
   }, [preco, origem, destino, clienteNome, observacao, totalValue]);
 
