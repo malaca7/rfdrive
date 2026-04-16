@@ -836,23 +836,54 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
     ctx.fillStyle = 'rgba(255,255,255,0.75)';
     ctx.fillText('Motorista Credenciado', LC, 450);
 
-    // Admin badge — blue highlight
+    // Admin badge — blue neon glow
     const isAdmin = profile.tipo === 'admin';
-    const adminBadgeH = isAdmin ? 28 : 0;
+    const adminBadgeH = isAdmin ? 38 : 0;
     if (isAdmin) {
       const badgeText = 'ADMINISTRADOR';
-      ctx.font = `700 14px ${FONT}`;
-      const badgeW = ctx.measureText(badgeText).width + 24;
+      ctx.font = `800 18px ${FONT}`;
+      const badgeW = ctx.measureText(badgeText).width + 36;
+      const badgeH = 32;
       const badgeX = LC - badgeW / 2;
       const badgeY = 460;
-      ctx.fillStyle = '#1d4ed8';
+
+      // Neon glow layers
+      ctx.save();
+      ctx.shadowColor = '#3b82f6';
+      ctx.shadowBlur = 25;
+      ctx.shadowOffsetX = 0;
+      ctx.shadowOffsetY = 0;
+      ctx.fillStyle = 'rgba(59,130,246,0.15)';
       ctx.beginPath();
-      ctx.roundRect(badgeX, badgeY, badgeW, 24, 4);
+      ctx.roundRect(badgeX - 3, badgeY - 3, badgeW + 6, badgeH + 6, 6);
       ctx.fill();
+      ctx.restore();
+
+      // Badge fill
+      ctx.save();
+      ctx.shadowColor = '#60a5fa';
+      ctx.shadowBlur = 16;
+      const badgeFill = ctx.createLinearGradient(badgeX, 0, badgeX + badgeW, 0);
+      badgeFill.addColorStop(0, '#1e40af');
+      badgeFill.addColorStop(0.5, '#2563eb');
+      badgeFill.addColorStop(1, '#1e40af');
+      ctx.fillStyle = badgeFill;
+      ctx.beginPath();
+      ctx.roundRect(badgeX, badgeY, badgeW, badgeH, 5);
+      ctx.fill();
+
+      // Neon border
+      ctx.strokeStyle = '#60a5fa';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      ctx.restore();
+
+      // Text
       ctx.fillStyle = '#ffffff';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText(badgeText, LC, badgeY + 12);
+      ctx.font = `800 18px ${FONT}`;
+      ctx.fillText(badgeText, LC, badgeY + badgeH / 2);
       ctx.textBaseline = 'alphabetic';
     }
 
