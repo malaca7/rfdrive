@@ -158,7 +158,7 @@ const AdminUsuarios: React.FC = () => {
       const roles = form.isAdmin ? ['motorista', 'admin'] : ['motorista'];
       const tipo = form.isAdmin ? 'admin' : 'motorista';
       const newUser: Record<string, unknown> = {
-        nome: form.nome.trim(), telefone: form.telefone.trim(), tipo, roles, senha: form.senha.trim(), status: 'ativo', ativo: true,
+        nome: form.nome.trim(), telefone: phoneDigits, tipo, roles, senha: form.senha.trim(), status: 'ativo', ativo: true,
       };
       if (form.veiculo_marca) newUser.veiculo_marca = form.veiculo_marca;
       if (form.veiculo_modelo) newUser.veiculo_modelo = form.veiculo_modelo;

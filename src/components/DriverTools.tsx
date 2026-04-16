@@ -547,6 +547,10 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
 
   // ── Avatar crop state ──
   const [avatarUrl, setAvatarUrl] = useState(profile.avatar_url || '');
+  // Sync avatarUrl when profile.avatar_url changes (e.g. after query refetch)
+  React.useEffect(() => {
+    if (profile.avatar_url) setAvatarUrl(profile.avatar_url);
+  }, [profile.avatar_url]);
   const [showCropDialog, setShowCropDialog] = useState(false);
   const [rawImage, setRawImage] = useState<string | null>(null);
   const [crop, setCrop] = useState({ x: 0, y: 0 });

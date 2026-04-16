@@ -16,23 +16,15 @@ CREATE TABLE IF NOT EXISTS public.config_plataforma (
 
 ALTER TABLE public.config_plataforma ENABLE ROW LEVEL SECURITY;
 
--- Only admins can read/write
-CREATE POLICY "config_plataforma_admin_read" ON public.config_plataforma
-  FOR SELECT USING (true);
+-- Allow all access (app uses anon key with custom auth)
+DROP POLICY IF EXISTS "config_plataforma_admin_read" ON public.config_plataforma;
+DROP POLICY IF EXISTS "config_plataforma_admin_write" ON public.config_plataforma;
+DROP POLICY IF EXISTS "config_plataforma_all" ON public.config_plataforma;
+CREATE POLICY "config_plataforma_all" ON public.config_plataforma FOR ALL USING (true) WITH CHECK (true);
 
-CREATE POLICY "config_plataforma_admin_write" ON public.config_plataforma
-  FOR ALL USING (
-    EXISTS (
-      SELECT 1 FROM public.users
-      WHERE users.id = auth.uid()
-      AND (users.tipo = 'admin' OR users.roles @> '["admin"]'::jsonb)
-    )
-  );
-
--- Insert default row
+-- Insert default row if empty
 INSERT INTO public.config_plataforma (taxa_semanal_motorista)
-VALUES (0)
-ON CONFLICT DO NOTHING;
+SELECT 0 WHERE NOT EXISTS (SELECT 1 FROM public.config_plataforma LIMIT 1);
 
 -- ══════════════════════════════════════════════════════════
 -- 2) avaliacoes_admin – admin evaluations of drivers
@@ -51,15 +43,19 @@ CREATE INDEX IF NOT EXISTS idx_avaliacoes_admin_created ON public.avaliacoes_adm
 
 ALTER TABLE public.avaliacoes_admin ENABLE ROW LEVEL SECURITY;
 
--- Admins can read all, write all
-CREATE POLICY "avaliacoes_admin_read" ON public.avaliacoes_admin
-  FOR SELECT USING (true);
+-- Allow all access (app uses anon key with custom auth)
+DROP POLICY IF EXISTS "avaliacoes_admin_read" ON public.avaliacoes_admin;
+DROP POLICY IF EXISTS "avaliacoes_admin_write" ON public.avaliacoes_admin;
+DROP POLICY IF EXISTS "avaliacoes_admin_all" ON public.avaliacoes_admin;
+CREATE POLICY "avaliacoes_admin_all" ON public.avaliacoes_admin FOR ALL USING (true) WITH CHECK (true);
 
-CREATE POLICY "avaliacoes_admin_write" ON public.avaliacoes_admin
-  FOR INSERT WITH CHECK (
-    EXISTS (
-      SELECT 1 FROM public.users
-      WHERE users.id = auth.uid()
-      AND (users.tipo = 'admin' OR users.roles @> '["admin"]'::jsonb)
-    )
-  );
+-- ══════════════════════════════════════════════════════════
+-- 3) GRANTs + Schema Cache Reload
+-- ══════════════════════════════════════════════════════════
+GRANT ALL ON public.config_plataforma TO anon, authenticated;
+GRANT ALL ON public.avaliacoes_admin TO anon, authenticated;
+GRANT USAGE ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated;
+
+-- Force PostgREST to reload schema cache
+NOTIFY pgrst, 'reload schema';
+NOTIFY pgrst, 'reload config';

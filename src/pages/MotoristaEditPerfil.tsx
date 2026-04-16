@@ -89,6 +89,11 @@ const MotoristaEditPerfil: React.FC = () => {
   const [avatarUrl, setAvatarUrl] = useState('');
   const [initialized, setInitialized] = useState(false);
 
+  // Sync avatarUrl when profile loads/changes
+  React.useEffect(() => {
+    if (fullProfile?.avatar_url && !avatarUrl) setAvatarUrl(fullProfile.avatar_url);
+  }, [fullProfile?.avatar_url]);
+
   // ── Avatar crop ──
   const [showCropDialog, setShowCropDialog] = useState(false);
   const [rawImage, setRawImage] = useState<string | null>(null);
