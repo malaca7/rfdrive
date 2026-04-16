@@ -550,35 +550,56 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
   const [avatarDataUrl, setAvatarDataUrl] = useState<string>('');
   useEffect(() => {
     if (!profile.avatar_url) { setAvatarDataUrl(''); return; }
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      canvas.width = img.naturalWidth;
-      canvas.height = img.naturalHeight;
-      const ctx = canvas.getContext('2d')!;
-      ctx.drawImage(img, 0, 0);
-      try { setAvatarDataUrl(canvas.toDataURL('image/png')); } catch { setAvatarDataUrl(profile.avatar_url || ''); }
-    };
-    img.onerror = () => setAvatarDataUrl(profile.avatar_url || '');
-    img.src = profile.avatar_url;
+    // Try fetch→blob→FileReader first (most reliable for CORS)
+    fetch(profile.avatar_url, { mode: 'cors' })
+      .then(res => res.blob())
+      .then(blob => {
+        const reader = new FileReader();
+        reader.onloadend = () => setAvatarDataUrl(reader.result as string);
+        reader.readAsDataURL(blob);
+      })
+      .catch(() => {
+        // Fallback: Image + canvas
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => {
+          try {
+            const c = document.createElement('canvas');
+            c.width = img.naturalWidth; c.height = img.naturalHeight;
+            c.getContext('2d')!.drawImage(img, 0, 0);
+            setAvatarDataUrl(c.toDataURL('image/png'));
+          } catch { setAvatarDataUrl(profile.avatar_url || ''); }
+        };
+        img.onerror = () => setAvatarDataUrl(profile.avatar_url || '');
+        img.src = profile.avatar_url;
+      });
   }, [profile.avatar_url]);
 
   // Convert background image to base64 for html2canvas capture
   const [bgDataUrl, setBgDataUrl] = useState<string>('');
   useEffect(() => {
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      canvas.width = img.naturalWidth;
-      canvas.height = img.naturalHeight;
-      const ctx = canvas.getContext('2d')!;
-      ctx.drawImage(img, 0, 0);
-      try { setBgDataUrl(canvas.toDataURL('image/jpeg', 0.92)); } catch { setBgDataUrl(''); }
-    };
-    img.onerror = () => setBgDataUrl('');
-    img.src = `${import.meta.env.BASE_URL}badge-bg.png`;
+    const bgUrl = `${import.meta.env.BASE_URL}badge-bg.png`;
+    fetch(bgUrl)
+      .then(res => res.blob())
+      .then(blob => {
+        const reader = new FileReader();
+        reader.onloadend = () => setBgDataUrl(reader.result as string);
+        reader.readAsDataURL(blob);
+      })
+      .catch(() => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => {
+          try {
+            const c = document.createElement('canvas');
+            c.width = img.naturalWidth; c.height = img.naturalHeight;
+            c.getContext('2d')!.drawImage(img, 0, 0);
+            setBgDataUrl(c.toDataURL('image/jpeg', 0.92));
+          } catch { setBgDataUrl(''); }
+        };
+        img.onerror = () => setBgDataUrl('');
+        img.src = bgUrl;
+      });
   }, []);
 
   // Map vehicle color name to hex for the illustrative SVG car
@@ -612,6 +633,8 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
         backgroundColor: '#0a0a0a',
         logging: false,
         useCORS: true,
+        allowTaint: false,
+        imageTimeout: 10000,
       });
 
       const imageDataUrl = canvas.toDataURL('image/png');
@@ -673,14 +696,20 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
             margin: '0 auto',
           }}
         >
-          {/* ── Background image ── */}
+          {/* ── Background image (using <img> for html2canvas fidelity) ── */}
           {bgDataUrl && (
-            <div style={{
-              position: 'absolute', inset: 0,
-              backgroundImage: `url(${bgDataUrl})`,
-              backgroundSize: 'cover',
-              backgroundPosition: 'center',
-            }} />
+            <img
+              src={bgDataUrl}
+              alt=""
+              style={{
+                position: 'absolute',
+                top: 0, left: 0,
+                width: '100%', height: '100%',
+                objectFit: 'cover',
+                objectPosition: 'center',
+                pointerEvents: 'none',
+              }}
+            />
           )}
 
           {/* ── Accent lines on sides ── */}
@@ -691,11 +720,10 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
           <div style={{
             position: 'relative' as const, zIndex: 1,
             display: 'flex', flexDirection: 'column' as const,
-            padding: '20px 20px 0',
           }}>
 
             {/* ══ HEADER: RF + Motorista ══ */}
-            <div style={{ textAlign: 'center' as const, marginBottom: '8px' }}>
+            <div style={{ textAlign: 'center' as const, marginBottom: '8px', paddingTop: '20px' }}>
               <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: '1px' }}>
                 <span style={{
                   fontSize: '48px', fontWeight: '900', color: corPrimaria,
@@ -717,7 +745,7 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
             </div>
 
             {/* ══ Status pill (centered) ══ */}
-            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '14px' }}>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '14px', padding: '0 20px' }}>
               <div style={{
                 display: 'flex', alignItems: 'center', gap: '6px',
                 background: profile.status === 'ativo'
@@ -744,7 +772,7 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
             <div style={{
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               marginBottom: '10px', position: 'relative' as const,
-              height: '120px',
+              height: '120px', padding: '0 20px',
             }}>
               {/* Illustrative car SVG (left) */}
               {hasVehicle && (
@@ -809,7 +837,7 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
 
             {/* ══ VEHICLE NAME + PLATE ══ */}
             {hasVehicle && (
-              <div style={{ textAlign: 'center' as const, marginBottom: '10px' }}>
+              <div style={{ textAlign: 'center' as const, marginBottom: '10px', padding: '0 20px' }}>
                 <div style={{
                   fontSize: '16px', fontWeight: '800', color: '#ffffff',
                   textTransform: 'uppercase' as const, letterSpacing: '2px', lineHeight: '1.3',
@@ -829,7 +857,7 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
             )}
 
             {/* ══ DRIVER NAME + ROLE ══ */}
-            <div style={{ textAlign: 'center' as const, marginBottom: '14px' }}>
+            <div style={{ textAlign: 'center' as const, marginBottom: '14px', padding: '0 20px' }}>
               <div style={{
                 fontSize: '28px', fontWeight: '800', color: '#ffffff',
                 textTransform: 'uppercase' as const, letterSpacing: '2px', lineHeight: '1.15',
@@ -849,7 +877,6 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
             <div style={{
               background: 'linear-gradient(180deg, #111111, #0a0a0a)',
               borderTop: `1px solid ${corPrimaria}33`,
-              margin: '0 -20px',
               padding: '10px 16px',
               display: 'flex', flexDirection: 'column' as const,
               alignItems: 'center', justifyContent: 'center', gap: '3px',
