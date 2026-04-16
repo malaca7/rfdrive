@@ -564,6 +564,23 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
     img.src = profile.avatar_url;
   }, [profile.avatar_url]);
 
+  // Convert background image to base64 for html2canvas capture
+  const [bgDataUrl, setBgDataUrl] = useState<string>('');
+  useEffect(() => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      const ctx = canvas.getContext('2d')!;
+      ctx.drawImage(img, 0, 0);
+      try { setBgDataUrl(canvas.toDataURL('image/jpeg', 0.92)); } catch { setBgDataUrl(''); }
+    };
+    img.onerror = () => setBgDataUrl('');
+    img.src = `${import.meta.env.BASE_URL}badge-bg.png`;
+  }, []);
+
   // Map vehicle color name to hex for the illustrative SVG car
   const carColor = useMemo(() => {
     const corMap: Record<string, string> = {
@@ -656,29 +673,15 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
             margin: '0 auto',
           }}
         >
-          {/* ── Background map pattern ── */}
-          <div style={{
-            position: 'absolute', inset: 0,
-            backgroundImage: `
-              linear-gradient(${corPrimaria}08 1px, transparent 1px),
-              linear-gradient(90deg, ${corPrimaria}08 1px, transparent 1px),
-              linear-gradient(${corPrimaria}04 1px, transparent 1px),
-              linear-gradient(90deg, ${corPrimaria}04 1px, transparent 1px)
-            `,
-            backgroundSize: '60px 60px, 60px 60px, 20px 20px, 20px 20px',
-            opacity: 0.7,
-          }} />
-          {/* ── Dark gradient overlay ── */}
-          <div style={{
-            position: 'absolute', inset: 0,
-            background: 'radial-gradient(ellipse at center, rgba(26,26,26,0.3) 0%, rgba(26,26,26,0.85) 100%)',
-          }} />
-
-          {/* ── Gold corner decorations ── */}
-          <div style={{ position: 'absolute', top: '12px', left: '12px', width: '30px', height: '30px', borderTop: `2px solid ${corPrimaria}`, borderLeft: `2px solid ${corPrimaria}` }} />
-          <div style={{ position: 'absolute', top: '12px', right: '12px', width: '30px', height: '30px', borderTop: `2px solid ${corPrimaria}`, borderRight: `2px solid ${corPrimaria}` }} />
-          <div style={{ position: 'absolute', bottom: '56px', left: '12px', width: '30px', height: '30px', borderBottom: `2px solid ${corPrimaria}`, borderLeft: `2px solid ${corPrimaria}` }} />
-          <div style={{ position: 'absolute', bottom: '56px', right: '12px', width: '30px', height: '30px', borderBottom: `2px solid ${corPrimaria}`, borderRight: `2px solid ${corPrimaria}` }} />
+          {/* ── Background image ── */}
+          {bgDataUrl && (
+            <div style={{
+              position: 'absolute', inset: 0,
+              backgroundImage: `url(${bgDataUrl})`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+            }} />
+          )}
 
           {/* ── Accent lines on sides ── */}
           <div style={{ position: 'absolute', top: '20%', left: 0, width: '3px', height: '25%', background: `linear-gradient(180deg, transparent, ${corPrimaria}, transparent)` }} />

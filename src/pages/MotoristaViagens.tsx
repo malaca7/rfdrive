@@ -101,7 +101,7 @@ const MotoristaViagens: React.FC = () => {
       `📍 *Origem:* ${origem.trim()}`,
       `📍 *Destino:* ${destino.trim()}`,
       ``,
-      `💰 *Valor: R$ ${totalValue.toFixed(2)}*`,
+      `💰 *Valor: R$ ${totalValue.toFixed(0)}*`,
     ];
     if (clienteNome.trim()) lines.push(`👤 *Cliente:* ${clienteNome.trim()}`);
     if (observacao.trim()) lines.push(`📝 *Obs:* ${observacao.trim()}`);
@@ -280,7 +280,7 @@ const MotoristaViagens: React.FC = () => {
               <input type="checkbox" id="temBagagemViagem" checked={temBagagem} onChange={e => setTemBagagem(e.target.checked)} className="w-5 h-5 rounded border-border text-accent focus:ring-accent" />
               <label htmlFor="temBagagemViagem" className="text-sm cursor-pointer">
                 <span className="font-medium">Feira ou Bagagem?</span>
-                <span className="text-muted-foreground"> (+R$ {taxaBagagemValor.toFixed(2).replace('.', ',')})</span>
+                <span className="text-muted-foreground"> (+R$ {taxaBagagemValor.toFixed(0)})</span>
               </label>
             </div>
 
@@ -296,9 +296,9 @@ const MotoristaViagens: React.FC = () => {
                         <div>
                           <p className="text-[10px] text-muted-foreground">{preco.estimado ? 'Preço estimado' : 'Preço tabelado'}</p>
                           <p className={`text-[clamp(1.1rem,3.5vw,1.35rem)] font-bold ${isTarifaMinima ? 'text-yellow-400' : preco.estimado ? 'text-amber-400' : 'text-green-400'}`}>
-                            R$ {totalValue.toFixed(2)}
+                            R$ {totalValue.toFixed(0)}
                           </p>
-                          {isTarifaMinima && <p className="text-xs text-muted-foreground line-through">R$ {rawTotalValue.toFixed(2)}</p>}
+                          {isTarifaMinima && <p className="text-xs text-muted-foreground line-through">R$ {rawTotalValue.toFixed(0)}</p>}
                         </div>
                       </div>
                       <div className="text-right">
@@ -325,7 +325,7 @@ const MotoristaViagens: React.FC = () => {
                           <span className="text-orange-400 text-xs">📦</span>
                           <span className="text-xs text-muted-foreground">Taxa Feira/Bagagem</span>
                         </div>
-                        <span className="text-sm font-bold text-orange-400">R$ {taxaBagagemValor.toFixed(2)}</span>
+                        <span className="text-sm font-bold text-orange-400">R$ {taxaBagagemValor.toFixed(0)}</span>
                       </div>
                     )}
                     {isTarifaMinima && (
@@ -387,26 +387,26 @@ const MotoristaViagens: React.FC = () => {
                     <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide">Detalhamento</p>
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-muted-foreground">Tarifa base{preco.estimado ? ' (estimado)' : ''}</span>
-                      <span className="font-medium">R$ {preco.valor.toFixed(2)}</span>
+                      <span className="font-medium">R$ {preco.valor.toFixed(0)}</span>
                     </div>
                     {dynamicAdj && (
                       <div className="flex items-center justify-between text-sm">
                         <span className="text-purple-400 flex items-center gap-1.5">
                           <Clock className="w-3 h-3" /> {dynamicAdj.regra.nome}
                         </span>
-                        <span className="font-medium text-purple-400">+R$ {(dynamicAdj.aplicar(preco.valor) - preco.valor).toFixed(2)}</span>
+                        <span className="font-medium text-purple-400">+R$ {(dynamicAdj.aplicar(preco.valor) - preco.valor).toFixed(0)}</span>
                       </div>
                     )}
                     {temBagagem && (
                       <div className="flex items-center justify-between text-sm">
                         <span className="text-orange-400 flex items-center gap-1.5"><span>📦</span> Feira/Bagagem</span>
-                        <span className="font-medium text-orange-400">+R$ {taxaBagagemValor.toFixed(2)}</span>
+                        <span className="font-medium text-orange-400">+R$ {taxaBagagemValor.toFixed(0)}</span>
                       </div>
                     )}
                     <Separator className="my-1" />
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-semibold">Total</span>
-                      <span className={`text-lg font-bold ${isTarifaMinima ? 'text-yellow-400' : 'text-green-400'}`}>R$ {totalValue.toFixed(2)}</span>
+                      <span className={`text-lg font-bold ${isTarifaMinima ? 'text-yellow-400' : 'text-green-400'}`}>R$ {totalValue.toFixed(0)}</span>
                     </div>
                   </div>
 
@@ -444,7 +444,7 @@ const MotoristaViagens: React.FC = () => {
                         <div className="bg-muted/30 rounded-lg p-3 space-y-1 text-xs">
                           <p><span className="text-muted-foreground">Origem:</span> {origem}</p>
                           <p><span className="text-muted-foreground">Destino:</span> {destino}</p>
-                          <p><span className="text-muted-foreground">Valor:</span> <span className="text-green-400 font-bold">R$ {totalValue.toFixed(2)}</span></p>
+                          <p><span className="text-muted-foreground">Valor:</span> <span className="text-green-400 font-bold">R$ {totalValue.toFixed(0)}</span></p>
                         </div>
                       </div>
                       <div className="flex gap-2">
@@ -484,7 +484,7 @@ const MotoristaViagens: React.FC = () => {
                       <div className="flex items-center gap-2">
                         {ride.valor != null && (
                           <Badge variant="outline" className="text-green-400 border-green-500/30 text-[10px]">
-                            R$ {ride.valor.toFixed(2)}
+                            R$ {ride.valor.toFixed(0)}
                           </Badge>
                         )}
                         <Badge variant="outline" className="text-yellow-400 border-yellow-500/30 text-[10px]">

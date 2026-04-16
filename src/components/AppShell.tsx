@@ -1,7 +1,7 @@
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Navigation, LogOut, User, Shield, Truck, BarChart3, Calculator, IdCard, UserCog, ClipboardList } from 'lucide-react';
+import { Navigation, LogOut, User, Shield, Truck, BarChart3, Calculator, IdCard, UserCog, ClipboardList, Trophy } from 'lucide-react';
 import { usePlatformConfig } from '@/hooks/usePlatformConfig';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -22,6 +22,7 @@ const SCREEN_CONFIG: Record<string, { label: string; icon: React.ReactNode; acti
 
 const MOTORISTA_NAV = [
   { path: '/motorista/dashboard', label: 'Dashboard', icon: <BarChart3 className="w-5 h-5" /> },
+  { path: '/motorista/dashboardall', label: 'Geral', icon: <Trophy className="w-5 h-5" /> },
   { path: '/motorista/viagens', label: 'Registrar', icon: <Calculator className="w-5 h-5" /> },
   { path: '/motorista/historico', label: 'Viagens', icon: <ClipboardList className="w-5 h-5" /> },
   { path: '/motorista/credencial', label: 'Credencial', icon: <IdCard className="w-5 h-5" /> },
