@@ -730,22 +730,37 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
       ctx.fill();
     }
 
-    // ══ 3) Diamond overlays (decorative) ══
+    // ══ VERTICAL DIVIDER — thin gold gradient line ══
+    const divX = W / 2;
+    const divGrad = ctx.createLinearGradient(0, BORDER + topBarH + 30, 0, H - BORDER - 30);
+    divGrad.addColorStop(0, 'transparent');
+    divGrad.addColorStop(0.15, GOLD1);
+    divGrad.addColorStop(0.85, GOLD2);
+    divGrad.addColorStop(1, 'transparent');
+    ctx.fillStyle = divGrad;
+    ctx.fillRect(divX - 0.5, BORDER + topBarH + 30, 1, H - BORDER * 2 - topBarH - 60);
+
+    // ═══════════════════════════════════════
+    // LEFT SIDE — Driver Info
+    // ═══════════════════════════════════════
+    const LC = W / 4 + 4; // ~214
+
+    // Decorative diamonds (behind avatar)
     ctx.save();
-    drawDiamond(ctx, W / 2, 280, 220, 220);
+    drawDiamond(ctx, LC, 300, 180, 180);
     ctx.fillStyle = 'rgba(255,255,255,0.03)';
     ctx.fill();
     ctx.restore();
     ctx.save();
-    drawDiamond(ctx, W / 2, 270, 160, 160);
+    drawDiamond(ctx, LC, 290, 130, 130);
     ctx.fillStyle = 'rgba(255,255,255,0.05)';
     ctx.fill();
     ctx.restore();
 
-    // ══ 4) Diamond avatar frame ══
-    const avCX = W / 2;
-    const avCY = 250;
-    const diamHalf = 90;
+    // Diamond avatar frame
+    const avCX = LC;
+    const avCY = 290;
+    const diamHalf = 95;
 
     // Gold diamond border
     ctx.save();
@@ -785,118 +800,136 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
       ctx.strokeStyle = '#888';
       ctx.lineWidth = 3;
       ctx.lineCap = 'round';
-      ctx.beginPath(); ctx.arc(avCX, avCY - 14, 22, 0, Math.PI * 2); ctx.stroke();
+      ctx.beginPath(); ctx.arc(avCX, avCY - 14, 24, 0, Math.PI * 2); ctx.stroke();
       ctx.beginPath();
-      ctx.moveTo(avCX - 34, avCY + 38);
-      ctx.bezierCurveTo(avCX - 34, avCY + 12, avCX - 26, avCY + 8, avCX, avCY + 8);
-      ctx.bezierCurveTo(avCX + 26, avCY + 8, avCX + 34, avCY + 12, avCX + 34, avCY + 38);
+      ctx.moveTo(avCX - 36, avCY + 40);
+      ctx.bezierCurveTo(avCX - 36, avCY + 14, avCX - 28, avCY + 10, avCX, avCY + 10);
+      ctx.bezierCurveTo(avCX + 28, avCY + 10, avCX + 36, avCY + 14, avCX + 36, avCY + 40);
       ctx.stroke();
     }
     ctx.restore();
 
-    // ══ 5) First name only — gold gradient text ══
+    // Driver name — gold gradient (highlight)
     ctx.textAlign = 'center';
     ctx.textBaseline = 'alphabetic';
     const firstName = (profile.nome || '').split(' ')[0].toUpperCase();
-    ctx.font = `800 42px ${FONT}`;
-    const nameGrad = ctx.createLinearGradient(W / 2 - 150, 0, W / 2 + 150, 0);
+    ctx.font = `800 38px ${FONT}`;
+    const nameGrad = ctx.createLinearGradient(LC - 130, 0, LC + 130, 0);
     nameGrad.addColorStop(0, GOLD1);
     nameGrad.addColorStop(0.5, '#ffe066');
     nameGrad.addColorStop(1, GOLD2);
     ctx.fillStyle = nameGrad;
-    ctx.fillText(firstName, W / 2, 390);
+    ctx.fillText(firstName, LC, 435);
 
-    // ══ 6) Subtitle — white ══
-    ctx.font = `400 20px ${FONT}`;
-    ctx.fillStyle = 'rgba(255,255,255,0.75)';
-    ctx.fillText('Motorista Credenciado', W / 2, 420);
+    // Subtitle
+    ctx.font = `400 17px ${FONT}`;
+    ctx.fillStyle = 'rgba(255,255,255,0.7)';
+    ctx.fillText('Motorista Credenciado', LC, 462);
 
-    // ══ 7) Rating stars + nota value — gold gradient like name ══
-    const ratingY = 460;
+    // Small gold divider line
+    const miniDivW = 80;
+    const miniDivGrad = ctx.createLinearGradient(LC - miniDivW / 2, 0, LC + miniDivW / 2, 0);
+    miniDivGrad.addColorStop(0, 'transparent');
+    miniDivGrad.addColorStop(0.3, GOLD1);
+    miniDivGrad.addColorStop(0.7, GOLD2);
+    miniDivGrad.addColorStop(1, 'transparent');
+    ctx.fillStyle = miniDivGrad;
+    ctx.fillRect(LC - miniDivW / 2, 476, miniDivW, 1);
+
+    // Rating stars — gold gradient
+    const ratingY = 510;
     const ratingVal = avgRating?.avg ?? 0;
     const filledStars = Math.round(ratingVal);
 
-    const starGrad = ctx.createLinearGradient(W / 2 - 100, 0, W / 2 + 100, 0);
+    const starGrad = ctx.createLinearGradient(LC - 80, 0, LC + 80, 0);
     starGrad.addColorStop(0, GOLD1);
     starGrad.addColorStop(0.5, '#ffe066');
     starGrad.addColorStop(1, GOLD2);
 
     for (let i = 0; i < 5; i++) {
-      const sx = W / 2 - 80 + i * 40;
-      drawStarShape(ctx, sx, ratingY, 18, 8);
-      if (i < filledStars) {
-        ctx.fillStyle = starGrad;
-      } else {
-        ctx.fillStyle = 'rgba(255,255,255,0.15)';
-      }
+      const sx = LC - 70 + i * 35;
+      drawStarShape(ctx, sx, ratingY, 16, 7);
+      ctx.fillStyle = i < filledStars ? starGrad : 'rgba(255,255,255,0.15)';
       ctx.fill();
     }
 
     // Nota text
     if (avgRating) {
-      ctx.font = `700 26px ${FONT}`;
+      ctx.font = `700 24px ${FONT}`;
       ctx.fillStyle = starGrad;
-      ctx.fillText(ratingVal.toFixed(1), W / 2, ratingY + 40);
-      ctx.font = `400 14px ${FONT}`;
+      ctx.fillText(ratingVal.toFixed(1), LC, ratingY + 38);
+      ctx.font = `400 13px ${FONT}`;
       ctx.fillStyle = 'rgba(255,255,255,0.5)';
-      ctx.fillText(`(${avgRating.count} avaliação${avgRating.count !== 1 ? 'ões' : ''})`, W / 2, ratingY + 58);
+      ctx.fillText(`(${avgRating.count} avaliação${avgRating.count !== 1 ? 'ões' : ''})`, LC, ratingY + 56);
     }
 
-    // ══ 8) Car ══
-    const carCenterY = avgRating ? 580 : 560;
-    let carDrawn = false;
-    if (profile.veiculo_foto) {
-      try {
-        const carImg = await loadImageAny(profile.veiculo_foto);
-        if (carImg) {
-          const maxCW = 400, maxCH = 200;
-          const ratio = Math.min(maxCW / carImg.width, maxCH / carImg.height);
-          const cw = carImg.width * ratio, ch = carImg.height * ratio;
-          const cx = W / 2 - cw / 2, cy = carCenterY - ch / 2;
-          ctx.save();
-          ctx.shadowColor = 'rgba(0,0,0,0.6)';
-          ctx.shadowBlur = 20;
-          ctx.shadowOffsetY = 8;
-          ctx.drawImage(carImg, cx, cy, cw, ch);
-          ctx.restore();
-          carDrawn = true;
-        }
-      } catch { /* fallback illustration */ }
-    }
-    if (!carDrawn && hasVehicle) {
-      ctx.save();
-      ctx.shadowColor = 'rgba(0,0,0,0.5)';
-      ctx.shadowBlur = 16;
-      ctx.shadowOffsetY = 6;
-      drawCarOnCanvas(ctx, W / 2 - 200, carCenterY - 50, 400, 160, carColor);
-      ctx.restore();
-    }
+    // ═══════════════════════════════════════
+    // RIGHT SIDE — Vehicle Info
+    // ═══════════════════════════════════════
+    const RC = 3 * W / 4 - 4; // ~626
 
-    // Vehicle name below car — gold gradient
     if (hasVehicle) {
+      // Car photo (highlight)
+      const carCenterY = 310;
+      let carDrawn = false;
+      if (profile.veiculo_foto) {
+        try {
+          const carImg = await loadImageAny(profile.veiculo_foto);
+          if (carImg) {
+            const maxCW = 340, maxCH = 210;
+            const ratio = Math.min(maxCW / carImg.width, maxCH / carImg.height);
+            const cw = carImg.width * ratio, ch = carImg.height * ratio;
+            const cx = RC - cw / 2, cy = carCenterY - ch / 2;
+            ctx.save();
+            ctx.shadowColor = 'rgba(0,0,0,0.6)';
+            ctx.shadowBlur = 20;
+            ctx.shadowOffsetY = 8;
+            ctx.drawImage(carImg, cx, cy, cw, ch);
+            ctx.restore();
+            carDrawn = true;
+          }
+        } catch { /* fallback illustration */ }
+      }
+      if (!carDrawn) {
+        ctx.save();
+        ctx.shadowColor = 'rgba(0,0,0,0.5)';
+        ctx.shadowBlur = 16;
+        ctx.shadowOffsetY = 6;
+        drawCarOnCanvas(ctx, RC - 170, carCenterY - 50, 340, 140, carColor);
+        ctx.restore();
+      }
+
+      // Vehicle name (marca + modelo) — gold gradient
       const vehName = [profile.veiculo_marca, profile.veiculo_modelo].filter(Boolean).join(' ').toUpperCase();
       ctx.textAlign = 'center';
-      ctx.font = `700 22px ${FONT}`;
-      const vehGrad = ctx.createLinearGradient(W / 2 - 120, 0, W / 2 + 120, 0);
+      ctx.font = `700 20px ${FONT}`;
+      const vehGrad = ctx.createLinearGradient(RC - 120, 0, RC + 120, 0);
       vehGrad.addColorStop(0, GOLD1);
       vehGrad.addColorStop(1, GOLD2);
       ctx.fillStyle = vehGrad;
-      ctx.fillText(vehName, W / 2, carCenterY + 120);
+      ctx.fillText(vehName, RC, 445);
 
-      // ══ 9) Mercosul plate ══
+      // Vehicle color
+      if (profile.veiculo_cor) {
+        ctx.font = `400 16px ${FONT}`;
+        ctx.fillStyle = 'rgba(255,255,255,0.65)';
+        ctx.fillText(profile.veiculo_cor.toUpperCase(), RC, 470);
+      }
+
+      // Mercosul plate (highlight)
       if (profile.veiculo_placa) {
         const plateText = profile.veiculo_placa.toUpperCase().replace(/[^A-Z0-9]/g, '');
-        const plateW = 220;
-        const plateH = 70;
-        const plateX = W / 2 - plateW / 2;
-        const plateY = carCenterY + 135;
+        const plateW = 210;
+        const plateH = 68;
+        const plateX = RC - plateW / 2;
+        const plateY = profile.veiculo_cor ? 496 : 486;
         const plateR = 6;
 
         // Plate background (white)
         ctx.save();
         ctx.shadowColor = 'rgba(0,0,0,0.4)';
-        ctx.shadowBlur = 8;
-        ctx.shadowOffsetY = 3;
+        ctx.shadowBlur = 10;
+        ctx.shadowOffsetY = 4;
         ctx.beginPath();
         ctx.roundRect(plateX, plateY, plateW, plateH, plateR);
         ctx.fillStyle = '#ffffff';
@@ -907,7 +940,7 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
         ctx.restore();
 
         // Blue top band (Mercosul)
-        const bandH = 18;
+        const bandH = 17;
         ctx.beginPath();
         ctx.roundRect(plateX, plateY, plateW, bandH, [plateR, plateR, 0, 0]);
         ctx.fillStyle = '#003399';
@@ -915,43 +948,36 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
 
         // "BRASIL" text in blue band
         ctx.textAlign = 'center';
-        ctx.font = `700 10px ${FONT}`;
+        ctx.font = `700 9px ${FONT}`;
         ctx.fillStyle = '#ffffff';
-        ctx.fillText('BRASIL', W / 2, plateY + 13);
+        ctx.fillText('BRASIL', RC, plateY + 12);
 
         // Mercosul logo dots (simplified)
-        const logoX = plateX + 20;
+        const logoX = plateX + 18;
         const logoY2 = plateY + 9;
         ctx.beginPath();
         for (let i = 0; i < 4; i++) {
           const a = (i / 4) * Math.PI * 2 - Math.PI / 2;
-          ctx.moveTo(logoX + Math.cos(a) * 6, logoY2 + Math.sin(a) * 6);
-          ctx.arc(logoX + Math.cos(a) * 6, logoY2 + Math.sin(a) * 6, 1.5, 0, Math.PI * 2);
+          ctx.moveTo(logoX + Math.cos(a) * 5, logoY2 + Math.sin(a) * 5);
+          ctx.arc(logoX + Math.cos(a) * 5, logoY2 + Math.sin(a) * 5, 1.2, 0, Math.PI * 2);
         }
         ctx.fillStyle = '#ffcc00';
         ctx.fill();
 
         // Plate characters
         ctx.textAlign = 'center';
-        ctx.font = `800 38px "FE-Schrift", "Segoe UI", ${FONT}`;
+        ctx.font = `800 34px "FE-Schrift", "Segoe UI", ${FONT}`;
         ctx.fillStyle = '#1a1a1a';
-        // Format: LLL-NLNN with red middle character for Mercosul
         let displayPlate = plateText;
         if (plateText.length === 7) {
           displayPlate = plateText.slice(0, 3) + plateText.slice(3, 4) + plateText.slice(4);
         }
-        // Draw chars with proper spacing
-        const charStartX = plateX + 24;
-        const charY = plateY + bandH + 38;
-        const charSpacing = (plateW - 48) / (displayPlate.length > 0 ? displayPlate.length : 1);
+        const charStartX = plateX + 22;
+        const charY = plateY + bandH + 36;
+        const charSpacing = (plateW - 44) / (displayPlate.length > 0 ? displayPlate.length : 1);
         for (let i = 0; i < displayPlate.length; i++) {
           const cx = charStartX + i * charSpacing + charSpacing / 2;
-          // Mercosul: 5th char (index 4) is red
-          if (i === 4 && plateText.length === 7) {
-            ctx.fillStyle = '#cc0000';
-          } else {
-            ctx.fillStyle = '#1a1a1a';
-          }
+          ctx.fillStyle = (i === 4 && plateText.length === 7) ? '#cc0000' : '#1a1a1a';
           ctx.fillText(displayPlate[i], cx, charY);
         }
       }
