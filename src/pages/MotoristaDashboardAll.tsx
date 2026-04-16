@@ -316,9 +316,10 @@ const MotoristaDashboardAll: React.FC = () => {
                             </p>
                             <p className="text-xs text-muted-foreground">{driver.viagens} viagem{driver.viagens > 1 ? 'ns' : ''}</p>
                           </div>
-                          {/* Revenue */}
+                          {/* Corridas */}
                           <div className="text-right shrink-0">
-                            <p className="text-sm font-bold text-green-400">R$ {driver.receita.toFixed(0)}</p>
+                            <p className="text-sm font-bold text-accent">{driver.viagens}</p>
+                            <p className="text-[10px] text-muted-foreground">corrida{driver.viagens !== 1 ? 's' : ''}</p>
                           </div>
                         </div>
                       </CardContent>

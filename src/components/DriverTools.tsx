@@ -986,6 +986,14 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
         {/* Action buttons */}
         <div className="flex gap-2">
           <Button
+            variant="outline"
+            className="flex-1 h-11 rounded-xl gap-2 font-semibold"
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <Camera className="w-4 h-4" />
+            {avatarUrl ? 'Trocar Foto' : 'Minha Foto'}
+          </Button>
+          <Button
             className="flex-1 h-11 rounded-xl gap-2 font-semibold"
             onClick={handleShare}
           >

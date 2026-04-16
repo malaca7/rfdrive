@@ -51,7 +51,7 @@ const TIPO_COLORS: Record<string, string> = {
 // ══════════════════════════════════════════════════════════
 // COMPONENT
 // ══════════════════════════════════════════════════════════
-const AdminPricing: React.FC = () => {
+const AdminPricing: React.FC<{ defaultTab?: string }> = ({ defaultTab = 'tarifas' }) => {
   const { toast } = useToast();
   const qc = useQueryClient();
 
@@ -104,7 +104,7 @@ const AdminPricing: React.FC = () => {
 
   return (
     <div className="space-y-4">
-      <Tabs defaultValue="tarifas">
+      <Tabs defaultValue={defaultTab}>
         <TabsList className="w-full grid grid-cols-2">
           <TabsTrigger value="tarifas" className="gap-1 text-xs">
             <Tag className="w-3.5 h-3.5" /> Tarifas
@@ -254,32 +254,6 @@ const TarifasTab: React.FC<{
           </Card>
         ))}
       </div>
-
-      {/* Preview */}
-      <Card className="bg-muted/30">
-        <CardContent className="py-4">
-          <p className="text-xs text-muted-foreground font-medium mb-3">PREVIEW DO CÁLCULO</p>
-          <div className="space-y-2 text-xs">
-            <div className="space-y-1 text-muted-foreground">
-              <div className="flex justify-between">
-                <span>Corrida exemplo: Rota</span>
-                <span>R$ 15,00</span>
-              </div>
-              <Separator className="my-1" />
-              <div className="flex justify-between font-semibold text-foreground">
-                <span>Total estimado</span>
-                <span>R$ {Math.max(15, parseFloat(form.tarifa_minima) || 0).toFixed(2)}</span>
-              </div>
-              {(parseFloat(form.tarifa_minima) || 0) > 15 && (
-                <div className="flex items-center gap-2 mt-2">
-                  <AlertTriangle className="w-3.5 h-3.5 text-yellow-400" />
-                  <span className="text-yellow-400 font-medium">Tarifa mínima aplicada: R$ {(parseFloat(form.tarifa_minima) || 0).toFixed(2)}</span>
-                </div>
-              )}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
 
       <Button
         onClick={() => saveMutation.mutate()}

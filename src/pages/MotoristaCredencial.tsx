@@ -14,7 +14,7 @@ const MotoristaCredencial: React.FC = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('users')
-        .select('id, nome, telefone, tipo, status, veiculo_marca, veiculo_modelo, veiculo_cor, veiculo_placa, avatar_url')
+        .select('id, nome, telefone, tipo, status, veiculo_marca, veiculo_modelo, veiculo_cor, veiculo_placa, avatar_url, veiculo_foto')
         .eq('id', user!.id)
         .single();
       if (error) {
@@ -24,7 +24,7 @@ const MotoristaCredencial: React.FC = () => {
           .eq('id', user!.id)
           .single();
         if (err2) throw err2;
-        return { ...fallback, avatar_url: null };
+        return { ...fallback, avatar_url: null, veiculo_foto: null };
       }
       return data;
     },

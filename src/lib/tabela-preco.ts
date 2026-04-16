@@ -318,16 +318,6 @@ export function buscarPrecoTabela(origem: string, destino: string): LookupResult
   const direct = lookupDirect(origem, destino);
   if (direct) return direct;
 
-  // ── 1b. Busca reversa (Y→X quando X→Y não existe) ──
-  const reverse = lookupDirect(destino, origem);
-  if (reverse) {
-    return {
-      ...reverse,
-      origem_tabela: reverse.destino_tabela,
-      destino_tabela: reverse.origem_tabela,
-    };
-  }
-
   // ── 2. Sem correspondência exata: estimar via Centro ──
   // Pega Origem→Centro e Destino→Centro, aplica: MAIOR + (MENOR / 10) + R$1
   const precoOrigemCentro = getBaseToCentro(origem);

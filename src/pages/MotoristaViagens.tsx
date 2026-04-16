@@ -143,13 +143,15 @@ const MotoristaViagens: React.FC = () => {
         canal_origem: 'app',
         observacao_motorista: observacao.trim() || null,
         concluida_at: new Date().toISOString(),
-        observacoes: [
-          preco.estimado ? 'Estimado via hub' : 'Tabela RF',
-          temBagagem ? 'Com bagagem' : null,
-          preco.origem_tabela !== origem.trim() ? `Tabela: ${preco.origem_tabela} → ${preco.destino_tabela}` : null,
-          clienteNome.trim() ? `Cliente: ${clienteNome.trim()}` : null,
-          clienteTelefone.trim() ? `Tel: ${clienteTelefone.trim()}` : null,
-        ].filter(Boolean).join(' | ') || null,
+        tem_bagagem: temBagagem || null,
+        preco_regra_aplicada: preco.estimado ? 'estimado' : 'tabela',
+        preco_detalhes: {
+          origem_tabela: preco.origem_tabela,
+          destino_tabela: preco.destino_tabela,
+          valor_base: preco.valor,
+          cliente_nome: clienteNome.trim() || null,
+          cliente_telefone: clienteTelefone.trim() || null,
+        },
       });
       if (error) throw error;
     },
