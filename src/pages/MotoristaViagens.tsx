@@ -143,9 +143,9 @@ const MotoristaViagens: React.FC = () => {
         canal_origem: 'app',
         observacao_motorista: observacao.trim() || null,
         concluida_at: new Date().toISOString(),
-        tem_bagagem: temBagagem || null,
-        preco_regra_aplicada: preco.estimado ? 'estimado' : 'tabela',
         observacoes: [
+          preco.estimado ? 'Estimado via hub' : 'Tabela RF',
+          temBagagem ? 'Com bagagem' : null,
           preco.origem_tabela !== origem.trim() ? `Tabela: ${preco.origem_tabela} → ${preco.destino_tabela}` : null,
           clienteNome.trim() ? `Cliente: ${clienteNome.trim()}` : null,
           clienteTelefone.trim() ? `Tel: ${clienteTelefone.trim()}` : null,
