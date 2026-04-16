@@ -237,12 +237,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(userObj);
       setRole(userData.tipo as AppRole);
 
-      // Admin sempre entra direto no painel admin
+      // Definir tela direto (sem wrapper, que usa closure stale)
       const screens = getAvailableScreens(derivedRoles, userObj);
       const defaultScreen = screens.includes('admin') ? 'admin' :
         screens.includes('motorista') ? 'motorista' :
         screens.includes('cliente') ? 'cliente' : 'cliente';
-      setActiveScreen(defaultScreen);
+      setActiveScreenState(defaultScreen);
+      localStorage.setItem(SCREEN_KEY, defaultScreen);
 
       return true;
     } finally {
