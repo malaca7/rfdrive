@@ -223,6 +223,7 @@ const AdminUsuarios: React.FC = () => {
       const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(filePath);
       const publicUrl = `${urlData.publicUrl}?t=${Date.now()}`;
       await supabase.from('users').update({ veiculo_foto: publicUrl }).eq('id', selectedUser.id);
+      setSelectedUser(prev => prev ? { ...prev, veiculo_foto: publicUrl } : prev);
       queryClient.invalidateQueries({ queryKey: ['admin-users'] });
       queryClient.invalidateQueries({ queryKey: ['driver-full-profile'] });
       toast({ title: 'Foto do veículo atualizada!' });
