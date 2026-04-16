@@ -836,6 +836,26 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
     ctx.fillStyle = 'rgba(255,255,255,0.75)';
     ctx.fillText('Motorista Credenciado', LC, 450);
 
+    // Admin badge — blue highlight
+    const isAdmin = profile.tipo === 'admin';
+    const adminBadgeH = isAdmin ? 28 : 0;
+    if (isAdmin) {
+      const badgeText = 'ADMINISTRADOR';
+      ctx.font = `700 14px ${FONT}`;
+      const badgeW = ctx.measureText(badgeText).width + 24;
+      const badgeX = LC - badgeW / 2;
+      const badgeY = 460;
+      ctx.fillStyle = '#1d4ed8';
+      ctx.beginPath();
+      ctx.roundRect(badgeX, badgeY, badgeW, 24, 4);
+      ctx.fill();
+      ctx.fillStyle = '#ffffff';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(badgeText, LC, badgeY + 12);
+      ctx.textBaseline = 'alphabetic';
+    }
+
     // Small gold divider line
     const miniDivW = 100;
     const miniDivGrad = ctx.createLinearGradient(LC - miniDivW / 2, 0, LC + miniDivW / 2, 0);
@@ -844,10 +864,10 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
     miniDivGrad.addColorStop(0.7, GOLD2);
     miniDivGrad.addColorStop(1, 'transparent');
     ctx.fillStyle = miniDivGrad;
-    ctx.fillRect(LC - miniDivW / 2, 466, miniDivW, 1.5);
+    ctx.fillRect(LC - miniDivW / 2, 466 + adminBadgeH, miniDivW, 1.5);
 
     // Rating stars — aligned with plate
-    const ratingY = 530;
+    const ratingY = 530 + adminBadgeH;
     const ratingVal = avgRating?.avg ?? 0;
     const filledStars = Math.round(ratingVal);
 
