@@ -60,6 +60,7 @@ interface ProfileEditorProps {
 
 const ProfileEditor: React.FC<ProfileEditorProps> = ({ profile, onClose, onUpdated }) => {
   const { toast } = useToast();
+  const { updateProfile } = useAuth();
   const queryClient = useQueryClient();
 
   const [nome, setNome] = useState(profile.nome);
@@ -129,6 +130,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ profile, onClose, onUpdat
 
       // Save to users table
       await supabase.from('users').update({ avatar_url: publicUrl }).eq('id', profile.id);
+      updateProfile({ avatar_url: publicUrl });
 
       toast({ title: 'Foto atualizada!' });
       setShowCropDialog(false);

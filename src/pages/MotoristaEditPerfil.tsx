@@ -58,7 +58,7 @@ function formatPlate(value: string): string {
 }
 
 const MotoristaEditPerfil: React.FC = () => {
-  const { user } = useAuth();
+  const { user, updateProfile } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -154,6 +154,7 @@ const MotoristaEditPerfil: React.FC = () => {
       const publicUrl = `${urlData.publicUrl}?t=${Date.now()}`;
       setAvatarUrl(publicUrl);
       await supabase.from('users').update({ avatar_url: publicUrl }).eq('id', user.id);
+      updateProfile({ avatar_url: publicUrl });
       queryClient.invalidateQueries({ queryKey: ['driver-full-profile'] });
       toast({ title: 'Foto atualizada!' });
       setShowCropDialog(false);
@@ -186,6 +187,7 @@ const MotoristaEditPerfil: React.FC = () => {
     onSuccess: () => {
       toast({ title: 'Perfil atualizado!' });
       setSenha('');
+      updateProfile({ nome: nome.trim(), telefone: telefone.replace(/\D/g, '') });
       queryClient.invalidateQueries({ queryKey: ['driver-full-profile'] });
     },
     onError: (err: Error) => {

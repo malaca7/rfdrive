@@ -29,6 +29,7 @@ interface AuthContextType {
   signUp: (telefone: string, password: string, nome: string) => Promise<void>;
   signIn: (telefone: string, password: string) => Promise<boolean>;
   signOut: () => Promise<void>;
+  updateProfile: (updates: Partial<UserData>) => void;
 }
 
 const STORAGE_KEY = 'localizzou_user';
@@ -233,6 +234,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         roles: derivedRoles,
         status: userData.status,
         veiculo_placa: userData.veiculo_placa || null,
+        avatar_url: userData.avatar_url || null,
       };
       setUser(userObj);
       setRole(userData.tipo as AppRole);
@@ -251,6 +253,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const updateProfile = (updates: Partial<UserData>) => {
+    setUser(prev => prev ? { ...prev, ...updates } : prev);
+  };
+
   const signOut = async () => {
     setUser(null);
     setRole(null);
@@ -263,7 +269,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     <AuthContext.Provider value={{
       user, profile: user, role, roles, loading,
       hasRole, availableScreens, activeScreen, setActiveScreen,
-      signUp, signIn, signOut,
+      signUp, signIn, signOut, updateProfile,
     }}>
       {children}
     </AuthContext.Provider>
