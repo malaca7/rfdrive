@@ -907,9 +907,9 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
         if (plateText.length === 7) {
           displayPlate = plateText.slice(0, 3) + '-' + plateText.slice(3);
         }
-        const charStartX = plateX + 28;
+        const charStartX = plateX + 18;
         const charY = plateY + bandH + 47;
-        const charSpacing = (plateW - 56) / (displayPlate.length > 0 ? displayPlate.length : 1);
+        const charSpacing = (plateW - 36) / (displayPlate.length > 0 ? displayPlate.length : 1);
         for (let i = 0; i < displayPlate.length; i++) {
           const cx = charStartX + i * charSpacing + charSpacing / 2;
           ctx.fillStyle = '#1a1a1a';
