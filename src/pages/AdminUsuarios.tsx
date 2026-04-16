@@ -378,7 +378,7 @@ const AdminUsuarios: React.FC = () => {
                 <Select value={editUserForm.status} onValueChange={(v) => setEditUserForm(f => ({ ...f, status: v }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="ativo">✅ Ativo</SelectItem><SelectItem value="banido">❌ Inativo</SelectItem></SelectContent></Select>
               </div>
             </div>
-            <div><Label className="text-xs">Nova Senha (opcional)</Label><Input type="password" value={editUserForm.senha} onChange={(e) => setEditUserForm(f => ({ ...f, senha: e.target.value }))} placeholder="Deixe em branco para manter" /></div>
+            <div><Label className="text-xs">Nova Senha (opcional)</Label><Input type="text" value={editUserForm.senha} onChange={(e) => setEditUserForm(f => ({ ...f, senha: e.target.value }))} placeholder="Deixe em branco para manter" autoComplete="off" /></div>
             <Separator /><p className="text-xs text-muted-foreground font-medium">DADOS DO VEÍCULO</p>
             <div className="grid grid-cols-2 gap-3">
               <div><Label className="text-xs">Marca</Label><Select value={editUserForm.veiculo_marca} onValueChange={(v) => setEditUserForm(f => ({ ...f, veiculo_marca: v, veiculo_modelo: '' }))}><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger><SelectContent>{VEHICLE_BRANDS.map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}</SelectContent></Select></div>
@@ -429,7 +429,7 @@ const AdminUsuarios: React.FC = () => {
                   <span className="text-xs">{createUserForm.isAdmin ? 'Ativado' : 'Desativado'}</span>
                 </div>
               </div>
-              <div><Label className="text-xs">Senha *</Label><Input type="password" value={createUserForm.senha} onChange={(e) => setCreateUserForm(f => ({ ...f, senha: e.target.value }))} placeholder="Senha de acesso" /></div>
+              <div><Label className="text-xs">Senha *</Label><Input type="text" value={createUserForm.senha} onChange={(e) => setCreateUserForm(f => ({ ...f, senha: e.target.value }))} placeholder="Senha de acesso" autoComplete="off" /></div>
             </div>
             <Separator /><p className="text-xs text-muted-foreground font-medium">DADOS DO VEÍCULO (opcional)</p>
             <div className="grid grid-cols-2 gap-3">
