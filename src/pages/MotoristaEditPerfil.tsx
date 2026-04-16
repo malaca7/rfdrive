@@ -69,10 +69,19 @@ const MotoristaEditPerfil: React.FC = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('users')
-        .select('id, nome, telefone, tipo, status, veiculo_marca, veiculo_modelo, veiculo_cor, veiculo_placa, avatar_url, veiculo_foto')
+        .select('id, nome, telefone, tipo, status, veiculo_marca, veiculo_modelo, veiculo_cor, veiculo_placa, avatar_url')
         .eq('id', user!.id)
         .single();
-      if (error) throw error;
+      if (error) {
+        // Fallback sem avatar_url caso coluna não exista
+        const { data: fallback, error: err2 } = await supabase
+          .from('users')
+          .select('id, nome, telefone, tipo, status, veiculo_marca, veiculo_modelo, veiculo_cor, veiculo_placa')
+          .eq('id', user!.id)
+          .single();
+        if (err2) throw err2;
+        return { ...fallback, avatar_url: null };
+      }
       return data;
     },
     enabled: !!user,
