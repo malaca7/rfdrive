@@ -328,7 +328,19 @@ const MotoristaEditPerfil: React.FC = () => {
               </div>
 
               {/* Vehicle preview illustration */}
-              {marca && modelo && (() => {
+              {fullProfile?.veiculo_foto ? (
+                <div className="flex flex-col items-center gap-2 pt-2">
+                  <img
+                    src={fullProfile.veiculo_foto}
+                    alt="Foto do veículo"
+                    className="max-h-[160px] w-full object-contain rounded-xl"
+                    style={{ filter: 'drop-shadow(0 6px 16px rgba(0,0,0,0.5))' }}
+                  />
+                  <p className="text-[10px] text-muted-foreground">
+                    Foto definida pelo administrador
+                  </p>
+                </div>
+              ) : marca && modelo ? (() => {
                 const corMap: Record<string, string> = {
                   'Preto': 'pspc0029', 'Preta': 'pspc0029',
                   'Branco': 'pspc0001', 'Branca': 'pspc0001',
@@ -360,7 +372,7 @@ const MotoristaEditPerfil: React.FC = () => {
                     </p>
                   </div>
                 );
-              })()}
+              })() : null}
             </CardContent>
           </Card>
         </motion.div>

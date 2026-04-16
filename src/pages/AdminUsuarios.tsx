@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
@@ -15,7 +15,7 @@ import AdminLayout from '@/components/AdminLayout';
 import { motion } from 'framer-motion';
 import {
   CheckCircle, XCircle, Car, Shield, Loader2, Phone, Search, Filter,
-  Users, UserPlus, Pencil, Trash2, Save,
+  Users, UserPlus, Pencil, Trash2, Save, Camera,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
@@ -34,6 +34,7 @@ type UserRecord = {
   veiculo_cor?: string | null;
   veiculo_placa?: string | null;
   avatar_url?: string | null;
+  veiculo_foto?: string | null;
 };
 
 const VEHICLE_BRANDS = [
@@ -109,6 +110,8 @@ const AdminUsuarios: React.FC = () => {
     veiculo_marca: '', veiculo_modelo: '', veiculo_cor: '', veiculo_placa: '',
   });
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [uploadingVeiculoFoto, setUploadingVeiculoFoto] = useState(false);
+  const veiculoFotoRef = useRef<HTMLInputElement>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; label: string } | null>(null);
   const [showCreateUserDialog, setShowCreateUserDialog] = useState(false);
   const [createUserForm, setCreateUserForm] = useState({
@@ -197,6 +200,39 @@ const AdminUsuarios: React.FC = () => {
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['admin-users'] }); queryClient.invalidateQueries({ queryKey: ['admin-rides'] }); toast({ title: 'Excluído com sucesso!' }); setShowDeleteConfirm(false); setDeleteTarget(null); },
     onError: (err: any) => { toast({ title: 'Erro ao excluir', description: err?.message, variant: 'destructive' }); },
   });
+
+  // ── Vehicle photo upload ──
+  const handleVeiculoFotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !selectedUser) return;
+    if (!file.type.startsWith('image/')) {
+      toast({ title: 'Selecione uma imagem', variant: 'destructive' });
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      toast({ title: 'Imagem muito grande (máx. 10MB)', variant: 'destructive' });
+      return;
+    }
+    setUploadingVeiculoFoto(true);
+    try {
+      const filePath = `veiculos/${selectedUser.id}.jpg`;
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file, { upsert: true, contentType: file.type, cacheControl: '3600' });
+      if (uploadError) throw uploadError;
+      const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(filePath);
+      const publicUrl = `${urlData.publicUrl}?t=${Date.now()}`;
+      await supabase.from('users').update({ veiculo_foto: publicUrl }).eq('id', selectedUser.id);
+      queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+      queryClient.invalidateQueries({ queryKey: ['driver-full-profile'] });
+      toast({ title: 'Foto do veículo atualizada!' });
+    } catch (err) {
+      toast({ title: err instanceof Error ? err.message : 'Erro ao enviar foto', variant: 'destructive' });
+    } finally {
+      setUploadingVeiculoFoto(false);
+      e.target.value = '';
+    }
+  };
 
   // ── Helpers ──
   const openEditUserDialog = (u: UserRecord) => {
@@ -349,6 +385,24 @@ const AdminUsuarios: React.FC = () => {
               <div><Label className="text-xs">Modelo</Label><Select value={editUserForm.veiculo_modelo} onValueChange={(v) => setEditUserForm(f => ({ ...f, veiculo_modelo: v }))}><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger><SelectContent>{(VEHICLE_MODELS[editUserForm.veiculo_marca] || ['Outro']).map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent></Select></div>
               <div><Label className="text-xs">Cor</Label><Select value={editUserForm.veiculo_cor} onValueChange={(v) => setEditUserForm(f => ({ ...f, veiculo_cor: v }))}><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger><SelectContent>{VEHICLE_COLORS.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select></div>
               <div><Label className="text-xs">Placa</Label><Input value={editUserForm.veiculo_placa} onChange={(e) => setEditUserForm(f => ({ ...f, veiculo_placa: formatPlate(e.target.value) }))} placeholder="ABC-1234" maxLength={8} /></div>
+            </div>
+            {/* Vehicle photo upload */}
+            <div>
+              <Label className="text-xs">Foto do Veículo</Label>
+              <div className="flex items-center gap-3 mt-1">
+                {selectedUser?.veiculo_foto ? (
+                  <img src={selectedUser.veiculo_foto} alt="Veículo" className="w-24 h-16 rounded-lg object-cover border border-white/10" />
+                ) : (
+                  <div className="w-24 h-16 rounded-lg bg-muted/30 border border-dashed border-white/10 flex items-center justify-center">
+                    <Car className="w-6 h-6 text-muted-foreground" />
+                  </div>
+                )}
+                <Button variant="outline" size="sm" className="gap-1.5" onClick={() => veiculoFotoRef.current?.click()} disabled={uploadingVeiculoFoto}>
+                  {uploadingVeiculoFoto ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}
+                  {selectedUser?.veiculo_foto ? 'Alterar' : 'Enviar'}
+                </Button>
+                <input ref={veiculoFotoRef} type="file" accept="image/*" className="hidden" onChange={handleVeiculoFotoUpload} />
+              </div>
             </div>
             {selectedUser && <div className="bg-muted/50 rounded-lg p-3 text-xs text-muted-foreground space-y-1"><p>ID: <span className="font-mono text-[10px]">{selectedUser.id}</span></p><p>Cadastro: {new Date(selectedUser.created_at).toLocaleString('pt-BR')}</p></div>}
           </div>

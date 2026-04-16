@@ -557,21 +557,6 @@ function loadImageAny(src: string): Promise<HTMLImageElement | null> {
   });
 }
 
-function hexToRgb(hex: string): [number, number, number] {
-  const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-  return m ? [parseInt(m[1], 16), parseInt(m[2], 16), parseInt(m[3], 16)] : [200, 170, 50];
-}
-function lightenHex(hex: string, amt: number): string {
-  const [r, g, b] = hexToRgb(hex);
-  const f = (v: number) => Math.min(255, Math.round(v + (255 - v) * amt)).toString(16).padStart(2, '0');
-  return '#' + f(r) + f(g) + f(b);
-}
-function darkenHex(hex: string, amt: number): string {
-  const [r, g, b] = hexToRgb(hex);
-  const f = (v: number) => Math.max(0, Math.round(v * (1 - amt))).toString(16).padStart(2, '0');
-  return '#' + f(r) + f(g) + f(b);
-}
-
 function drawDiamond(ctx: CanvasRenderingContext2D, cx: number, cy: number, halfW: number, halfH: number) {
   ctx.beginPath();
   ctx.moveTo(cx, cy - halfH);
@@ -647,7 +632,7 @@ function drawCarOnCanvas(ctx: CanvasRenderingContext2D, x: number, y: number, w:
 
 export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, completedCount }) => {
   const { toast } = useToast();
-  const { nomePlataforma, corPrimaria } = usePlatformConfig();
+  const { nomePlataforma } = usePlatformConfig();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const hasVehicle = profile.veiculo_marca || profile.veiculo_placa;
 
@@ -680,59 +665,84 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
     canvas.width = W;
     canvas.height = H;
     const ctx = canvas.getContext('2d')!;
-    const accent = corPrimaria;
-    const accentLight = lightenHex(accent, 0.35);
-    const accentDark = darkenHex(accent, 0.25);
     const FONT = '"Plus Jakarta Sans", system-ui, sans-serif';
+    const GOLD1 = '#f5d442';    // amarelo dourado
+    const GOLD2 = '#c9a227';    // dourado escuro
 
-    // ══ 1) Gold gradient background ══
+    // ══ 1) Gray-black gradient background ══
     const bgGrad = ctx.createLinearGradient(0, 0, 0, H);
-    bgGrad.addColorStop(0, accentLight);
-    bgGrad.addColorStop(0.35, accent);
-    bgGrad.addColorStop(0.7, accent);
-    bgGrad.addColorStop(1, accentDark);
+    bgGrad.addColorStop(0, '#3a3a3a');
+    bgGrad.addColorStop(0.3, '#2a2a2a');
+    bgGrad.addColorStop(0.6, '#1a1a1a');
+    bgGrad.addColorStop(1, '#0d0d0d');
     ctx.fillStyle = bgGrad;
     ctx.fillRect(0, 0, W, H);
 
-    // ══ 2) White geometric diamond overlays (top area) ══
-    // Large outer diamond
-    ctx.save();
-    drawDiamond(ctx, W / 2, 280, 340, 340);
-    ctx.fillStyle = 'rgba(255,255,255,0.25)';
-    ctx.fill();
-    ctx.restore();
-    // Brighter inner diamond
-    ctx.save();
-    drawDiamond(ctx, W / 2, 260, 250, 250);
-    ctx.fillStyle = 'rgba(255,255,255,0.55)';
-    ctx.fill();
-    ctx.restore();
-    // Brightest center diamond
-    ctx.save();
-    drawDiamond(ctx, W / 2, 240, 170, 170);
-    ctx.fillStyle = 'rgba(255,255,255,0.75)';
-    ctx.fill();
-    ctx.restore();
+    // ══ 2) Top bar — branding (moved from footer) ══
+    const topBarH = 100;
+    ctx.fillStyle = '#111111';
+    ctx.fillRect(0, 0, W, topBarH);
+    // Subtle gold line at bottom of top bar
+    const goldLine = ctx.createLinearGradient(100, 0, W - 100, 0);
+    goldLine.addColorStop(0, 'transparent');
+    goldLine.addColorStop(0.3, GOLD1);
+    goldLine.addColorStop(0.7, GOLD2);
+    goldLine.addColorStop(1, 'transparent');
+    ctx.fillStyle = goldLine;
+    ctx.fillRect(0, topBarH - 2, W, 2);
 
-    // ══ 3) Brand "RF" at top ══
+    // RF branding in top bar
     ctx.textAlign = 'center';
     ctx.textBaseline = 'alphabetic';
-    ctx.font = `900 130px ${FONT}`;
-    ctx.fillStyle = '#1a1a1a';
-    ctx.fillText('RF', W / 2, 140);
+    ctx.font = `italic 900 38px ${FONT}`;
+    const tbY = 50;
+    ctx.fillStyle = GOLD1;
+    ctx.fillText('R', W / 2 - 120, tbY);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText('F', W / 2 - 94, tbY);
+
+    ctx.font = `700 16px ${FONT}`;
+    ctx.fillStyle = 'rgba(255,255,255,0.7)';
+    ctx.letterSpacing = '2.5px';
+    ctx.fillText('MOBILIDADE COM EXCELÊNCIA', W / 2 + 25, tbY - 2);
+    ctx.letterSpacing = '0px';
+
+    // Small stars in top bar
+    const tbStarY = tbY + 24;
+    for (let i = 0; i < 5; i++) {
+      const sx = W / 2 - 36 + i * 18;
+      drawStarShape(ctx, sx, tbStarY, 8, 3.5);
+      ctx.fillStyle = GOLD1;
+      ctx.fill();
+    }
+
+    // ══ 3) Diamond overlays (decorative, subtle on dark bg) ══
+    ctx.save();
+    drawDiamond(ctx, W / 2, 340, 340, 340);
+    ctx.fillStyle = 'rgba(255,255,255,0.03)';
+    ctx.fill();
+    ctx.restore();
+    ctx.save();
+    drawDiamond(ctx, W / 2, 320, 250, 250);
+    ctx.fillStyle = 'rgba(255,255,255,0.05)';
+    ctx.fill();
+    ctx.restore();
 
     // ══ 4) Diamond avatar frame ══
     const avCX = W / 2;
-    const avCY = 380;
+    const avCY = 340;
     const diamHalf = 130;
 
-    // White diamond border (shadow + fill)
+    // Gold diamond border
     ctx.save();
-    ctx.shadowColor = 'rgba(0,0,0,0.25)';
-    ctx.shadowBlur = 25;
-    ctx.shadowOffsetY = 10;
-    drawDiamond(ctx, avCX, avCY, diamHalf + 12, diamHalf + 12);
-    ctx.fillStyle = '#ffffff';
+    ctx.shadowColor = 'rgba(245,212,66,0.3)';
+    ctx.shadowBlur = 30;
+    ctx.shadowOffsetY = 8;
+    drawDiamond(ctx, avCX, avCY, diamHalf + 14, diamHalf + 14);
+    const borderGrad = ctx.createLinearGradient(avCX, avCY - diamHalf - 14, avCX, avCY + diamHalf + 14);
+    borderGrad.addColorStop(0, GOLD1);
+    borderGrad.addColorStop(1, GOLD2);
+    ctx.fillStyle = borderGrad;
     ctx.fill();
     ctx.restore();
 
@@ -740,7 +750,7 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
     ctx.save();
     drawDiamond(ctx, avCX, avCY, diamHalf, diamHalf);
     ctx.clip();
-    ctx.fillStyle = '#e8e8e8';
+    ctx.fillStyle = '#333';
     ctx.fillRect(avCX - diamHalf, avCY - diamHalf, diamHalf * 2, diamHalf * 2);
 
     let avatarLoaded = false;
@@ -758,7 +768,7 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
       } catch { /* fallback */ }
     }
     if (!avatarLoaded) {
-      ctx.strokeStyle = '#999';
+      ctx.strokeStyle = '#888';
       ctx.lineWidth = 4;
       ctx.lineCap = 'round';
       ctx.beginPath(); ctx.arc(avCX, avCY - 18, 28, 0, Math.PI * 2); ctx.stroke();
@@ -770,34 +780,51 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
     }
     ctx.restore();
 
-    // ══ 5) Name ══
+    // ══ 5) First name only — gold gradient text ══
     ctx.textAlign = 'center';
     ctx.textBaseline = 'alphabetic';
-    const nameText = (profile.nome || '').toUpperCase();
-    ctx.font = `800 52px ${FONT}`;
-    const maxNameW = W - 100;
-    if (ctx.measureText(nameText).width > maxNameW) {
-      ctx.font = `800 42px ${FONT}`;
-    }
-    ctx.fillStyle = '#1a1a1a';
-    ctx.fillText(nameText, W / 2, 570, maxNameW);
+    const firstName = (profile.nome || '').split(' ')[0].toUpperCase();
+    ctx.font = `800 56px ${FONT}`;
+    const nameGrad = ctx.createLinearGradient(W / 2 - 150, 0, W / 2 + 150, 0);
+    nameGrad.addColorStop(0, GOLD1);
+    nameGrad.addColorStop(0.5, '#ffe066');
+    nameGrad.addColorStop(1, GOLD2);
+    ctx.fillStyle = nameGrad;
+    ctx.fillText(firstName, W / 2, 540);
 
-    // ══ 6) Subtitle ══
-    ctx.font = `400 30px ${FONT}`;
-    ctx.fillStyle = 'rgba(0,0,0,0.55)';
-    ctx.fillText('Motorista Profissional', W / 2, 615);
+    // ══ 6) Subtitle — white ══
+    ctx.font = `400 28px ${FONT}`;
+    ctx.fillStyle = 'rgba(255,255,255,0.75)';
+    ctx.fillText('Motorista Credenciado', W / 2, 585);
 
-    // ══ 7) Stars ══
-    const starsY = 665;
+    // ══ 7) Rating stars + nota value ══
+    const ratingY = 645;
+    const ratingVal = avgRating?.avg ?? 0;
+    const filledStars = Math.round(ratingVal);
+
     for (let i = 0; i < 5; i++) {
-      const sx = W / 2 - 88 + i * 44;
-      drawStarShape(ctx, sx, starsY, 18, 8);
-      ctx.fillStyle = darkenHex(accent, 0.35);
+      const sx = W / 2 - 100 + i * 50;
+      drawStarShape(ctx, sx, ratingY, 22, 10);
+      if (i < filledStars) {
+        ctx.fillStyle = GOLD1;
+      } else {
+        ctx.fillStyle = 'rgba(255,255,255,0.15)';
+      }
       ctx.fill();
     }
 
+    // Nota text
+    if (avgRating) {
+      ctx.font = `700 32px ${FONT}`;
+      ctx.fillStyle = GOLD1;
+      ctx.fillText(ratingVal.toFixed(1), W / 2, ratingY + 55);
+      ctx.font = `400 18px ${FONT}`;
+      ctx.fillStyle = 'rgba(255,255,255,0.5)';
+      ctx.fillText(`(${avgRating.count} avaliação${avgRating.count !== 1 ? 'ões' : ''})`, W / 2, ratingY + 80);
+    }
+
     // ══ 8) Car ══
-    const carCenterY = 830;
+    const carCenterY = avgRating ? 850 : 810;
     let carDrawn = false;
     if (profile.veiculo_foto) {
       try {
@@ -807,7 +834,7 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
           const ratio = Math.min(maxCW / carImg.width, maxCH / carImg.height);
           const cw = carImg.width * ratio, ch = carImg.height * ratio;
           ctx.save();
-          ctx.shadowColor = 'rgba(0,0,0,0.35)';
+          ctx.shadowColor = 'rgba(0,0,0,0.5)';
           ctx.shadowBlur = 30;
           ctx.shadowOffsetY = 12;
           ctx.drawImage(carImg, W / 2 - cw / 2, carCenterY - ch / 2, cw, ch);
@@ -818,139 +845,98 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
     }
     if (!carDrawn && hasVehicle) {
       ctx.save();
-      ctx.shadowColor = 'rgba(0,0,0,0.3)';
+      ctx.shadowColor = 'rgba(0,0,0,0.5)';
       ctx.shadowBlur = 20;
       ctx.shadowOffsetY = 8;
       drawCarOnCanvas(ctx, W / 2 - 260, carCenterY - 65, 520, 208, carColor);
       ctx.restore();
     }
 
-    // Vehicle text below car
+    // Vehicle name below car — gold gradient
     if (hasVehicle) {
       const vehName = [profile.veiculo_marca, profile.veiculo_modelo].filter(Boolean).join(' ').toUpperCase();
       ctx.textAlign = 'center';
       ctx.font = `700 28px ${FONT}`;
-      ctx.fillStyle = '#1a1a1a';
-      ctx.fillText(vehName, W / 2, carCenterY + 150);
+      const vehGrad = ctx.createLinearGradient(W / 2 - 120, 0, W / 2 + 120, 0);
+      vehGrad.addColorStop(0, GOLD1);
+      vehGrad.addColorStop(1, GOLD2);
+      ctx.fillStyle = vehGrad;
+      ctx.fillText(vehName, W / 2, carCenterY + 155);
+
+      // ══ 9) Mercosul plate ══
       if (profile.veiculo_placa) {
-        ctx.font = `800 32px ${FONT}`;
-        ctx.fillStyle = 'rgba(0,0,0,0.7)';
-        ctx.letterSpacing = '4px';
-        ctx.fillText(profile.veiculo_placa.toUpperCase(), W / 2, carCenterY + 190);
-        ctx.letterSpacing = '0px';
-      }
-    }
+        const plateText = profile.veiculo_placa.toUpperCase().replace(/[^A-Z0-9]/g, '');
+        const plateW = 280;
+        const plateH = 90;
+        const plateX = W / 2 - plateW / 2;
+        const plateY = carCenterY + 175;
+        const plateR = 8;
 
-    // ══ 9) Contact icons row ══
-    const iconsY = 1100;
-    const iconR = 48;
-    const iconLabels = ['Telefone', 'Whatsapp', 'E-Mail'];
-    const iconSpacing = 220;
-
-    for (let i = 0; i < 3; i++) {
-      const ix = W / 2 - iconSpacing + i * iconSpacing;
-      // Circle outline
-      ctx.beginPath();
-      ctx.arc(ix, iconsY, iconR, 0, Math.PI * 2);
-      ctx.strokeStyle = 'rgba(0,0,0,0.5)';
-      ctx.lineWidth = 3;
-      ctx.stroke();
-      ctx.fillStyle = 'rgba(0,0,0,0.08)';
-      ctx.fill();
-
-      // Icon drawings
-      ctx.fillStyle = '#1a1a1a';
-      ctx.strokeStyle = '#1a1a1a';
-      ctx.lineWidth = 3;
-      ctx.lineCap = 'round';
-      ctx.lineJoin = 'round';
-
-      if (i === 0) {
-        // Phone handset
+        // Plate background (white)
         ctx.save();
-        ctx.translate(ix, iconsY);
-        ctx.rotate(-0.4);
+        ctx.shadowColor = 'rgba(0,0,0,0.4)';
+        ctx.shadowBlur = 12;
+        ctx.shadowOffsetY = 4;
         ctx.beginPath();
-        ctx.moveTo(-14, -18);
-        ctx.quadraticCurveTo(-18, -6, -6, 6);
-        ctx.quadraticCurveTo(0, 12, 6, 6);
-        ctx.quadraticCurveTo(12, 0, 6, -6);
-        ctx.quadraticCurveTo(18, 6, 14, 18);
-        ctx.lineWidth = 5;
-        ctx.stroke();
-        ctx.restore();
-      } else if (i === 1) {
-        // WhatsApp bubble
-        ctx.save();
-        ctx.translate(ix, iconsY);
-        ctx.beginPath();
-        ctx.arc(0, -3, 18, 0, Math.PI * 2);
-        ctx.lineWidth = 3;
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(-8, 14);
-        ctx.lineTo(-14, 22);
-        ctx.lineTo(0, 14);
-        ctx.fillStyle = '#1a1a1a';
+        ctx.roundRect(plateX, plateY, plateW, plateH, plateR);
+        ctx.fillStyle = '#ffffff';
         ctx.fill();
-        // Phone inside
-        ctx.beginPath();
-        ctx.moveTo(-7, -10);
-        ctx.quadraticCurveTo(-2, 2, 7, 6);
-        ctx.lineWidth = 2.5;
-        ctx.stroke();
-        ctx.restore();
-      } else {
-        // Email envelope
-        ctx.save();
-        ctx.translate(ix, iconsY);
+        ctx.strokeStyle = '#222';
         ctx.lineWidth = 3;
-        ctx.strokeRect(-20, -12, 40, 26);
-        ctx.beginPath();
-        ctx.moveTo(-20, -12);
-        ctx.lineTo(0, 6);
-        ctx.lineTo(20, -12);
         ctx.stroke();
         ctx.restore();
+
+        // Blue top band (Mercosul)
+        const bandH = 22;
+        ctx.beginPath();
+        ctx.roundRect(plateX, plateY, plateW, bandH, [plateR, plateR, 0, 0]);
+        ctx.fillStyle = '#003399';
+        ctx.fill();
+
+        // "BRASIL" text in blue band
+        ctx.textAlign = 'center';
+        ctx.font = `700 12px ${FONT}`;
+        ctx.fillStyle = '#ffffff';
+        ctx.fillText('BRASIL', W / 2, plateY + 15);
+
+        // Mercosul logo dots (simplified)
+        const logoX = plateX + 24;
+        const logoY2 = plateY + 11;
+        ctx.beginPath();
+        for (let i = 0; i < 4; i++) {
+          const a = (i / 4) * Math.PI * 2 - Math.PI / 2;
+          ctx.moveTo(logoX + Math.cos(a) * 6, logoY2 + Math.sin(a) * 6);
+          ctx.arc(logoX + Math.cos(a) * 6, logoY2 + Math.sin(a) * 6, 1.5, 0, Math.PI * 2);
+        }
+        ctx.fillStyle = '#ffcc00';
+        ctx.fill();
+
+        // Plate characters
+        ctx.textAlign = 'center';
+        ctx.font = `800 48px "FE-Schrift", "Segoe UI", ${FONT}`;
+        ctx.fillStyle = '#1a1a1a';
+        // Format: LLL-NLNN with red middle character for Mercosul
+        let displayPlate = plateText;
+        if (plateText.length === 7) {
+          displayPlate = plateText.slice(0, 3) + plateText.slice(3, 4) + plateText.slice(4);
+        }
+        // Draw chars with proper spacing
+        const charStartX = plateX + 32;
+        const charY = plateY + bandH + 48;
+        const charSpacing = (plateW - 64) / (displayPlate.length > 0 ? displayPlate.length : 1);
+        for (let i = 0; i < displayPlate.length; i++) {
+          const cx = charStartX + i * charSpacing + charSpacing / 2;
+          // Mercosul: 5th char (index 4) is red
+          if (i === 4 && plateText.length === 7) {
+            ctx.fillStyle = '#cc0000';
+          } else {
+            ctx.fillStyle = '#1a1a1a';
+          }
+          ctx.fillText(displayPlate[i], cx, charY);
+        }
       }
-
-      // Label
-      ctx.font = `600 22px ${FONT}`;
-      ctx.textAlign = 'center';
-      ctx.fillStyle = '#1a1a1a';
-      ctx.fillText(iconLabels[i], ix, iconsY + iconR + 35);
     }
-
-    // ══ 10) Footer dark bar ══
-    const footerH = 100;
-    const footerY = H - footerH;
-    ctx.fillStyle = '#1a1a1a';
-    ctx.fillRect(0, footerY, W, footerH);
-
-    // RF branding in footer
-    ctx.textAlign = 'center';
-    ctx.font = `italic 900 36px ${FONT}`;
-    const fcY = footerY + 42;
-    ctx.fillStyle = accent;
-    ctx.fillText('R', W / 2 - 115, fcY);
-    ctx.fillStyle = '#ffffff';
-    ctx.fillText('F', W / 2 - 90, fcY);
-
-    ctx.font = `700 16px ${FONT}`;
-    ctx.fillStyle = 'rgba(255,255,255,0.7)';
-    ctx.letterSpacing = '2.5px';
-    ctx.fillText('MOBILIDADE COM EXCELÊNCIA', W / 2 + 20, fcY - 2);
-    ctx.letterSpacing = '0px';
-
-    // Stars in footer
-    const fStarY = fcY + 22;
-    for (let i = 0; i < 5; i++) {
-      const sx = W / 2 - 36 + i * 18;
-      drawStarShape(ctx, sx, fStarY, 8, 3.5);
-      ctx.fillStyle = accent;
-      ctx.fill();
-    }
-  }, [profile, corPrimaria, hasVehicle, carColor]);
+  }, [profile, hasVehicle, carColor, avgRating]);
 
   useEffect(() => { drawBadge(); }, [drawBadge]);
 
@@ -962,20 +948,29 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
       const response = await fetch(dataUrl);
       const blob = await response.blob();
       const file = new File([blob], 'cracha-rf-drive.png', { type: 'image/png' });
+
+      // Try native share (WhatsApp first on mobile)
       if (navigator.share) {
-        try { await navigator.share({ title: `${nomePlataforma} - Crachá`, files: [file] }); return; } catch { /* fallback */ }
+        try {
+          await navigator.share({ title: `${nomePlataforma} - Crachá`, files: [file] });
+          return;
+        } catch { /* user cancelled or not supported */ }
       }
+
+      // Fallback: try WhatsApp Web direct
+      const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(`Meu crachá ${nomePlataforma}`)}`;
+      window.open(whatsappUrl, '_blank');
+
+      // Also download the image
       const link = document.createElement('a');
       link.href = dataUrl;
       link.download = 'cracha-rf-drive.png';
       link.click();
-      toast({ title: 'Crachá baixado!' });
+      toast({ title: 'Crachá baixado! Cole no WhatsApp para enviar.' });
     } catch {
       toast({ title: 'Erro ao gerar crachá', variant: 'destructive' });
     }
   }, [nomePlataforma, toast]);
-
-  const phone = (profile.telefone || '').replace(/\D/g, '');
 
   return (
     <div className="space-y-3">
@@ -991,23 +986,13 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
       />
       <div className="flex gap-2 max-w-[420px] mx-auto">
         <Button
-          className="flex-1 h-11 rounded-xl gap-2 font-semibold"
+          className="flex-1 h-11 rounded-xl gap-2 font-semibold bg-green-600 hover:bg-green-700 text-white"
           onClick={handleShare}
         >
           <Send className="w-4 h-4" />
-          Compartilhar
+          Compartilhar via WhatsApp
         </Button>
       </div>
-      {phone && (
-        <div className="flex gap-3 max-w-[420px] mx-auto justify-center">
-          <a href={`tel:+55${phone}`} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-muted/50 text-sm font-medium hover:bg-muted transition-colors">
-            <Phone className="w-4 h-4" /> Ligar
-          </a>
-          <a href={`https://wa.me/55${phone}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-4 py-2 rounded-lg bg-green-600/10 text-green-600 text-sm font-medium hover:bg-green-600/20 transition-colors">
-            <MessageSquare className="w-4 h-4" /> WhatsApp
-          </a>
-        </div>
-      )}
     </div>
   );
 };
