@@ -63,8 +63,30 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.
   aprovada: { label: 'Aprovada', color: 'bg-green-500/20 text-green-400 border-green-500/30', icon: <CheckCircle className="w-3 h-3" /> },
   nao_realizada: { label: 'Não Realizada', color: 'bg-gray-500/20 text-gray-400 border-gray-500/30', icon: <AlertTriangle className="w-3 h-3" /> },
   recusada: { label: 'Recusada', color: 'bg-red-500/20 text-red-400 border-red-500/30', icon: <XCircle className="w-3 h-3" /> },
+  finalizada: { label: 'Finalizada', color: 'bg-green-500/20 text-green-400 border-green-500/30', icon: <CheckCircle className="w-3 h-3" /> },
 };
-const ALL_STATUSES = ['nova', 'aguardando_motorista', 'aceita', 'em_analise', 'aprovada', 'nao_realizada', 'recusada'] as const;
+const ALL_STATUSES = ['nova', 'aguardando_motorista', 'aceita', 'em_analise', 'aprovada', 'nao_realizada', 'recusada', 'finalizada'] as const;
+
+type PeriodFilter = 'todos' | 'semana' | 'semana_passada' | 'mes' | 'personalizado';
+
+function getWeekRange(): [Date, Date] {
+  const now = new Date();
+  const start = new Date(now); start.setDate(now.getDate() - now.getDay()); start.setHours(0, 0, 0, 0);
+  const end = new Date(now); end.setHours(23, 59, 59, 999);
+  return [start, end];
+}
+function getLastWeekRange(): [Date, Date] {
+  const now = new Date();
+  const end = new Date(now); end.setDate(now.getDate() - now.getDay() - 1); end.setHours(23, 59, 59, 999);
+  const start = new Date(end); start.setDate(end.getDate() - 6); start.setHours(0, 0, 0, 0);
+  return [start, end];
+}
+function getMonthRange(): [Date, Date] {
+  const now = new Date();
+  const start = new Date(now.getFullYear(), now.getMonth(), 1);
+  const end = new Date(now); end.setHours(23, 59, 59, 999);
+  return [start, end];
+}
 
 // ── Resilient update ──
 const resilientUpdate = async (table: string, updates: Record<string, unknown>, eqCol: string, eqVal: string) => {
@@ -90,6 +112,24 @@ const AdminCorridas: React.FC = () => {
 
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [period, setPeriod] = useState<PeriodFilter>('todos');
+  const [customStart, setCustomStart] = useState('');
+  const [customEnd, setCustomEnd] = useState('');
+  const [motoristaFilter, setMotoristaFilter] = useState<string>('all');
+
+  const dateRange = useMemo((): [Date, Date] | null => {
+    switch (period) {
+      case 'todos': return null;
+      case 'semana': return getWeekRange();
+      case 'semana_passada': return getLastWeekRange();
+      case 'mes': return getMonthRange();
+      case 'personalizado':
+        if (customStart && customEnd) {
+          return [new Date(customStart + 'T00:00:00'), new Date(customEnd + 'T23:59:59')];
+        }
+        return null;
+    }
+  }, [period, customStart, customEnd]);
 
   // ── Ride Dialogs ──
   const [selectedRide, setSelectedRide] = useState<Solicitacao | null>(null);
@@ -154,8 +194,11 @@ const AdminCorridas: React.FC = () => {
     mutationFn: async ({ rideId, statusAdmin, observacao }: { rideId: string; statusAdmin: string; observacao: string }) => {
       const { error: apError } = await supabase.from('aprovacoes').insert({ solicitacao_id: rideId, admin_id: adminUser!.id, status_admin: statusAdmin, observacao });
       if (apError) throw apError;
-      const { error: rideError } = await supabase.from('corridas').update({ status: statusAdmin, aprovado_admin: statusAdmin === 'aprovada' }).eq('id', rideId);
-      if (rideError) throw rideError;
+      const rideUpdates: Record<string, unknown> = { status: statusAdmin, aprovado_admin: statusAdmin === 'aprovada' };
+      if (statusAdmin !== 'aprovada' && observacao) {
+        rideUpdates.observacoes = observacao;
+      }
+      await resilientUpdate('corridas', rideUpdates, 'id', rideId);
     },
     onSuccess: () => { toast({ title: 'Solicitação atualizada!' }); queryClient.invalidateQueries({ queryKey: ['admin-rides'] }); setShowApprovalDialog(false); setApprovalObs(''); setSelectedRide(null); },
     onError: () => { toast({ title: 'Erro ao processar ação', variant: 'destructive' }); },
@@ -219,7 +262,12 @@ const AdminCorridas: React.FC = () => {
     const matchStatus = statusFilter === 'all' || r.status === statusFilter;
     const matchSearch = !searchTerm || [r.origem_texto, r.destino_texto, r.motorista?.nome]
       .some(f => f?.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').includes(searchTerm.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')));
-    return matchStatus && matchSearch;
+    const matchMotorista = motoristaFilter === 'all' || r.motorista_id === motoristaFilter;
+    const matchPeriod = !dateRange || (() => {
+      const d = new Date(r.created_at);
+      return d >= dateRange[0] && d <= dateRange[1];
+    })();
+    return matchStatus && matchSearch && matchMotorista && matchPeriod;
   });
 
   const stats = {
@@ -261,18 +309,45 @@ const AdminCorridas: React.FC = () => {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-3 mb-4">
-        <div className="relative flex-1">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <Input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Buscar por nome, telefone ou endereço..." className="pl-9" />
+      <div className="space-y-3 mb-4">
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="relative flex-1">
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <Input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Buscar por nome, telefone ou endereço..." className="pl-9" />
+          </div>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-full sm:w-56"><Filter className="w-4 h-4 mr-2" /><SelectValue placeholder="Filtrar por status" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os Status</SelectItem>
+              {ALL_STATUSES.map(s => <SelectItem key={s} value={s}>{STATUS_CONFIG[s]?.label || s}</SelectItem>)}
+            </SelectContent>
+          </Select>
         </div>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-full sm:w-56"><Filter className="w-4 h-4 mr-2" /><SelectValue placeholder="Filtrar por status" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos os Status</SelectItem>
-            {ALL_STATUSES.map(s => <SelectItem key={s} value={s}>{STATUS_CONFIG[s]?.label || s}</SelectItem>)}
-          </SelectContent>
-        </Select>
+        <div className="flex flex-col sm:flex-row gap-3">
+          <Select value={period} onValueChange={(v) => setPeriod(v as PeriodFilter)}>
+            <SelectTrigger className="w-full sm:w-56"><Filter className="w-4 h-4 mr-2" /><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">📅 Todos os Períodos</SelectItem>
+              <SelectItem value="semana">📅 Esta Semana</SelectItem>
+              <SelectItem value="semana_passada">📅 Semana Passada</SelectItem>
+              <SelectItem value="mes">📅 Este Mês</SelectItem>
+              <SelectItem value="personalizado">📅 Personalizado</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={motoristaFilter} onValueChange={setMotoristaFilter}>
+            <SelectTrigger className="w-full sm:w-56"><User className="w-4 h-4 mr-2" /><SelectValue placeholder="Filtrar por motorista" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os Motoristas</SelectItem>
+              {motoristas.map((m: any) => <SelectItem key={m.id} value={m.id}>{m.nome}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          {period === 'personalizado' && (
+            <div className="flex gap-2 flex-1">
+              <Input type="date" value={customStart} onChange={e => setCustomStart(e.target.value)} className="flex-1" placeholder="De" />
+              <Input type="date" value={customEnd} onChange={e => setCustomEnd(e.target.value)} className="flex-1" placeholder="Até" />
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Rides list */}
@@ -285,7 +360,6 @@ const AdminCorridas: React.FC = () => {
           {filteredRides.map((ride, i) => {
             const cfg = STATUS_CONFIG[ride.status] || STATUS_CONFIG.nova;
             const needsAction = ride.status === 'em_analise';
-            const canValidate = ['aceita', 'em_analise', 'aguardando_motorista', 'nova'].includes(ride.status);
             return (
               <motion.div key={ride.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.02 }}>
                 <Card className={needsAction ? 'border-orange-500/30 bg-orange-500/5' : ''}>
@@ -334,13 +408,9 @@ const AdminCorridas: React.FC = () => {
                       <div className="flex items-center gap-2 flex-wrap">
                         <Button size="sm" variant="outline" className="text-xs gap-1" onClick={() => openDetailDialog(ride)}><Eye className="w-3 h-3" /> Detalhes</Button>
                         <Button size="sm" variant="outline" className="text-xs gap-1" onClick={() => openEditRideDialog(ride)}><Pencil className="w-3 h-3" /> Editar</Button>
-                        {canValidate && (
-                          <>
-                            <Button size="sm" variant="outline" className="text-xs gap-1 text-green-400 border-green-500/30 hover:bg-green-500/10" onClick={() => handleDirectApprove(ride)}><CheckCircle className="w-3 h-3" /> Aprovar</Button>
-                            <Button size="sm" variant="outline" className="text-xs gap-1 text-yellow-400 border-yellow-500/30 hover:bg-yellow-500/10" onClick={() => openApprovalDialog(ride, 'nao_realizada')}><AlertTriangle className="w-3 h-3" /> Não Realizada</Button>
-                            <Button size="sm" variant="outline" className="text-xs gap-1 text-red-400 border-red-500/30 hover:bg-red-500/10" onClick={() => openApprovalDialog(ride, 'recusada')}><XCircle className="w-3 h-3" /> Recusar</Button>
-                          </>
-                        )}
+                        <Button size="sm" variant="outline" className="text-xs gap-1 text-green-400 border-green-500/30 hover:bg-green-500/10" onClick={() => handleDirectApprove(ride)}><CheckCircle className="w-3 h-3" /> Aprovar</Button>
+                        <Button size="sm" variant="outline" className="text-xs gap-1 text-yellow-400 border-yellow-500/30 hover:bg-yellow-500/10" onClick={() => openApprovalDialog(ride, 'nao_realizada')}><AlertTriangle className="w-3 h-3" /> Não Realizada</Button>
+                        <Button size="sm" variant="outline" className="text-xs gap-1 text-red-400 border-red-500/30 hover:bg-red-500/10" onClick={() => openApprovalDialog(ride, 'recusada')}><XCircle className="w-3 h-3" /> Recusar</Button>
                         <Button size="sm" variant="outline" className="text-xs gap-1 text-red-400 border-red-500/30 hover:bg-red-500/10 ml-auto" onClick={() => { setDeleteTarget({ id: ride.id, label: `Corrida de ${ride.cliente?.nome || 'cliente'}` }); setShowDeleteConfirm(true); }}>
                           <Trash2 className="w-3 h-3" /> Excluir
                         </Button>

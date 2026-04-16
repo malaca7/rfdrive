@@ -9,7 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import AppShell from '@/components/AppShell';
 import { motion } from 'framer-motion';
 import {
-  ClipboardList, ChevronRight, Loader2, CheckCircle, Clock, XCircle, DollarSign, Filter,
+  ClipboardList, ChevronRight, Loader2, CheckCircle, Clock, XCircle,
+  DollarSign, Filter, AlertTriangle, MessageSquare,
 } from 'lucide-react';
 
 type PeriodFilter = 'semana' | 'semana_passada' | 'mes' | 'personalizado';
@@ -68,11 +69,11 @@ const MotoristaHistoricoViagens: React.FC = () => {
       if (!dateRange) return [];
       const { data, error } = await supabase
         .from('corridas')
-        .select('id, origem_texto, destino_texto, valor, status, concluida_at, created_at, observacao_motorista')
+        .select('id, origem_texto, destino_texto, valor, status, concluida_at, created_at, observacao_motorista, observacoes')
         .eq('motorista_id', user!.id)
-        .in('status', ['em_analise', 'aprovada', 'finalizada', 'recusada'])
-        .gte('concluida_at', dateRange[0].toISOString())
-        .lte('concluida_at', dateRange[1].toISOString())
+        .in('status', ['em_analise', 'aprovada', 'finalizada', 'recusada', 'nao_realizada'])
+        .gte('created_at', dateRange[0].toISOString())
+        .lte('created_at', dateRange[1].toISOString())
         .order('created_at', { ascending: false });
       if (error) throw error;
       return data || [];
@@ -80,12 +81,80 @@ const MotoristaHistoricoViagens: React.FC = () => {
     enabled: !!user && !!dateRange,
   });
 
-  const totalAprovadas = viagens?.filter(v => v.status === 'aprovada' || v.status === 'finalizada').length || 0;
-  const totalPendentes = viagens?.filter(v => v.status === 'em_analise').length || 0;
-  const totalRecusadas = viagens?.filter(v => v.status === 'recusada').length || 0;
-  const receita = viagens
-    ?.filter(v => v.status === 'aprovada' || v.status === 'finalizada')
-    .reduce((s, v) => s + (v.valor || 0), 0) || 0;
+  const emAnalise = viagens?.filter(v => v.status === 'em_analise') || [];
+  const aprovadas = viagens?.filter(v => v.status === 'aprovada' || v.status === 'finalizada') || [];
+  const naoRealizadas = viagens?.filter(v => v.status === 'nao_realizada') || [];
+  const recusadas = viagens?.filter(v => v.status === 'recusada') || [];
+  const receita = aprovadas.reduce((s, v) => s + (v.valor || 0), 0);
+
+  const renderRideCard = (ride: any, idx: number, highlight?: string) => (
+    <motion.div
+      key={ride.id}
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: Math.min(idx * 0.03, 0.5) }}
+    >
+      <Card className={
+        highlight === 'analise' ? 'border-orange-500/30 bg-orange-500/5' :
+        highlight === 'recusada' ? 'border-red-500/30 bg-red-500/5' :
+        highlight === 'nao_realizada' ? 'border-gray-500/30 bg-gray-500/5' :
+        'border-border/50'
+      }>
+        <CardContent className="py-3 space-y-1.5">
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-muted-foreground">
+              {new Date(ride.concluida_at || ride.created_at).toLocaleDateString('pt-BR', {
+                day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
+              })}
+            </span>
+            <div className="flex items-center gap-2">
+              {ride.valor != null && (
+                <Badge variant="outline" className="text-green-400 border-green-500/30 text-[10px]">
+                  R$ {ride.valor.toFixed(2)}
+                </Badge>
+              )}
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
+            <span className="text-xs truncate">{ride.origem_texto}</span>
+            <ChevronRight className="w-3 h-3 text-muted-foreground shrink-0" />
+            <div className="w-1.5 h-1.5 rounded-full bg-accent" />
+            <span className="text-xs truncate">{ride.destino_texto}</span>
+          </div>
+          {ride.observacao_motorista && (
+            <p className="text-[10px] text-muted-foreground italic truncate">
+              📝 {ride.observacao_motorista}
+            </p>
+          )}
+          {(highlight === 'recusada' || highlight === 'nao_realizada') && ride.observacoes && (
+            <div className={`flex items-start gap-1.5 p-2 rounded-lg ${
+              highlight === 'recusada' ? 'bg-red-500/10' : 'bg-gray-500/10'
+            }`}>
+              <MessageSquare className="w-3 h-3 mt-0.5 shrink-0 text-muted-foreground" />
+              <p className="text-[11px] text-muted-foreground">
+                <span className="font-medium">Motivo:</span> {ride.observacoes}
+              </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </motion.div>
+  );
+
+  const renderSection = (title: string, icon: React.ReactNode, rides: any[], highlight: string, color: string) => {
+    if (rides.length === 0) return null;
+    return (
+      <div className="space-y-2">
+        <div className="flex items-center gap-2">
+          <div className={color}>{icon}</div>
+          <h3 className="text-sm font-semibold">{title}</h3>
+          <Badge variant="outline" className="text-[10px]">{rides.length}</Badge>
+        </div>
+        {rides.map((ride, idx) => renderRideCard(ride, idx, highlight))}
+      </div>
+    );
+  };
 
   return (
     <AppShell>
@@ -102,11 +171,12 @@ const MotoristaHistoricoViagens: React.FC = () => {
         </motion.div>
 
         {/* Summary Stats */}
-        <div className="grid grid-cols-4 gap-2">
+        <div className="grid grid-cols-5 gap-2">
           {[
-            { label: 'Aprovadas', value: totalAprovadas, color: 'text-green-400', border: 'border-green-500/20', icon: <CheckCircle className="w-3.5 h-3.5" /> },
-            { label: 'Pendentes', value: totalPendentes, color: 'text-yellow-400', border: 'border-yellow-500/20', icon: <Clock className="w-3.5 h-3.5" /> },
-            { label: 'Recusadas', value: totalRecusadas, color: 'text-red-400', border: 'border-red-500/20', icon: <XCircle className="w-3.5 h-3.5" /> },
+            { label: 'Aprovadas', value: aprovadas.length, color: 'text-green-400', border: 'border-green-500/20', icon: <CheckCircle className="w-3.5 h-3.5" /> },
+            { label: 'Análise', value: emAnalise.length, color: 'text-orange-400', border: 'border-orange-500/20', icon: <Clock className="w-3.5 h-3.5" /> },
+            { label: 'N/ Realiz.', value: naoRealizadas.length, color: 'text-gray-400', border: 'border-gray-500/20', icon: <AlertTriangle className="w-3.5 h-3.5" /> },
+            { label: 'Recusadas', value: recusadas.length, color: 'text-red-400', border: 'border-red-500/20', icon: <XCircle className="w-3.5 h-3.5" /> },
             { label: 'Receita', value: `R$${receita.toFixed(0)}`, color: 'text-accent', border: 'border-accent/20', icon: <DollarSign className="w-3.5 h-3.5" /> },
           ].map(s => (
             <motion.div key={s.label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
@@ -114,7 +184,7 @@ const MotoristaHistoricoViagens: React.FC = () => {
                 <CardContent className="py-3 text-center">
                   <div className={`${s.color} mx-auto mb-1 flex justify-center`}>{s.icon}</div>
                   <p className={`text-lg font-extrabold ${s.color}`}>{s.value}</p>
-                  <p className="text-[10px] text-muted-foreground font-medium">{s.label}</p>
+                  <p className="text-[9px] text-muted-foreground font-medium">{s.label}</p>
                 </CardContent>
               </Card>
             </motion.div>
@@ -156,68 +226,17 @@ const MotoristaHistoricoViagens: React.FC = () => {
           </Card>
         </motion.div>
 
-        {/* Trip List */}
+        {/* Trip Sections */}
         {isLoading ? (
           <div className="flex justify-center py-12">
             <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
           </div>
         ) : (viagens?.length || 0) > 0 ? (
-          <div className="space-y-2">
-            {viagens!.map((ride, idx) => (
-              <motion.div
-                key={ride.id}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: Math.min(idx * 0.03, 0.5) }}
-              >
-                <Card className="border-border/50">
-                  <CardContent className="py-3 space-y-1.5">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-muted-foreground">
-                        {new Date(ride.concluida_at || ride.created_at).toLocaleDateString('pt-BR', {
-                          day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
-                        })}
-                      </span>
-                      <div className="flex items-center gap-2">
-                        {ride.valor != null && (
-                          <Badge variant="outline" className="text-green-400 border-green-500/30 text-[10px]">
-                            R$ {ride.valor.toFixed(2)}
-                          </Badge>
-                        )}
-                        <Badge
-                          variant="outline"
-                          className={
-                            ride.status === 'aprovada' || ride.status === 'finalizada'
-                              ? 'text-green-400 border-green-500/30 text-[10px]'
-                              : ride.status === 'recusada'
-                                ? 'text-red-400 border-red-500/30 text-[10px]'
-                                : 'text-yellow-400 border-yellow-500/30 text-[10px]'
-                          }
-                        >
-                          {ride.status === 'aprovada' || ride.status === 'finalizada'
-                            ? '✅ Aprovada'
-                            : ride.status === 'recusada'
-                              ? '❌ Recusada'
-                              : '⏳ Em Análise'}
-                        </Badge>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
-                      <span className="text-xs truncate">{ride.origem_texto}</span>
-                      <ChevronRight className="w-3 h-3 text-muted-foreground shrink-0" />
-                      <div className="w-1.5 h-1.5 rounded-full bg-accent" />
-                      <span className="text-xs truncate">{ride.destino_texto}</span>
-                    </div>
-                    {ride.observacao_motorista && (
-                      <p className="text-[10px] text-muted-foreground italic truncate">
-                        📝 {ride.observacao_motorista}
-                      </p>
-                    )}
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
+          <div className="space-y-5">
+            {renderSection('Em Análise', <Clock className="w-4 h-4" />, emAnalise, 'analise', 'text-orange-400')}
+            {renderSection('Aprovadas', <CheckCircle className="w-4 h-4" />, aprovadas, 'aprovada', 'text-green-400')}
+            {renderSection('Não Realizadas', <AlertTriangle className="w-4 h-4" />, naoRealizadas, 'nao_realizada', 'text-gray-400')}
+            {renderSection('Recusadas', <XCircle className="w-4 h-4" />, recusadas, 'recusada', 'text-red-400')}
           </div>
         ) : (
           <Card>

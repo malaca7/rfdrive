@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef, useCallback } from 'react';
+import React, { useState, useMemo, useRef, useCallback, useEffect } from 'react';
 import Cropper, { Area } from 'react-easy-crop';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient, useQuery } from '@tanstack/react-query';
@@ -546,7 +546,58 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
   const badgeRef = useRef<HTMLDivElement>(null);
   const hasVehicle = profile.veiculo_marca || profile.veiculo_placa;
 
-  const avatarUrl = profile.avatar_url || '';
+  // Convert avatar to base64 for reliable html2canvas capture
+  const [avatarDataUrl, setAvatarDataUrl] = useState<string>('');
+  useEffect(() => {
+    if (!profile.avatar_url) { setAvatarDataUrl(''); return; }
+    fetch(profile.avatar_url)
+      .then(r => r.blob())
+      .then(blob => {
+        const reader = new FileReader();
+        reader.onloadend = () => setAvatarDataUrl(reader.result as string);
+        reader.readAsDataURL(blob);
+      })
+      .catch(() => setAvatarDataUrl(''));
+  }, [profile.avatar_url]);
+
+  // Convert car image to base64 for reliable html2canvas capture
+  const [carDataUrl, setCarDataUrl] = useState<string>('');
+  const carUrl = useMemo(() => {
+    if (!hasVehicle) return '';
+    const corMap: Record<string, string> = {
+      'preto': 'pspc0029', 'preta': 'pspc0029', 'black': 'pspc0029',
+      'branco': 'pspc0001', 'branca': 'pspc0001', 'white': 'pspc0001',
+      'prata': 'pspc0022', 'silver': 'pspc0022',
+      'cinza': 'pspc0032', 'cinzento': 'pspc0032', 'grey': 'pspc0032', 'gray': 'pspc0032',
+      'vermelho': 'pspc0015', 'vermelha': 'pspc0015', 'red': 'pspc0015',
+      'azul': 'pspc0012', 'blue': 'pspc0012',
+      'verde': 'pspc0005', 'green': 'pspc0005',
+      'amarelo': 'pspc0004', 'amarela': 'pspc0004', 'yellow': 'pspc0004',
+      'marrom': 'pspc0031', 'brown': 'pspc0031', 'bege': 'pspc0031', 'beige': 'pspc0031',
+      'dourado': 'pspc0025', 'dourada': 'pspc0025', 'gold': 'pspc0025',
+      'vinho': 'pspc0017', 'bordo': 'pspc0017', 'burgundy': 'pspc0017',
+      'laranja': 'pspc0021', 'orange': 'pspc0021',
+      'rosa': 'pspc0020', 'pink': 'pspc0020',
+    };
+    const corNorm = (profile.veiculo_cor || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+    const paintId = corMap[corNorm] || 'pspc0029';
+    return `https://cdn.imagin.studio/getimage?customer=hrjavascript-mastery&make=${encodeURIComponent(profile.veiculo_marca || '')}&modelFamily=${encodeURIComponent(profile.veiculo_modelo || '')}&paintId=${paintId}&angle=01&width=900&zoomType=fullscreen`;
+  }, [hasVehicle, profile.veiculo_marca, profile.veiculo_modelo, profile.veiculo_cor]);
+  useEffect(() => {
+    if (!carUrl) { setCarDataUrl(''); return; }
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      const ctx = canvas.getContext('2d')!;
+      ctx.drawImage(img, 0, 0);
+      try { setCarDataUrl(canvas.toDataURL('image/png')); } catch { setCarDataUrl(carUrl); }
+    };
+    img.onerror = () => setCarDataUrl('');
+    img.src = carUrl;
+  }, [carUrl]);
 
   const handleShare = async () => {
     if (!badgeRef.current) return;
@@ -694,8 +745,8 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 boxShadow: '0 0 30px rgba(224,102,22,0.15), 0 8px 24px rgba(0,0,0,0.5)',
               }}>
-                {avatarUrl ? (
-                  <img src={avatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} crossOrigin="anonymous" />
+                {avatarDataUrl ? (
+                  <img src={avatarDataUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 ) : (
                   <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#FFD000" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
@@ -729,35 +780,14 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
             }} />
 
             {/* ══ VEHICLE IMAGE ══ */}
-            {hasVehicle && (() => {
-              // Map Brazilian car color names to imagin.studio paint IDs
-              const corMap: Record<string, string> = {
-                'preto': 'pspc0029', 'preta': 'pspc0029', 'black': 'pspc0029',
-                'branco': 'pspc0001', 'branca': 'pspc0001', 'white': 'pspc0001',
-                'prata': 'pspc0022', 'silver': 'pspc0022',
-                'cinza': 'pspc0032', 'cinzento': 'pspc0032', 'grey': 'pspc0032', 'gray': 'pspc0032',
-                'vermelho': 'pspc0015', 'vermelha': 'pspc0015', 'red': 'pspc0015',
-                'azul': 'pspc0012', 'blue': 'pspc0012',
-                'verde': 'pspc0005', 'green': 'pspc0005',
-                'amarelo': 'pspc0004', 'amarela': 'pspc0004', 'yellow': 'pspc0004',
-                'marrom': 'pspc0031', 'brown': 'pspc0031', 'bege': 'pspc0031', 'beige': 'pspc0031',
-                'dourado': 'pspc0025', 'dourada': 'pspc0025', 'gold': 'pspc0025',
-                'vinho': 'pspc0017', 'bordo': 'pspc0017', 'burgundy': 'pspc0017',
-                'laranja': 'pspc0021', 'orange': 'pspc0021',
-                'rosa': 'pspc0020', 'pink': 'pspc0020',
-              };
-              const corNorm = (profile.veiculo_cor || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
-              const paintId = corMap[corNorm] || 'pspc0029';
-              const carUrl = `https://cdn.imagin.studio/getimage?customer=hrjavascript-mastery&make=${encodeURIComponent(profile.veiculo_marca || '')}&modelFamily=${encodeURIComponent(profile.veiculo_modelo || '')}&paintId=${paintId}&angle=01&width=900&zoomType=fullscreen`;
-              return (
-                <div style={{
+            {hasVehicle && (carDataUrl || carUrl) && (
+              <div style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   padding: '2% 0', flex: '1 1 auto', minHeight: 0,
                 }}>
                   <img
-                    src={carUrl}
+                    src={carDataUrl || carUrl}
                     alt=""
-                    crossOrigin="anonymous"
                     style={{
                       width: '90%', maxHeight: '130px', objectFit: 'contain',
                       filter: 'drop-shadow(0 8px 24px rgba(0,0,0,0.6))',
@@ -765,8 +795,7 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
                     onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                   />
                 </div>
-              );
-            })()}
+            )}
 
             {/* ══ VEHICLE NAME ══ */}
             {hasVehicle && (
