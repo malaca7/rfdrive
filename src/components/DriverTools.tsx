@@ -659,278 +659,221 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
         <div
           ref={badgeRef}
           style={{
-            background: 'linear-gradient(165deg, #141414 0%, #0a0a0a 50%, #111111 100%)',
+            background: '#1a1a1a',
             borderRadius: '20px',
-            border: '1px solid rgba(224,102,22,0.25)',
+            border: '2px solid rgba(255,208,0,0.35)',
             fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
             position: 'relative' as const,
             overflow: 'hidden',
             width: '420px',
             maxWidth: '100%',
-            aspectRatio: '3 / 4',
+            aspectRatio: '1 / 1',
             margin: '0 auto',
           }}
         >
-          {/* ── Subtle orange glow top ── */}
+          {/* ── Background map pattern ── */}
           <div style={{
-            position: 'absolute', top: '-40%', left: '50%', transform: 'translateX(-50%)',
-            width: '120%', height: '60%',
-            background: 'radial-gradient(ellipse, rgba(224,102,22,0.08) 0%, transparent 70%)',
+            position: 'absolute', inset: 0,
+            backgroundImage: `
+              linear-gradient(rgba(255,208,0,0.03) 1px, transparent 1px),
+              linear-gradient(90deg, rgba(255,208,0,0.03) 1px, transparent 1px),
+              linear-gradient(rgba(255,208,0,0.015) 1px, transparent 1px),
+              linear-gradient(90deg, rgba(255,208,0,0.015) 1px, transparent 1px)
+            `,
+            backgroundSize: '60px 60px, 60px 60px, 20px 20px, 20px 20px',
+            opacity: 0.7,
           }} />
-          {/* ── Thin top accent line ── */}
+          {/* ── Dark gradient overlay ── */}
           <div style={{
-            position: 'absolute', top: 0, left: '15%', right: '15%', height: '2px',
-            background: 'linear-gradient(90deg, transparent, #FFD000, transparent)',
-            borderRadius: '0 0 2px 2px',
+            position: 'absolute', inset: 0,
+            background: 'radial-gradient(ellipse at center, rgba(26,26,26,0.3) 0%, rgba(26,26,26,0.85) 100%)',
           }} />
+
+          {/* ── Gold corner decorations ── */}
+          {/* Top-left */}
+          <div style={{ position: 'absolute', top: '12px', left: '12px', width: '30px', height: '30px', borderTop: '2px solid #FFD000', borderLeft: '2px solid #FFD000' }} />
+          {/* Top-right */}
+          <div style={{ position: 'absolute', top: '12px', right: '12px', width: '30px', height: '30px', borderTop: '2px solid #FFD000', borderRight: '2px solid #FFD000' }} />
+          {/* Bottom-left */}
+          <div style={{ position: 'absolute', bottom: '56px', left: '12px', width: '30px', height: '30px', borderBottom: '2px solid #FFD000', borderLeft: '2px solid #FFD000' }} />
+          {/* Bottom-right */}
+          <div style={{ position: 'absolute', bottom: '56px', right: '12px', width: '30px', height: '30px', borderBottom: '2px solid #FFD000', borderRight: '2px solid #FFD000' }} />
+
+          {/* ── Gold accent lines on sides ── */}
+          <div style={{ position: 'absolute', top: '20%', left: 0, width: '3px', height: '25%', background: 'linear-gradient(180deg, transparent, #FFD000, transparent)' }} />
+          <div style={{ position: 'absolute', top: '20%', right: 0, width: '3px', height: '25%', background: 'linear-gradient(180deg, transparent, #FFD000, transparent)' }} />
 
           {/* ── Content ── */}
           <div style={{
             position: 'relative' as const, zIndex: 1,
             display: 'flex', flexDirection: 'column' as const,
-            height: '100%', padding: '6% 5% 5%',
+            height: '100%', padding: '5% 5% 0',
           }}>
 
-            {/* ══ HEADER: Logo + Tipo ══ */}
-            <div style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              marginBottom: '5%',
-            }}>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: '2px' }}>
+            {/* ══ HEADER: RF + Motorista ══ */}
+            <div style={{ textAlign: 'center' as const, marginBottom: '2%' }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: '1px' }}>
                 <span style={{
-                  fontSize: 'clamp(28px, 8vw, 38px)', fontWeight: '900', color: '#FFD000',
-                  letterSpacing: '-1px', lineHeight: '1', fontStyle: 'italic',
+                  fontSize: 'clamp(38px, 10vw, 52px)', fontWeight: '900', color: '#FFD000',
+                  letterSpacing: '-2px', lineHeight: '1', fontStyle: 'italic',
+                  textShadow: '0 2px 20px rgba(255,208,0,0.3)',
                 }}>R</span>
                 <span style={{
-                  fontSize: 'clamp(28px, 8vw, 38px)', fontWeight: '900', color: '#ffffff',
-                  letterSpacing: '-1px', lineHeight: '1', fontStyle: 'italic',
+                  fontSize: 'clamp(38px, 10vw, 52px)', fontWeight: '900', color: '#ffffff',
+                  letterSpacing: '-2px', lineHeight: '1', fontStyle: 'italic',
+                  textShadow: '0 2px 10px rgba(255,255,255,0.15)',
                 }}>F</span>
-                <span style={{
-                  fontSize: 'clamp(9px, 2.5vw, 12px)', fontWeight: '500', color: 'rgba(255,255,255,0.4)',
-                  marginLeft: '6px', letterSpacing: '2px', textTransform: 'uppercase' as const,
-                }}>DRIVE</span>
               </div>
-              {/* Status pill */}
               <div style={{
-                display: 'flex', alignItems: 'center', gap: '5px',
+                fontSize: 'clamp(11px, 3vw, 15px)', fontWeight: '400', color: 'rgba(255,255,255,0.85)',
+                letterSpacing: '4px', textTransform: 'uppercase' as const, marginTop: '-2px',
+              }}>
+                Motorista
+              </div>
+            </div>
+
+            {/* ══ Status pill (centered) ══ */}
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '4%' }}>
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: '6px',
                 background: profile.status === 'ativo'
-                  ? 'rgba(74,222,128,0.08)' : 'rgba(239,68,68,0.08)',
-                border: `1px solid ${profile.status === 'ativo' ? 'rgba(74,222,128,0.3)' : 'rgba(239,68,68,0.25)'}`,
-                borderRadius: '20px', padding: '4px 12px',
+                  ? 'rgba(74,222,128,0.1)' : 'rgba(239,68,68,0.1)',
+                border: `1.5px solid ${profile.status === 'ativo' ? 'rgba(74,222,128,0.4)' : 'rgba(239,68,68,0.3)'}`,
+                borderRadius: '20px', padding: '4px 16px',
               }}>
                 <div style={{
-                  width: '6px', height: '6px', borderRadius: '50%',
+                  width: '7px', height: '7px', borderRadius: '50%',
                   background: profile.status === 'ativo' ? '#4ade80' : '#ef4444',
                   boxShadow: profile.status === 'ativo' ? '0 0 8px rgba(74,222,128,0.6)' : 'none',
                 }} />
                 <span style={{
-                  fontSize: '10px', fontWeight: '700',
+                  fontSize: '11px', fontWeight: '700',
                   color: profile.status === 'ativo' ? '#4ade80' : '#ef4444',
-                  letterSpacing: '0.5px', textTransform: 'uppercase' as const,
+                  letterSpacing: '1px', textTransform: 'uppercase' as const,
                 }}>
                   {profile.status === 'ativo' ? 'Ativo' : profile.status}
                 </span>
               </div>
             </div>
 
-            {/* ══ AVATAR (centered, prominent) ══ */}
+            {/* ══ CAR + AVATAR side by side ══ */}
             <div style={{
-              display: 'flex', justifyContent: 'center', marginBottom: '4%',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              marginBottom: '3%', gap: '0', position: 'relative' as const,
+              minHeight: '110px',
             }}>
-              <div style={{
-                width: 'clamp(90px, 28%, 120px)', aspectRatio: '1',
-                borderRadius: '50%',
-                border: '3px solid #FFD000',
-                overflow: 'hidden', background: '#1a1a1a',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                boxShadow: '0 0 30px rgba(224,102,22,0.15), 0 8px 24px rgba(0,0,0,0.5)',
-              }}>
-                {avatarDataUrl ? (
-                  <img src={avatarDataUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                ) : (
-                  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#FFD000" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
-                    <circle cx="12" cy="7" r="4" />
-                  </svg>
-                )}
-              </div>
-            </div>
-
-            {/* ══ DRIVER NAME + ROLE ══ */}
-            <div style={{ textAlign: 'center' as const, marginBottom: '5%' }}>
-              <div style={{
-                fontSize: 'clamp(20px, 5.5vw, 28px)', fontWeight: '800', color: '#ffffff',
-                textTransform: 'uppercase' as const, letterSpacing: '1.5px', lineHeight: '1.15',
-              }}>
-                {profile.nome}
-              </div>
-              <div style={{
-                fontSize: 'clamp(10px, 2.8vw, 13px)', fontWeight: '600',
-                color: '#FFD000', marginTop: '4px',
-                letterSpacing: '3px', textTransform: 'uppercase' as const,
-              }}>
-                {profile.tipo === 'admin' ? 'Administrador' : 'Motorista Credenciado'}
-              </div>
-            </div>
-
-            {/* ══ DIVIDER ══ */}
-            <div style={{
-              height: '1px', margin: '0 8%',
-              background: 'linear-gradient(90deg, transparent, rgba(224,102,22,0.4), transparent)',
-            }} />
-
-            {/* ══ VEHICLE IMAGE ══ */}
-            {hasVehicle && (carDataUrl || carUrl) && (
-              <div style={{
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  padding: '2% 0', flex: '1 1 auto', minHeight: 0,
+              {/* Car image (left) */}
+              {hasVehicle && (carDataUrl || carUrl) && (
+                <div style={{
+                  flex: '1 1 55%', display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}>
                   <img
                     src={carDataUrl || carUrl}
                     alt=""
                     style={{
-                      width: '90%', maxHeight: '130px', objectFit: 'contain',
-                      filter: 'drop-shadow(0 8px 24px rgba(0,0,0,0.6))',
+                      width: '100%', maxHeight: '110px', objectFit: 'contain',
+                      filter: 'drop-shadow(0 8px 20px rgba(0,0,0,0.7))',
                     }}
                     onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                   />
                 </div>
-            )}
-
-            {/* ══ VEHICLE NAME ══ */}
-            {hasVehicle && (
+              )}
+              {/* Avatar (right) */}
               <div style={{
-                textAlign: 'center' as const, marginBottom: '2%',
+                flex: '0 0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                marginLeft: hasVehicle ? '-15px' : '0',
               }}>
-                <span style={{
-                  fontSize: 'clamp(11px, 3vw, 14px)', fontWeight: '700', color: 'rgba(255,255,255,0.7)',
-                  textTransform: 'uppercase' as const, letterSpacing: '2px',
+                <div style={{
+                  width: '105px', height: '105px',
+                  borderRadius: '50%',
+                  border: '3px solid #FFD000',
+                  overflow: 'hidden', background: '#1a1a1a',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  boxShadow: '0 0 25px rgba(255,208,0,0.2), 0 8px 30px rgba(0,0,0,0.6)',
+                }}>
+                  {avatarDataUrl ? (
+                    <img src={avatarDataUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  ) : (
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#FFD000" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+                      <circle cx="12" cy="7" r="4" />
+                    </svg>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* ══ VEHICLE NAME + PLATE ══ */}
+            {hasVehicle && (
+              <div style={{ textAlign: 'center' as const, marginBottom: '3%' }}>
+                <div style={{
+                  fontSize: 'clamp(13px, 3.5vw, 17px)', fontWeight: '800', color: '#ffffff',
+                  textTransform: 'uppercase' as const, letterSpacing: '2px', lineHeight: '1.3',
                 }}>
                   {[profile.veiculo_marca, profile.veiculo_modelo].filter(Boolean).join(' ')}
-                </span>
-                {profile.veiculo_cor && (
-                  <span style={{
-                    fontSize: 'clamp(10px, 2.5vw, 12px)', fontWeight: '500', color: 'rgba(255,255,255,0.35)',
-                    marginLeft: '8px', letterSpacing: '1px', textTransform: 'uppercase' as const,
+                </div>
+                {profile.veiculo_placa && (
+                  <div style={{
+                    fontSize: 'clamp(12px, 3.2vw, 16px)', fontWeight: '700',
+                    color: '#FFD000', marginTop: '2px',
+                    letterSpacing: '3px', textTransform: 'uppercase' as const,
                   }}>
-                    {profile.veiculo_cor}
-                  </span>
+                    {profile.veiculo_placa}
+                  </div>
                 )}
               </div>
             )}
 
-            {/* ══ MERCOSUL PLATE (PROMINENT) ══ */}
-            {profile.veiculo_placa && (
+            {/* ══ DRIVER NAME + ROLE ══ */}
+            <div style={{ textAlign: 'center' as const, marginBottom: '4%', marginTop: 'auto' }}>
               <div style={{
-                display: 'flex', justifyContent: 'center', marginBottom: '5%', marginTop: '2%',
+                fontSize: 'clamp(22px, 6vw, 30px)', fontWeight: '800', color: '#ffffff',
+                textTransform: 'uppercase' as const, letterSpacing: '2px', lineHeight: '1.15',
               }}>
-                <div style={{
-                  width: '200px',
-                  background: '#ffffff',
-                  borderRadius: '5px',
-                  border: '2.5px solid #c0c0c0',
-                  overflow: 'hidden',
-                  boxShadow: '0 4px 20px rgba(0,0,0,0.6), 0 0 30px rgba(224,102,22,0.1)',
-                  transform: 'perspective(600px) rotateX(2deg)',
-                }}>
-                  {/* Blue top strip */}
-                  <div style={{
-                    background: 'linear-gradient(180deg, #003da5, #002d80)',
-                    height: '22px',
-                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                    padding: '0 10px',
-                  }}>
-                    {/* BR flag */}
-                    <div style={{
-                      width: '14px', height: '10px', borderRadius: '1px',
-                      background: '#009c3b', position: 'relative' as const, overflow: 'hidden', flexShrink: 0,
-                    }}>
-                      <div style={{
-                        position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)',
-                        width: '10px', height: '7px', background: '#ffdf00',
-                        clipPath: 'polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)',
-                      }} />
-                    </div>
-                    <span style={{
-                      fontSize: '8px', fontWeight: '800', color: '#ffffff',
-                      letterSpacing: '3px',
-                    }}>
-                      BRASIL
-                    </span>
-                    {/* MERCOSUL emblem */}
-                    <div style={{
-                      width: '12px', height: '12px', borderRadius: '50%',
-                      border: '1.5px solid rgba(255,255,255,0.5)',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: '6px', color: 'rgba(255,255,255,0.8)', fontWeight: '800',
-                    }}>M</div>
-                  </div>
-                  {/* Plate number */}
-                  <div style={{
-                    padding: '4px 0 8px', textAlign: 'center' as const, background: '#ffffff',
-                  }}>
-                    <span style={{
-                      fontSize: '34px', fontWeight: '900', color: '#1a1a1a',
-                      fontFamily: "'FE-Schrift', 'Roboto Condensed', 'Arial Narrow', monospace",
-                      letterSpacing: '4px', lineHeight: '1',
-                    }}>
-                      {profile.veiculo_placa}
-                    </span>
-                  </div>
-                </div>
+                {profile.nome}
               </div>
-            )}
-
-            {/* ══ STATS ROW ══ */}
-            {avgRating && (
               <div style={{
-                display: 'flex', justifyContent: 'center', marginBottom: '4%',
+                fontSize: 'clamp(11px, 3vw, 14px)', fontWeight: '600',
+                color: '#FFD000', marginTop: '4px',
+                letterSpacing: '3px', textTransform: 'uppercase' as const,
               }}>
-                <div style={{ textAlign: 'center' as const }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="#FFD000" stroke="none">
-                      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26" />
-                    </svg>
-                    <span style={{ fontSize: '16px', fontWeight: '800', color: '#ffffff' }}>
-                      {avgRating.avg}
-                    </span>
-                    <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)', fontWeight: '600', marginLeft: '2px' }}>
-                      ({avgRating.count})
-                    </span>
-                  </div>
-                </div>
+                {profile.tipo === 'admin' ? 'Administrador' : 'Motorista'}
               </div>
-            )}
+            </div>
 
-            {/* ══ FOOTER: RF MOBILIDADE COM EXCELÊNCIA ══ */}
+            {/* ══ FOOTER BAR: RF MOBILIDADE COM EXCELÊNCIA ══ */}
             <div style={{
-              background: 'linear-gradient(135deg, #FFD000, #E6A800)',
-              borderRadius: '10px',
-              padding: '10px 14px',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
-              marginTop: 'auto',
+              background: 'linear-gradient(180deg, #111111, #0a0a0a)',
+              borderTop: '1px solid rgba(255,208,0,0.2)',
+              margin: '0 -5.3%',
+              padding: '10px 16px',
+              display: 'flex', flexDirection: 'column' as const,
+              alignItems: 'center', justifyContent: 'center', gap: '3px',
             }}>
-              <div style={{
-                fontSize: 'clamp(16px, 4.5vw, 22px)', fontWeight: '900', color: '#ffffff',
-                letterSpacing: '-0.5px', fontStyle: 'italic', lineHeight: '1',
-              }}>
-                <span>R</span><span>F</span>
-              </div>
-              <div style={{ width: '1px', height: '20px', background: 'rgba(255,255,255,0.3)' }} />
-              <div style={{ display: 'flex', flexDirection: 'column' as const, alignItems: 'flex-start' }}>
-                <div style={{
-                  fontSize: 'clamp(7px, 2vw, 10px)', fontWeight: '800', color: '#ffffff',
-                  letterSpacing: '2.5px', textTransform: 'uppercase' as const, lineHeight: '1.4',
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: '0px' }}>
+                  <span style={{
+                    fontSize: '18px', fontWeight: '900', color: '#FFD000',
+                    fontStyle: 'italic', lineHeight: '1',
+                  }}>R</span>
+                  <span style={{
+                    fontSize: '18px', fontWeight: '900', color: '#ffffff',
+                    fontStyle: 'italic', lineHeight: '1',
+                  }}>F</span>
+                </div>
+                <span style={{
+                  fontSize: '9px', fontWeight: '700', color: 'rgba(255,255,255,0.7)',
+                  letterSpacing: '2.5px', textTransform: 'uppercase' as const,
                 }}>
                   MOBILIDADE COM EXCELÊNCIA
-                </div>
-                <div style={{ display: 'flex', gap: '2px', marginTop: '2px' }}>
-                  {[1, 2, 3, 4, 5].map(i => (
-                    <svg key={i} width="7" height="7" viewBox="0 0 24 24" fill="rgba(255,255,255,0.7)" stroke="none">
-                      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26" />
-                    </svg>
-                  ))}
-                </div>
+                </span>
+              </div>
+              <div style={{ display: 'flex', gap: '3px' }}>
+                {[1, 2, 3, 4, 5].map(i => (
+                  <svg key={i} width="10" height="10" viewBox="0 0 24 24" fill="#FFD000" stroke="none">
+                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26" />
+                  </svg>
+                ))}
               </div>
             </div>
 
