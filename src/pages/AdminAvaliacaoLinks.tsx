@@ -46,7 +46,7 @@ const STATUS_MAP: Record<string, { label: string; color: string; icon: React.Rea
 };
 
 function getEvalUrl(token: string): string {
-  const base = window.location.origin + window.location.pathname.replace(/\/$/, '');
+  const base = window.location.href.split('#')[0].replace(/\/$/, '');
   return `${base}#/avaliar/${token}`;
 }
 
