@@ -550,29 +550,23 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
   const [avatarDataUrl, setAvatarDataUrl] = useState<string>('');
   useEffect(() => {
     if (!profile.avatar_url) { setAvatarDataUrl(''); return; }
-    // Try fetch→blob→FileReader first (most reliable for CORS)
-    fetch(profile.avatar_url, { mode: 'cors' })
-      .then(res => res.blob())
+    // Use no-cors fetch to get blob, then convert to data URL
+    fetch(profile.avatar_url)
+      .then(res => {
+        if (!res.ok) throw new Error('fetch failed');
+        return res.blob();
+      })
       .then(blob => {
         const reader = new FileReader();
         reader.onloadend = () => setAvatarDataUrl(reader.result as string);
         reader.readAsDataURL(blob);
       })
       .catch(() => {
-        // Fallback: Image + canvas
-        const img = new Image();
-        img.crossOrigin = 'anonymous';
-        img.onload = () => {
-          try {
-            const c = document.createElement('canvas');
-            c.width = img.naturalWidth; c.height = img.naturalHeight;
-            c.getContext('2d')!.drawImage(img, 0, 0);
-            setAvatarDataUrl(c.toDataURL('image/png'));
-          } catch { setAvatarDataUrl(profile.avatar_url || ''); }
-        };
-        img.onerror = () => setAvatarDataUrl(profile.avatar_url || '');
-        img.src = profile.avatar_url;
+        // If fetch fails, just use the raw URL — it will display fine
+        // but html2canvas may not capture it
+        setAvatarDataUrl('');
       });
+  }, [profile.avatar_url]);
   }, [profile.avatar_url]);
 
   // Convert background image to base64 for html2canvas capture
@@ -633,7 +627,7 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
         backgroundColor: '#0a0a0a',
         logging: false,
         useCORS: true,
-        allowTaint: false,
+        allowTaint: true,
         imageTimeout: 10000,
       });
 
@@ -824,7 +818,7 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
                   boxShadow: `0 0 25px ${corPrimaria}33, 0 8px 30px rgba(0,0,0,0.6)`,
                 }}>
                   {(avatarDataUrl || profile.avatar_url) ? (
-                    <img src={avatarDataUrl || profile.avatar_url} alt="" crossOrigin="anonymous" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <img src={avatarDataUrl || profile.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   ) : (
                     <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke={corPrimaria} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
