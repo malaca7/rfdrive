@@ -830,18 +830,50 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
       try {
         const carImg = await loadImageAny(profile.veiculo_foto);
         if (carImg) {
-          const maxCW = 520, maxCH = 260;
+          const maxCW = 520, maxCH = 280;
           const ratio = Math.min(maxCW / carImg.width, maxCH / carImg.height);
           const cw = carImg.width * ratio, ch = carImg.height * ratio;
+          const cx = W / 2 - cw / 2, cy = carCenterY - ch / 2;
+          const radius = 20;
           ctx.save();
-          ctx.shadowColor = 'rgba(0,0,0,0.5)';
+          ctx.shadowColor = 'rgba(0,0,0,0.6)';
           ctx.shadowBlur = 30;
           ctx.shadowOffsetY = 12;
-          ctx.drawImage(carImg, W / 2 - cw / 2, carCenterY - ch / 2, cw, ch);
+          // Rounded rectangle clip
+          ctx.beginPath();
+          ctx.moveTo(cx + radius, cy);
+          ctx.lineTo(cx + cw - radius, cy);
+          ctx.quadraticCurveTo(cx + cw, cy, cx + cw, cy + radius);
+          ctx.lineTo(cx + cw, cy + ch - radius);
+          ctx.quadraticCurveTo(cx + cw, cy + ch, cx + cw - radius, cy + ch);
+          ctx.lineTo(cx + radius, cy + ch);
+          ctx.quadraticCurveTo(cx, cy + ch, cx, cy + ch - radius);
+          ctx.lineTo(cx, cy + radius);
+          ctx.quadraticCurveTo(cx, cy, cx + radius, cy);
+          ctx.closePath();
+          ctx.clip();
+          ctx.drawImage(carImg, cx, cy, cw, ch);
+          ctx.restore();
+          // Gold border around photo
+          ctx.save();
+          ctx.beginPath();
+          ctx.moveTo(cx + radius, cy);
+          ctx.lineTo(cx + cw - radius, cy);
+          ctx.quadraticCurveTo(cx + cw, cy, cx + cw, cy + radius);
+          ctx.lineTo(cx + cw, cy + ch - radius);
+          ctx.quadraticCurveTo(cx + cw, cy + ch, cx + cw - radius, cy + ch);
+          ctx.lineTo(cx + radius, cy + ch);
+          ctx.quadraticCurveTo(cx, cy + ch, cx, cy + ch - radius);
+          ctx.lineTo(cx, cy + radius);
+          ctx.quadraticCurveTo(cx, cy, cx + radius, cy);
+          ctx.closePath();
+          ctx.strokeStyle = GOLD1;
+          ctx.lineWidth = 3;
+          ctx.stroke();
           ctx.restore();
           carDrawn = true;
         }
-      } catch { /* fallback SVG */ }
+      } catch { /* fallback illustration */ }
     }
     if (!carDrawn && hasVehicle) {
       ctx.save();
