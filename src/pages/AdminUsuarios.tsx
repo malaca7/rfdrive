@@ -241,7 +241,7 @@ const AdminUsuarios: React.FC = () => {
     const isAdmin = derivedRoles.includes('admin');
     setEditUserForm({
       nome: u.nome, telefone: formatPhone(u.telefone), tipo: 'motorista', roles: derivedRoles,
-      status: u.status, senha: '', isAdmin,
+      status: u.status, senha: u.senha || '', isAdmin,
       veiculo_marca: u.veiculo_marca || '', veiculo_modelo: u.veiculo_modelo || '', veiculo_cor: u.veiculo_cor || '', veiculo_placa: u.veiculo_placa ? formatPlate(u.veiculo_placa) : '',
     });
     setShowEditUserDialog(true);
@@ -253,7 +253,7 @@ const AdminUsuarios: React.FC = () => {
     if (editUserForm.nome.trim() !== selectedUser.nome) updates.nome = editUserForm.nome.trim();
     if (editUserForm.telefone.trim() !== selectedUser.telefone) updates.telefone = editUserForm.telefone.trim();
     if (editUserForm.status !== selectedUser.status) { updates.status = editUserForm.status; updates.ativo = editUserForm.status === 'ativo'; }
-    if (editUserForm.senha.trim()) updates.senha = editUserForm.senha.trim();
+    if (editUserForm.senha.trim() && editUserForm.senha.trim() !== selectedUser.senha) updates.senha = editUserForm.senha.trim();
     const newRoles = editUserForm.isAdmin ? ['motorista', 'admin'] : ['motorista'];
     const newTipo = editUserForm.isAdmin ? 'admin' : 'motorista';
     const currentRoles = selectedUser.roles || [selectedUser.tipo];
@@ -378,7 +378,7 @@ const AdminUsuarios: React.FC = () => {
                 <Select value={editUserForm.status} onValueChange={(v) => setEditUserForm(f => ({ ...f, status: v }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="ativo">✅ Ativo</SelectItem><SelectItem value="banido">❌ Inativo</SelectItem></SelectContent></Select>
               </div>
             </div>
-            <div><Label className="text-xs">Nova Senha (opcional)</Label><Input type="text" value={editUserForm.senha} onChange={(e) => setEditUserForm(f => ({ ...f, senha: e.target.value }))} placeholder="Deixe em branco para manter" autoComplete="off" /></div>
+            <div><Label className="text-xs">Senha</Label><Input type="text" value={editUserForm.senha} onChange={(e) => setEditUserForm(f => ({ ...f, senha: e.target.value }))} placeholder="Senha do motorista" autoComplete="off" /></div>
             <Separator /><p className="text-xs text-muted-foreground font-medium">DADOS DO VEÍCULO</p>
             <div className="grid grid-cols-2 gap-3">
               <div><Label className="text-xs">Marca</Label><Select value={editUserForm.veiculo_marca} onValueChange={(v) => setEditUserForm(f => ({ ...f, veiculo_marca: v, veiculo_modelo: '' }))}><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger><SelectContent>{VEHICLE_BRANDS.map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}</SelectContent></Select></div>

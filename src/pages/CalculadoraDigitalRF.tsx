@@ -557,7 +557,7 @@ const CalculadoraDigitalRF: React.FC = () => {
             onClick={() => { window.location.hash = '/admin/login'; }}
             className="text-[11px] text-white/30 hover:text-[hsl(45_100%_50%)] transition-colors underline underline-offset-2"
           >
-            Painel Administrativo
+            Painel do Motorista
           </button>
           <p className="text-[10px] text-white/25">
             {nomePlataforma} © {new Date().getFullYear()} — Calculadora Digital
