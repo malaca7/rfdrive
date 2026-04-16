@@ -661,7 +661,7 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
     if (!canvas) return;
 
     const W = 840;
-    const H = 840;
+    const H = 640;
     canvas.width = W;
     canvas.height = H;
     const ctx = canvas.getContext('2d')!;
@@ -730,16 +730,6 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
       ctx.fill();
     }
 
-    // ══ VERTICAL DIVIDER — thin gold gradient line ══
-    const divX = W / 2;
-    const divGrad = ctx.createLinearGradient(0, BORDER + topBarH + 20, 0, H - BORDER - 20);
-    divGrad.addColorStop(0, 'transparent');
-    divGrad.addColorStop(0.1, GOLD1);
-    divGrad.addColorStop(0.9, GOLD2);
-    divGrad.addColorStop(1, 'transparent');
-    ctx.fillStyle = divGrad;
-    ctx.fillRect(divX - 0.5, BORDER + topBarH + 20, 1.5, H - BORDER * 2 - topBarH - 40);
-
     // ═══════════════════════════════════════
     // LEFT SIDE — Driver Info
     // ═══════════════════════════════════════
@@ -747,19 +737,19 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
 
     // Decorative diamonds (behind avatar)
     ctx.save();
-    drawDiamond(ctx, LC, 280, 220, 220);
+    drawDiamond(ctx, LC, 246, 220, 220);
     ctx.fillStyle = 'rgba(255,255,255,0.03)';
     ctx.fill();
     ctx.restore();
     ctx.save();
-    drawDiamond(ctx, LC, 270, 160, 160);
+    drawDiamond(ctx, LC, 236, 160, 160);
     ctx.fillStyle = 'rgba(255,255,255,0.05)';
     ctx.fill();
     ctx.restore();
 
     // Diamond avatar frame
     const avCX = LC;
-    const avCY = 270;
+    const avCY = 236;
     const diamHalf = 120;
 
     // Gold diamond border
@@ -819,12 +809,12 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
     nameGrad.addColorStop(0.5, '#ffe066');
     nameGrad.addColorStop(1, GOLD2);
     ctx.fillStyle = nameGrad;
-    ctx.fillText(firstName, LC, 450);
+    ctx.fillText(firstName, LC, 416);
 
     // Subtitle — bigger
     ctx.font = `400 22px ${FONT}`;
     ctx.fillStyle = 'rgba(255,255,255,0.75)';
-    ctx.fillText('Motorista Credenciado', LC, 484);
+    ctx.fillText('Motorista Credenciado', LC, 450);
 
     // Small gold divider line
     const miniDivW = 100;
@@ -834,10 +824,10 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
     miniDivGrad.addColorStop(0.7, GOLD2);
     miniDivGrad.addColorStop(1, 'transparent');
     ctx.fillStyle = miniDivGrad;
-    ctx.fillRect(LC - miniDivW / 2, 500, miniDivW, 1.5);
+    ctx.fillRect(LC - miniDivW / 2, 466, miniDivW, 1.5);
 
     // Rating stars — BIGGER
-    const ratingY = 545;
+    const ratingY = 500;
     const ratingVal = avgRating?.avg ?? 0;
     const filledStars = Math.round(ratingVal);
 
@@ -870,7 +860,7 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
 
     if (hasVehicle) {
       // Car photo — BIGGER
-      const carCenterY = 290;
+      const carCenterY = 256;
       let carDrawn = false;
       if (profile.veiculo_foto) {
         try {
@@ -907,13 +897,13 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
       vehGrad.addColorStop(0, GOLD1);
       vehGrad.addColorStop(1, GOLD2);
       ctx.fillStyle = vehGrad;
-      ctx.fillText(vehName, RC, 460);
+      ctx.fillText(vehName, RC, 426);
 
       // Vehicle color — BIGGER
       if (profile.veiculo_cor) {
         ctx.font = `400 20px ${FONT}`;
         ctx.fillStyle = 'rgba(255,255,255,0.7)';
-        ctx.fillText(profile.veiculo_cor.toUpperCase(), RC, 490);
+        ctx.fillText(profile.veiculo_cor.toUpperCase(), RC, 456);
       }
 
       // Mercosul plate — BIGGER
@@ -922,7 +912,7 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
         const plateW = 280;
         const plateH = 88;
         const plateX = RC - plateW / 2;
-        const plateY = profile.veiculo_cor ? 516 : 506;
+        const plateY = profile.veiculo_cor ? 482 : 472;
         const plateR = 6;
 
         // Plate background (white)
@@ -1027,7 +1017,7 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
           maxWidth: '420px',
           margin: '0 auto',
           display: 'block',
-          borderRadius: '16px',
+          borderRadius: '0px',
         }}
       />
       <div className="flex gap-2 max-w-[420px] mx-auto">
