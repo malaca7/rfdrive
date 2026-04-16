@@ -67,6 +67,7 @@ const AppRoutes = () => {
         {effectiveScreen === 'motorista' && <Route path="/" element={<DriverDashboard />} />}
         {effectiveScreen === 'cliente' && <Route path="/" element={<CalculadoraDigitalRF />} />}
         {!effectiveScreen && <Route path="/" element={<CalculadoraDigitalRF />} />}
+        <Route path="/login" element={<Navigate to="/" replace />} />
         <Route path="/calculadora-digital-RF" element={<CalculadoraDigitalRF />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

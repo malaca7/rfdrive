@@ -81,12 +81,13 @@ function deriveRoles(tipo: string, dbRoles?: string[] | null): AppRole[] {
 function getAvailableScreens(roles: AppRole[], user?: UserData | null): ScreenKey[] {
   const screens: ScreenKey[] = [];
   const isAdmin = user?.tipo === 'admin' || roles.includes('admin');
+  const isMotorista = user?.tipo === 'motorista' || roles.includes('motorista');
 
   // Todos têm acesso a cliente
   screens.push('cliente');
 
-  // Motorista: basta ter veículo cadastrado (qualquer role/tipo)
-  if (user?.veiculo_placa) {
+  // Motorista: por tipo, role ou veículo cadastrado
+  if (isMotorista || user?.veiculo_placa) {
     screens.push('motorista');
   }
 
