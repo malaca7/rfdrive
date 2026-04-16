@@ -221,10 +221,15 @@ const MotoristaDashboard: React.FC = () => {
                 <Card className="border-yellow-500/20">
                   <CardContent className="py-[12%] text-center">
                     <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-yellow-500/10 mx-auto mb-2">
-                      <Clock className="w-5 h-5 text-yellow-400" />
+                      <Star className="w-5 h-5 fill-yellow-400 text-yellow-400" />
                     </div>
-                    <p className="text-[clamp(1.25rem,4vw,1.75rem)] font-extrabold text-yellow-400">{viagensPendentes}</p>
-                    <p className="text-[clamp(0.6rem,2vw,0.7rem)] text-muted-foreground font-medium">Pendentes</p>
+                    <div className="flex items-center justify-center gap-0.5 mb-1">
+                      {[1,2,3,4,5].map(s => (
+                        <Star key={s} className={`w-3 h-3 ${s <= Math.round(avgRating?.avg || 0) ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground/30'}`} />
+                      ))}
+                    </div>
+                    <p className="text-[clamp(1.25rem,4vw,1.75rem)] font-extrabold text-yellow-400">{avgRating?.avg || '-'}</p>
+                    <p className="text-[clamp(0.6rem,2vw,0.7rem)] text-muted-foreground font-medium">Avaliação Média</p>
                   </CardContent>
                 </Card>
               </motion.div>

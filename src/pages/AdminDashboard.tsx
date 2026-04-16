@@ -553,8 +553,9 @@ const AdminDashboard: React.FC = () => {
     if (editUserForm.nome.trim() !== selectedUser.nome) {
       updates.nome = editUserForm.nome.trim();
     }
-    if (editUserForm.telefone.trim() !== selectedUser.telefone) {
-      updates.telefone = editUserForm.telefone.trim();
+    const phoneDigits = editUserForm.telefone.replace(/\D/g, '');
+    if (phoneDigits !== selectedUser.telefone) {
+      updates.telefone = phoneDigits;
     }
     if (editUserForm.status !== selectedUser.status) {
       updates.status = editUserForm.status;

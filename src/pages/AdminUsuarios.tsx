@@ -252,7 +252,8 @@ const AdminUsuarios: React.FC = () => {
     if (!selectedUser) return;
     const updates: Record<string, unknown> = {};
     if (editUserForm.nome.trim() !== selectedUser.nome) updates.nome = editUserForm.nome.trim();
-    if (editUserForm.telefone.trim() !== selectedUser.telefone) updates.telefone = editUserForm.telefone.trim();
+    const phoneDigits = editUserForm.telefone.replace(/\D/g, '');
+    if (phoneDigits !== selectedUser.telefone) updates.telefone = phoneDigits;
     if (editUserForm.status !== selectedUser.status) { updates.status = editUserForm.status; updates.ativo = editUserForm.status === 'ativo'; }
     if (editUserForm.senha.trim() && editUserForm.senha.trim() !== selectedUser.senha) updates.senha = editUserForm.senha.trim();
     const newRoles = editUserForm.isAdmin ? ['motorista', 'admin'] : ['motorista'];
@@ -262,7 +263,7 @@ const AdminUsuarios: React.FC = () => {
     if ((editUserForm.veiculo_marca || '') !== (selectedUser.veiculo_marca || '')) updates.veiculo_marca = editUserForm.veiculo_marca || null;
     if ((editUserForm.veiculo_modelo || '') !== (selectedUser.veiculo_modelo || '')) updates.veiculo_modelo = editUserForm.veiculo_modelo || null;
     if ((editUserForm.veiculo_cor || '') !== (selectedUser.veiculo_cor || '')) updates.veiculo_cor = editUserForm.veiculo_cor || null;
-    if ((editUserForm.veiculo_placa || '') !== (selectedUser.veiculo_placa || '')) updates.veiculo_placa = editUserForm.veiculo_placa || null;
+    if ((editUserForm.veiculo_placa || '') !== (selectedUser.veiculo_placa || '')) updates.veiculo_placa = editUserForm.veiculo_placa ? editUserForm.veiculo_placa.replace(/[^A-Za-z0-9]/g, '').toUpperCase() : null;
     if (Object.keys(updates).length === 0) { toast({ title: 'Nenhuma alteração' }); return; }
     updateUserMutation.mutate({ userId: selectedUser.id, updates });
   };

@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
-  BarChart3, Car, Users, DollarSign, Settings, Star,
+  BarChart3, Car, Users, DollarSign, Settings, Star, Link2,
 } from 'lucide-react';
 import AppShell from '@/components/AppShell';
 
@@ -11,6 +11,7 @@ const ADMIN_NAV = [
   { path: '/admin/usuarios', label: 'Usuários', icon: <Users className="w-4 h-4" /> },
   { path: '/admin/precos', label: 'Preços', icon: <DollarSign className="w-4 h-4" /> },
   { path: '/admin/perform', label: 'Avaliações', icon: <Star className="w-4 h-4" /> },
+  { path: '/admin/avaliacoes-links', label: 'Links', icon: <Link2 className="w-4 h-4" /> },
   { path: '/admin/config', label: 'Config', icon: <Settings className="w-4 h-4" /> },
 ];
 

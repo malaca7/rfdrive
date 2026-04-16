@@ -29,6 +29,8 @@ const MotoristaDashboardAll = React.lazy(() => import("./pages/MotoristaDashboar
 const MotoristaCredencial = React.lazy(() => import("./pages/MotoristaCredencial"));
 const MotoristaEditPerfil = React.lazy(() => import("./pages/MotoristaEditPerfil"));
 const MotoristaHistoricoViagens = React.lazy(() => import("./pages/MotoristaHistoricoViagens"));
+const AdminAvaliacaoLinks = React.lazy(() => import("./pages/AdminAvaliacaoLinks"));
+const AvaliacaoPublica = React.lazy(() => import("./pages/AvaliacaoPublica"));
 
 const PageLoader = () => (
   <div className="min-h-screen flex items-center justify-center bg-background">
@@ -67,6 +69,7 @@ const AppRoutes = () => {
         {/* Rotas públicas */}
         <Route path="/" element={<CalculadoraDigitalRF />} />
         <Route path="/calculadora-digital-RF" element={<CalculadoraDigitalRF />} />
+        <Route path="/avaliar/:token" element={<AvaliacaoPublica />} />
 
         {/* Painel admin */}
         {!user && <Route path="/admin/login" element={<AuthPage />} />}
@@ -82,6 +85,7 @@ const AppRoutes = () => {
         {user && effectiveScreen === 'admin' && <Route path="/admin/precos/tabela" element={<AdminPrecosTabela />} />}
         {user && effectiveScreen === 'admin' && <Route path="/admin/perform" element={<AdminPerform />} />}
         {user && effectiveScreen === 'admin' && <Route path="/admin/config" element={<AdminConfig />} />}
+        {user && effectiveScreen === 'admin' && <Route path="/admin/avaliacoes-links" element={<AdminAvaliacaoLinks />} />}
 
         {/* Motorista routes */}
         {user && <Route path="/motorista/dashboard" element={<MotoristaDashboard />} />}
