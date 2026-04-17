@@ -18,10 +18,12 @@ import { motion } from 'framer-motion';
 import {
   MapPin, Clock, CheckCircle, XCircle, Car, Shield, Loader2, MessageSquare, Phone,
   Search, Filter, Eye, AlertTriangle, DollarSign, User, Globe,
-  FileText, Pencil, Trash2, Save, TableProperties, Star,
+  FileText, Pencil, Trash2, Save, TableProperties, Star, Plus,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { buscarPrecoTabela } from '@/lib/tabela-preco';
+import { useAllLocations } from '@/hooks/usePrecoTabela';
+import { normalizeText } from '@/lib/tabela-preco';
 
 type Solicitacao = {
   id: string;
@@ -146,6 +148,33 @@ const AdminCorridas: React.FC = () => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; label: string } | null>(null);
 
+  // ── Admin create ride ──
+  const [showCreateRideDialog, setShowCreateRideDialog] = useState(false);
+  const [createRideForm, setCreateRideForm] = useState({
+    origem_texto: '', destino_texto: '', motorista_id: '' as string | null,
+    data: '', hora: '', observacoes: '', valor: '',
+  });
+  const [showCreateOrigemSugg, setShowCreateOrigemSugg] = useState(false);
+  const [showCreateDestinoSugg, setShowCreateDestinoSugg] = useState(false);
+  const allLocations = useAllLocations();
+
+  const filteredCreateOrigens = useMemo(() => {
+    if (!createRideForm.origem_texto.trim()) return allLocations;
+    const q = normalizeText(createRideForm.origem_texto);
+    return allLocations.filter(o => normalizeText(o).includes(q));
+  }, [createRideForm.origem_texto, allLocations]);
+
+  const filteredCreateDestinos = useMemo(() => {
+    if (!createRideForm.destino_texto.trim()) return allLocations;
+    const q = normalizeText(createRideForm.destino_texto);
+    return allLocations.filter(d => normalizeText(d).includes(q));
+  }, [createRideForm.destino_texto, allLocations]);
+
+  const precoTabelaCreate = useMemo(() => {
+    if (!createRideForm.origem_texto.trim() || !createRideForm.destino_texto.trim()) return null;
+    return buscarPrecoTabela(createRideForm.origem_texto, createRideForm.destino_texto);
+  }, [createRideForm.origem_texto, createRideForm.destino_texto]);
+
   const precoTabelaAdmin = useMemo(() => {
     if (!editRideForm.origem_texto.trim() || !editRideForm.destino_texto.trim()) return null;
     return buscarPrecoTabela(editRideForm.origem_texto, editRideForm.destino_texto);
@@ -231,6 +260,37 @@ const AdminCorridas: React.FC = () => {
     onError: (err: any) => { toast({ title: 'Erro ao excluir', description: err?.message, variant: 'destructive' }); },
   });
 
+  const createRideMutation = useMutation({
+    mutationFn: async () => {
+      if (!createRideForm.motorista_id || !createRideForm.origem_texto.trim() || !createRideForm.destino_texto.trim()) throw new Error('Preencha motorista, origem e destino');
+      const concluidaAt = createRideForm.data
+        ? new Date(`${createRideForm.data}T${createRideForm.hora || '12:00'}`).toISOString()
+        : new Date().toISOString();
+      const valor = createRideForm.valor ? parseFloat(createRideForm.valor) : (precoTabelaCreate?.valor ?? null);
+      const { error } = await supabase.from('corridas').insert({
+        cliente_id: createRideForm.motorista_id,
+        motorista_id: createRideForm.motorista_id,
+        origem_texto: createRideForm.origem_texto.trim(),
+        destino_texto: createRideForm.destino_texto.trim(),
+        valor,
+        valor_estimado: valor,
+        status: 'aprovada',
+        aprovado_admin: true,
+        concluida_at: concluidaAt,
+        observacoes: createRideForm.observacoes.trim() || null,
+        preco_regra_aplicada: precoTabelaCreate ? (precoTabelaCreate.estimado ? 'estimado' : 'tabela') : 'manual',
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-rides'] });
+      toast({ title: 'Viagem registrada com sucesso!' });
+      setShowCreateRideDialog(false);
+      setCreateRideForm({ origem_texto: '', destino_texto: '', motorista_id: null, data: '', hora: '', observacoes: '', valor: '' });
+    },
+    onError: (err: any) => { toast({ title: 'Erro ao registrar viagem', description: err?.message, variant: 'destructive' }); },
+  });
+
   // ── Helpers ──
   const openApprovalDialog = (ride: Solicitacao, action: string) => { setSelectedRide(ride); setApprovalAction(action); setApprovalObs(''); setShowApprovalDialog(true); };
   const handleDirectApprove = (ride: Solicitacao) => { approvalMutation.mutate({ rideId: ride.id, statusAdmin: 'aprovada', observacao: '' }); };
@@ -286,11 +346,16 @@ const AdminCorridas: React.FC = () => {
 
   return (
     <AdminLayout>
-      <div className="mb-4">
-        <h1 className="text-xl font-extrabold flex items-center gap-2">
-          <Car className="w-5 h-5 text-accent" /> Corridas
-        </h1>
-        <p className="text-xs text-muted-foreground mt-1">Gerenciar todas as corridas da plataforma</p>
+      <div className="mb-4 flex items-center justify-between flex-wrap gap-2">
+        <div>
+          <h1 className="text-xl font-extrabold flex items-center gap-2">
+            <Car className="w-5 h-5 text-accent" /> Corridas
+          </h1>
+          <p className="text-xs text-muted-foreground mt-1">Gerenciar todas as corridas da plataforma</p>
+        </div>
+        <Button className="gap-2" onClick={() => setShowCreateRideDialog(true)}>
+          <Plus className="w-4 h-4" /> Registrar Viagem
+        </Button>
       </div>
 
       {/* Stats */}
@@ -580,6 +645,131 @@ const AdminCorridas: React.FC = () => {
             <Button variant="outline" onClick={() => setShowDeleteConfirm(false)}>Cancelar</Button>
             <Button variant="destructive" onClick={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)} disabled={deleteMutation.isPending} className="gap-1">
               {deleteMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}<Trash2 className="w-4 h-4" /> Excluir
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ═══ CREATE RIDE DIALOG ═══ */}
+      <Dialog open={showCreateRideDialog} onOpenChange={setShowCreateRideDialog}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><Plus className="w-5 h-5 text-accent" />Registrar Viagem</DialogTitle>
+            <DialogDescription>Adicione uma viagem manualmente definindo motorista, rota, data e hora.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2 max-h-[60vh] overflow-y-auto">
+            {/* Motorista */}
+            <div>
+              <Label className="text-xs">Motorista *</Label>
+              <Select value={createRideForm.motorista_id || '_none'} onValueChange={(v) => setCreateRideForm(f => ({ ...f, motorista_id: v === '_none' ? null : v }))}>
+                <SelectTrigger><SelectValue placeholder="Selecione o motorista" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="_none">Selecione...</SelectItem>
+                  {motoristas.map((m: any) => <SelectItem key={m.id} value={m.id}>{m.nome} ({m.telefone})</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Origem com autocomplete */}
+            <div className="relative">
+              <Label className="text-xs">Origem *</Label>
+              <Input
+                value={createRideForm.origem_texto}
+                onChange={e => { setCreateRideForm(f => ({ ...f, origem_texto: e.target.value })); setShowCreateOrigemSugg(true); }}
+                onFocus={() => setShowCreateOrigemSugg(true)}
+                onBlur={() => setTimeout(() => setShowCreateOrigemSugg(false), 200)}
+                placeholder="De onde sai?"
+              />
+              {showCreateOrigemSugg && filteredCreateOrigens.length > 0 && createRideForm.origem_texto.trim() && (
+                <div className="absolute z-50 w-full mt-1 bg-background border border-border rounded-lg shadow-lg max-h-40 overflow-y-auto">
+                  {filteredCreateOrigens.slice(0, 12).map(loc => (
+                    <button key={loc} type="button" className="w-full text-left px-3 py-2 text-sm hover:bg-accent/10 transition-colors"
+                      onMouseDown={e => e.preventDefault()}
+                      onClick={() => { setCreateRideForm(f => ({ ...f, origem_texto: loc })); setShowCreateOrigemSugg(false); }}>
+                      {loc}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Destino com autocomplete */}
+            <div className="relative">
+              <Label className="text-xs">Destino *</Label>
+              <Input
+                value={createRideForm.destino_texto}
+                onChange={e => { setCreateRideForm(f => ({ ...f, destino_texto: e.target.value })); setShowCreateDestinoSugg(true); }}
+                onFocus={() => setShowCreateDestinoSugg(true)}
+                onBlur={() => setTimeout(() => setShowCreateDestinoSugg(false), 200)}
+                placeholder="Para onde vai?"
+              />
+              {showCreateDestinoSugg && filteredCreateDestinos.length > 0 && createRideForm.destino_texto.trim() && (
+                <div className="absolute z-50 w-full mt-1 bg-background border border-border rounded-lg shadow-lg max-h-40 overflow-y-auto">
+                  {filteredCreateDestinos.slice(0, 12).map(loc => (
+                    <button key={loc} type="button" className="w-full text-left px-3 py-2 text-sm hover:bg-accent/10 transition-colors"
+                      onMouseDown={e => e.preventDefault()}
+                      onClick={() => { setCreateRideForm(f => ({ ...f, destino_texto: loc })); setShowCreateDestinoSugg(false); }}>
+                      {loc}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Preço tabelado */}
+            {precoTabelaCreate && (
+              <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <TableProperties className={`w-4 h-4 ${precoTabelaCreate.estimado ? 'text-amber-400' : 'text-green-400'}`} />
+                    <div>
+                      <p className="text-[10px] text-muted-foreground">{precoTabelaCreate.estimado ? 'Preço estimado' : 'Preço tabelado'}</p>
+                      <p className={`text-lg font-bold ${precoTabelaCreate.estimado ? 'text-amber-400' : 'text-green-400'}`}>R$ {precoTabelaCreate.valor.toFixed(2)}</p>
+                    </div>
+                  </div>
+                  <Button type="button" variant="ghost" size="sm" className="text-xs text-green-400 hover:text-green-300 h-6"
+                    onClick={() => setCreateRideForm(f => ({ ...f, valor: precoTabelaCreate.valor.toFixed(2) }))}>Aplicar</Button>
+                </div>
+              </div>
+            )}
+
+            {/* Valor manual */}
+            <div>
+              <Label className="text-xs">Valor (R$)</Label>
+              <Input type="number" step="0.01" min="0" value={createRideForm.valor}
+                onChange={e => setCreateRideForm(f => ({ ...f, valor: e.target.value }))}
+                placeholder={precoTabelaCreate ? `Tabelado: ${precoTabelaCreate.valor.toFixed(2)}` : 'Ex: 25.00'} />
+            </div>
+
+            {/* Data e Hora */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs">Data</Label>
+                <Input type="date" value={createRideForm.data}
+                  onChange={e => setCreateRideForm(f => ({ ...f, data: e.target.value }))} />
+                <p className="text-[10px] text-muted-foreground mt-0.5">Deixe vazio para data atual</p>
+              </div>
+              <div>
+                <Label className="text-xs">Hora</Label>
+                <Input type="time" value={createRideForm.hora}
+                  onChange={e => setCreateRideForm(f => ({ ...f, hora: e.target.value }))} />
+              </div>
+            </div>
+
+            {/* Observações */}
+            <div>
+              <Label className="text-xs">Observações</Label>
+              <Textarea value={createRideForm.observacoes} onChange={e => setCreateRideForm(f => ({ ...f, observacoes: e.target.value }))}
+                placeholder="Observações sobre a viagem..." rows={2} className="resize-none" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCreateRideDialog(false)}>Cancelar</Button>
+            <Button onClick={() => createRideMutation.mutate()}
+              disabled={createRideMutation.isPending || !createRideForm.motorista_id || !createRideForm.origem_texto.trim() || !createRideForm.destino_texto.trim()}
+              className="gap-1">
+              {createRideMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+              <CheckCircle className="w-4 h-4" /> Registrar
             </Button>
           </DialogFooter>
         </DialogContent>
