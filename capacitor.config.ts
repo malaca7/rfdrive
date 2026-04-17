@@ -1,8 +1,8 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.localizzou.app',
-  appName: 'RF Drive',
+  appId: 'com.rf.app',
+  appName: 'Escritório RF',
   webDir: 'dist',
   server: {
     // Live Updates: carrega sempre do GitHub Pages
