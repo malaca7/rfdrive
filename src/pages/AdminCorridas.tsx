@@ -335,7 +335,7 @@ const AdminCorridas: React.FC = () => {
       return d >= dateRange[0] && d <= dateRange[1];
     })();
     return matchStatus && matchSearch && matchMotorista && matchPeriod;
-  });
+  })?.sort((a, b) => new Date(b.concluida_at || b.created_at).getTime() - new Date(a.concluida_at || a.created_at).getTime());
 
   const stats = {
     total: rides?.length || 0,
