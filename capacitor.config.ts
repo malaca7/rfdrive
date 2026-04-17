@@ -5,7 +5,9 @@ const config: CapacitorConfig = {
   appName: 'RF Drive',
   webDir: 'dist',
   server: {
-    androidScheme: 'https',
+    // Live Updates: carrega sempre do GitHub Pages
+    url: 'https://malaca7.github.io/rfdrive/',
+    cleartext: true,
   },
   plugins: {
     Browser: {
