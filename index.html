@@ -9,6 +9,31 @@
     <title>RF Drive</title>
     <meta name="description" content="RF Drive - Seu transporte inteligente" />
     <meta name="author" content="RF Drive" />
+    <script>
+      // Must be in <head> BEFORE module scripts to catch load failures
+      window.__appLoaded = false;
+      window.onerror = function(msg, src, line, col, err) {
+        if (window.__appLoaded) return;
+        document.addEventListener('DOMContentLoaded', function() {
+          var el = document.getElementById('root');
+          if (el) el.innerHTML = '<div style="padding:24px;font:14px monospace;color:#ff6b6b;background:#111;min-height:100vh;word-break:break-all;"><h2 style="color:#fff">Erro</h2><p>'+msg+'</p><p>'+src+':'+line+'</p>'+(err&&err.stack?'<pre style="white-space:pre-wrap">'+err.stack+'</pre>':'')+'</div>';
+        });
+      };
+      window.addEventListener('unhandledrejection', function(e) {
+        document.addEventListener('DOMContentLoaded', function() {
+          var el = document.getElementById('root');
+          if (el) el.innerHTML = '<div style="padding:24px;font:14px monospace;color:#ff6b6b;background:#111;min-height:100vh;word-break:break-all;"><h2 style="color:#fff">Erro (Promise)</h2><p>'+(e.reason&&e.reason.message?e.reason.message:String(e.reason))+'</p>'+(e.reason&&e.reason.stack?'<pre style="white-space:pre-wrap">'+e.reason.stack+'</pre>':'')+'</div>';
+        });
+      });
+      // Timeout: se o app não carregar em 8s, mostrar diagnóstico
+      setTimeout(function() {
+        if (window.__appLoaded) return;
+        var el = document.getElementById('root');
+        if (el && (!el.children.length || el.innerHTML.trim() === '')) {
+          el.innerHTML = '<div style="padding:24px;font:14px monospace;color:#ffa500;background:#111;min-height:100vh;"><h2 style="color:#fff">App não carregou</h2><p>O JavaScript pode não estar sendo executado.</p><p>UserAgent: '+navigator.userAgent+'</p><p>URL: '+location.href+'</p><p>Protocol: '+location.protocol+'</p></div>';
+        }
+      }, 8000);
+    </script>
 
     <meta property="og:title" content="RF Drive" />
     <meta property="og:description" content="RF Drive - Seu transporte inteligente" />
@@ -21,29 +46,12 @@
   </head>
 
   <body>
-    <div id="root"></div>
-    <script>
-      // Catch any unhandled errors and display them visually
-      window.onerror = function(msg, src, line, col, err) {
-        var el = document.getElementById('root');
-        el.innerHTML = '<div style="padding:24px;font:14px monospace;color:#ff6b6b;background:#111;min-height:100vh;word-break:break-all;">'
-          + '<h2 style="color:#fff;">Erro na inicialização</h2>'
-          + '<p>' + msg + '</p>'
-          + '<p>Arquivo: ' + src + '</p>'
-          + '<p>Linha: ' + line + ':' + col + '</p>'
-          + (err && err.stack ? '<pre style="white-space:pre-wrap;margin-top:12px;">' + err.stack + '</pre>' : '')
-          + '</div>';
-        return true;
-      };
-      window.addEventListener('unhandledrejection', function(e) {
-        var el = document.getElementById('root');
-        el.innerHTML = '<div style="padding:24px;font:14px monospace;color:#ff6b6b;background:#111;min-height:100vh;word-break:break-all;">'
-          + '<h2 style="color:#fff;">Erro (Promise)</h2>'
-          + '<p>' + (e.reason && e.reason.message ? e.reason.message : String(e.reason)) + '</p>'
-          + (e.reason && e.reason.stack ? '<pre style="white-space:pre-wrap;margin-top:12px;">' + e.reason.stack + '</pre>' : '')
-          + '</div>';
-      });
-    </script>
+    <div id="root">
+      <div style="display:flex;align-items:center;justify-content:center;min-height:100vh;background:#0a0a0a;">
+        <div style="width:32px;height:32px;border:3px solid #333;border-top-color:#f5c542;border-radius:50%;animation:spin 0.8s linear infinite;"></div>
+      </div>
+      <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

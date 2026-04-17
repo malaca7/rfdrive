@@ -25,6 +25,9 @@ class ErrorBoundary extends React.Component<
   }
 }
 
+// Mark app as loaded so the timeout diagnostic in index.html won't fire
+(window as any).__appLoaded = true;
+
 createRoot(document.getElementById("root")!).render(
   <ErrorBoundary>
     <App />
