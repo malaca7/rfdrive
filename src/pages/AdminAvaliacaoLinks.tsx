@@ -103,6 +103,20 @@ const AdminAvaliacaoLinks: React.FC = () => {
     },
   });
 
+  // Fetch admins para exibir quem gerou o link
+  const { data: admins } = useQuery({
+    queryKey: ['eval-admins'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('users')
+        .select('id, nome, telefone, tipo, status, roles, avatar_url')
+        .eq('tipo', 'admin')
+        .order('nome');
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
   // Fetch eval links
   const { data: links, isLoading } = useQuery({
     queryKey: ['eval-links'],
@@ -172,6 +186,13 @@ const AdminAvaliacaoLinks: React.FC = () => {
     motoristas?.forEach(m => { map[m.id] = m; });
     return map;
   }, [motoristas]);
+
+  // Admin name lookup
+  const adminMap = useMemo(() => {
+    const map: Record<string, UserRecord> = {};
+    admins?.forEach((a: any) => { map[a.id] = a; });
+    return map;
+  }, [admins]);
 
   // Filter links
   const filteredLinks = useMemo(() => {
@@ -358,6 +379,9 @@ const AdminAvaliacaoLinks: React.FC = () => {
                           </div>
 
                           <div className="flex items-center gap-3 mt-1 text-[10px] text-muted-foreground">
+                            {link.admin_id && adminMap[link.admin_id] && (
+                              <><span>Por {adminMap[link.admin_id].nome}</span><span>•</span></>
+                            )}
                             <span>Criado {timeAgo(link.created_at)}</span>
                             <span>•</span>
                             {link.status === 'ativa' && !isExpiredNow ? (
