@@ -420,7 +420,7 @@ const DriverDashboard: React.FC = () => {
         <CardContent className="py-4 space-y-3">
           <div className="flex items-start justify-between">
             <span className="text-xs text-muted-foreground">
-              {new Date(ride.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+              {new Date(ride.concluida_at || ride.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
             </span>
           </div>
 

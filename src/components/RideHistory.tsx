@@ -87,7 +87,7 @@ const RideHistory: React.FC = () => {
               <CardContent className="py-[3.5%] px-[4%]">
                 <div className="flex items-start justify-between mb-3">
                   <div className="text-xs text-muted-foreground">
-                    {new Date(ride.created_at).toLocaleDateString('pt-BR', {
+                    {new Date(ride.concluida_at || ride.created_at).toLocaleDateString('pt-BR', {
                       day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit',
                     })}
                   </div>

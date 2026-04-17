@@ -42,6 +42,9 @@ const MotoristaViagens: React.FC = () => {
   const [copied, setCopied] = useState(false);
   const [showRegistrar, setShowRegistrar] = useState(false);
   const [showClienteInfo, setShowClienteInfo] = useState(false);
+  const [usarDataAtual, setUsarDataAtual] = useState(true);
+  const [dataRegistro, setDataRegistro] = useState('');
+  const [horaRegistro, setHoraRegistro] = useState('');
 
   const filteredOrigens = useMemo(() => {
     if (!origem.trim()) return allLocations;
@@ -145,6 +148,9 @@ const MotoristaViagens: React.FC = () => {
   const registrarMutation = useMutation({
     mutationFn: async () => {
       if (!preco || !user) throw new Error('Dados incompletos');
+      const concluidaAt = usarDataAtual || !dataRegistro
+        ? new Date().toISOString()
+        : new Date(`${dataRegistro}T${horaRegistro || '12:00'}`).toISOString();
       const { error } = await supabase.from('corridas').insert({
         cliente_id: user.id,
         motorista_id: user.id,
@@ -154,7 +160,7 @@ const MotoristaViagens: React.FC = () => {
         valor_estimado: totalValue,
         status: 'em_analise',
         observacao_motorista: observacao.trim() || null,
-        concluida_at: new Date().toISOString(),
+        concluida_at: concluidaAt,
         tem_bagagem: temBagagem || null,
         preco_regra_aplicada: preco.estimado ? 'estimado' : 'tabela',
         preco_detalhes: {
@@ -177,6 +183,9 @@ const MotoristaViagens: React.FC = () => {
       setClienteTelefone('');
       setShowRegistrar(false);
       setShowClienteInfo(false);
+      setUsarDataAtual(true);
+      setDataRegistro('');
+      setHoraRegistro('');
       queryClient.invalidateQueries({ queryKey: ['minhas-viagens-registradas'] });
       queryClient.invalidateQueries({ queryKey: ['meu-desempenho'] });
     },
@@ -450,6 +459,45 @@ const MotoristaViagens: React.FC = () => {
                         <p className="text-xs text-muted-foreground">
                           A viagem será enviada para aprovação do administrador antes de ser contabilizada.
                         </p>
+
+                        {/* Toggle data/hora */}
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-3">
+                            <input
+                              type="checkbox"
+                              id="usarDataAtual"
+                              checked={usarDataAtual}
+                              onChange={e => { setUsarDataAtual(e.target.checked); if (e.target.checked) { setDataRegistro(''); setHoraRegistro(''); } }}
+                              className="w-5 h-5 rounded border-border text-accent focus:ring-accent"
+                            />
+                            <label htmlFor="usarDataAtual" className="text-xs cursor-pointer">
+                              <span className="font-medium">Usar data e hora atuais</span>
+                            </label>
+                          </div>
+                          {!usarDataAtual && (
+                            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="flex gap-2">
+                              <div className="flex-1">
+                                <label className="text-[10px] text-muted-foreground mb-1 block">Data</label>
+                                <Input
+                                  type="date"
+                                  value={dataRegistro}
+                                  onChange={e => setDataRegistro(e.target.value)}
+                                  className="text-sm"
+                                />
+                              </div>
+                              <div className="w-28">
+                                <label className="text-[10px] text-muted-foreground mb-1 block">Hora</label>
+                                <Input
+                                  type="time"
+                                  value={horaRegistro}
+                                  onChange={e => setHoraRegistro(e.target.value)}
+                                  className="text-sm"
+                                />
+                              </div>
+                            </motion.div>
+                          )}
+                        </div>
+
                         <div className="bg-muted/30 rounded-lg p-3 space-y-1 text-xs">
                           <p><span className="text-muted-foreground">Origem:</span> {origem}</p>
                           <p><span className="text-muted-foreground">Destino:</span> {destino}</p>
@@ -488,7 +536,7 @@ const MotoristaViagens: React.FC = () => {
                   <CardContent className="py-3 space-y-1.5">
                     <div className="flex items-center justify-between">
                       <span className="text-xs text-muted-foreground">
-                        {new Date(ride.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                        {new Date(ride.concluida_at || ride.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
                       </span>
                       <div className="flex items-center gap-2">
                         {ride.valor != null && (

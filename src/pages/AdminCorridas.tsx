@@ -271,7 +271,7 @@ const AdminCorridas: React.FC = () => {
       .some(f => f?.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').includes(searchTerm.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')));
     const matchMotorista = motoristaFilter === 'all' || r.motorista_id === motoristaFilter;
     const matchPeriod = !dateRange || (() => {
-      const d = new Date(r.created_at);
+      const d = new Date(r.concluida_at || r.created_at);
       return d >= dateRange[0] && d <= dateRange[1];
     })();
     return matchStatus && matchSearch && matchMotorista && matchPeriod;
@@ -376,7 +376,7 @@ const AdminCorridas: React.FC = () => {
                         <div className="flex items-center gap-2">
                           <Badge variant="outline" className={`text-xs gap-1 ${cfg.color}`}>{cfg.icon}{cfg.label}</Badge>
                         </div>
-                        <span className="text-xs text-muted-foreground">{new Date(ride.created_at).toLocaleString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
+                        <span className="text-xs text-muted-foreground">{new Date(ride.concluida_at || ride.created_at).toLocaleString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
                       </div>
                       <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6">
                         {ride.motorista && (
