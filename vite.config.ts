@@ -2,6 +2,7 @@ import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
+import { defineConfig } from 'vite';
 
 // Remove crossorigin attributes for Capacitor builds (WebView compatibility)
 function removeCrossorigin(): Plugin {
@@ -19,7 +20,7 @@ function removeCrossorigin(): Plugin {
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
-  base: process.env.CAPACITOR === 'true' ? '/' : '/rfdrive/',
+  base: './',
   server: {
     host: "::",
     port: 8080,
