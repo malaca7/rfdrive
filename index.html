@@ -18,14 +18,36 @@
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@Lovable" />
     <meta name="twitter:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
-    <script type="module" crossorigin src="/rfdrive/assets/index-BMgxlteR.js"></script>
+    <script type="module" crossorigin src="/rfdrive/assets/index-kxGajYM7.js"></script>
     <link rel="modulepreload" crossorigin href="/rfdrive/assets/vendor-react-BpmN_Bkm.js">
     <link rel="modulepreload" crossorigin href="/rfdrive/assets/vendor-query-GGva_DqP.js">
     <link rel="modulepreload" crossorigin href="/rfdrive/assets/vendor-supabase-6nRBcVya.js">
-    <link rel="stylesheet" crossorigin href="/rfdrive/assets/index-D4CBMmtc.css">
+    <link rel="stylesheet" crossorigin href="/rfdrive/assets/index-DfICe5JI.css">
   </head>
 
   <body>
     <div id="root"></div>
+    <script>
+      // Catch any unhandled errors and display them visually
+      window.onerror = function(msg, src, line, col, err) {
+        var el = document.getElementById('root');
+        el.innerHTML = '<div style="padding:24px;font:14px monospace;color:#ff6b6b;background:#111;min-height:100vh;word-break:break-all;">'
+          + '<h2 style="color:#fff;">Erro na inicialização</h2>'
+          + '<p>' + msg + '</p>'
+          + '<p>Arquivo: ' + src + '</p>'
+          + '<p>Linha: ' + line + ':' + col + '</p>'
+          + (err && err.stack ? '<pre style="white-space:pre-wrap;margin-top:12px;">' + err.stack + '</pre>' : '')
+          + '</div>';
+        return true;
+      };
+      window.addEventListener('unhandledrejection', function(e) {
+        var el = document.getElementById('root');
+        el.innerHTML = '<div style="padding:24px;font:14px monospace;color:#ff6b6b;background:#111;min-height:100vh;word-break:break-all;">'
+          + '<h2 style="color:#fff;">Erro (Promise)</h2>'
+          + '<p>' + (e.reason && e.reason.message ? e.reason.message : String(e.reason)) + '</p>'
+          + (e.reason && e.reason.stack ? '<pre style="white-space:pre-wrap;margin-top:12px;">' + e.reason.stack + '</pre>' : '')
+          + '</div>';
+      });
+    </script>
   </body>
 </html>
