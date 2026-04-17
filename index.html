@@ -22,6 +22,28 @@
 
   <body>
     <div id="root"></div>
+    <script>
+      // Catch any unhandled errors and display them visually
+      window.onerror = function(msg, src, line, col, err) {
+        var el = document.getElementById('root');
+        el.innerHTML = '<div style="padding:24px;font:14px monospace;color:#ff6b6b;background:#111;min-height:100vh;word-break:break-all;">'
+          + '<h2 style="color:#fff;">Erro na inicialização</h2>'
+          + '<p>' + msg + '</p>'
+          + '<p>Arquivo: ' + src + '</p>'
+          + '<p>Linha: ' + line + ':' + col + '</p>'
+          + (err && err.stack ? '<pre style="white-space:pre-wrap;margin-top:12px;">' + err.stack + '</pre>' : '')
+          + '</div>';
+        return true;
+      };
+      window.addEventListener('unhandledrejection', function(e) {
+        var el = document.getElementById('root');
+        el.innerHTML = '<div style="padding:24px;font:14px monospace;color:#ff6b6b;background:#111;min-height:100vh;word-break:break-all;">'
+          + '<h2 style="color:#fff;">Erro (Promise)</h2>'
+          + '<p>' + (e.reason && e.reason.message ? e.reason.message : String(e.reason)) + '</p>'
+          + (e.reason && e.reason.stack ? '<pre style="white-space:pre-wrap;margin-top:12px;">' + e.reason.stack + '</pre>' : '')
+          + '</div>';
+      });
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
