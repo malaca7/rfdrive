@@ -67,7 +67,11 @@ const AppRoutes = () => {
     <Suspense fallback={<PageLoader />}>
       <Routes>
         {/* Rotas públicas */}
-        <Route path="/" element={<AuthPage />} />
+        <Route path="/" element={
+          user
+            ? <Navigate to={effectiveScreen === 'admin' ? '/admin/dashboard' : '/motorista/dashboard'} replace />
+            : <AuthPage />
+        } />
         <Route path="/calculadora" element={<CalculadoraDigitalRF />} />
         <Route path="/calculadora-digital-RF" element={<CalculadoraDigitalRF />} />
         <Route path="/avaliar/:token" element={<AvaliacaoPublica />} />
