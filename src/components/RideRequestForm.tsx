@@ -554,7 +554,7 @@ const RideRequestForm: React.FC = () => {
           <Button
             onClick={handleSolicitar}
             disabled={!origem.trim() || !destino.trim() || isSending}
-            className="w-full h-12 rounded-2xl text-base font-bold gradient-accent text-white shadow-lg shadow-[hsl(45_100%_50%/0.3)] glow-accent hover:opacity-90 transition-opacity"
+            className="w-full h-12 rounded-2xl text-base font-bold btn-themed"
           >
             {isSending ? (
               <><Loader2 className="w-5 h-5 animate-spin mr-2" />Registrando...</>

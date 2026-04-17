@@ -138,7 +138,7 @@ const AuthPage: React.FC = () => {
               </div>
               <Button
                 type="submit"
-                className="w-full h-12 rounded-2xl gradient-accent text-white font-bold text-sm hover:opacity-90 transition-opacity shadow-lg shadow-[hsl(45_100%_50%/0.3)] glow-accent"
+                className="w-full h-12 rounded-2xl btn-themed font-bold text-sm"
                 disabled={loading}
               >
                 {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}

@@ -464,7 +464,7 @@ const DriverDashboard: React.FC = () => {
           </div>
 
           <Button
-            className="w-full gradient-accent text-accent-foreground font-semibold hover:opacity-90"
+            className="w-full btn-themed font-semibold"
             onClick={() => acceptMutation.mutate(ride.id)}
             disabled={acceptMutation.isPending}
           >
@@ -702,7 +702,7 @@ const DriverDashboard: React.FC = () => {
                   className={`h-10 px-6 rounded-full font-bold text-sm transition-all ${
                     isAtivo
                       ? 'bg-red-500/15 text-red-400 hover:bg-red-500/25 border border-red-500/30'
-                      : 'gradient-accent text-white hover:opacity-90'
+                      : 'btn-themed'
                   }`}
                   variant="ghost"
                 >

@@ -97,6 +97,8 @@
     -webkit-tap-highlight-color: transparent;
     overscroll-behavior: none;
     touch-action: pan-x pan-y;
+    -webkit-user-select: none;
+    user-select: none;
   }
   html, body, #root {
     @apply h-full w-full m-0 p-0;
@@ -107,6 +109,10 @@
   #root {
     @apply flex flex-col;
     overflow: hidden;
+  }
+  input, textarea, [contenteditable] {
+    -webkit-user-select: text;
+    user-select: text;
   }
   /* Prevent auto-zoom on input focus in iOS Safari */
   input, select, textarea {
@@ -148,11 +154,83 @@
   .glow-accent {
     box-shadow: 0 0 20px hsl(var(--accent) / 0.25), 0 0 60px hsl(var(--accent) / 0.1);
   }
+
+  /* ═══ Themed button — reads admin panel CSS vars ═══ */
+  .btn-themed {
+    color: var(--theme-btn-text, white);
+    transition: all 0.2s;
+  }
+  .btn-themed:hover:not(:disabled) {
+    filter: brightness(0.92);
+  }
+  /* Gradient style (default) */
+  :root:not([data-btn-style]) .btn-themed,
+  :root[data-btn-style="gradient"] .btn-themed {
+    background: linear-gradient(
+      var(--theme-gradient-dir, 135deg),
+      var(--theme-btn-bg, hsl(var(--primary))),
+      color-mix(in srgb, var(--theme-btn-bg, hsl(var(--primary))) 82%, black)
+    );
+  }
+  /* Filled style */
+  :root[data-btn-style="filled"] .btn-themed {
+    background: var(--theme-btn-bg, hsl(var(--primary)));
+  }
+  /* Outline style */
+  :root[data-btn-style="outline"] .btn-themed {
+    background: transparent;
+    border: 2px solid var(--theme-btn-bg, hsl(var(--primary)));
+    color: var(--theme-btn-bg, hsl(var(--primary)));
+  }
+  /* Glow (when active) */
+  .btn-themed:not(:disabled) {
+    box-shadow:
+      0 0 18px color-mix(in srgb, var(--theme-btn-glow, hsl(var(--accent))) 28%, transparent),
+      0 0 48px color-mix(in srgb, var(--theme-btn-glow, hsl(var(--accent))) 12%, transparent);
+  }
+  :root[data-btn-style="outline"] .btn-themed:not(:disabled) {
+    box-shadow: none;
+  }
+  :root.no-btn-glow .btn-themed:not(:disabled) {
+    box-shadow: none;
+  }
   .card-hover {
     @apply transition-all duration-300;
   }
   .card-hover:hover {
     border-color: hsl(var(--accent) / 0.3);
     box-shadow: 0 0 20px hsl(var(--accent) / 0.08);
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  /* Native-like touch feedback */
+  .tap-highlight {
+    @apply active:scale-[0.97] active:opacity-80 transition-all duration-100;
+  }
+  /* Smooth page transitions */
+  .page-enter {
+    animation: pageIn 0.2s ease-out;
+  }
+  @keyframes pageIn {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  /* Pull-to-refresh indicator */
+  .refresh-spin {
+    animation: spin 0.6s linear infinite;
+  }
+  @keyframes spin {
+    to { transform: rotate(360deg); }
   }
 }

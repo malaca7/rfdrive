@@ -18,7 +18,7 @@ import {
 import {
   Calculator, MapPin, Navigation, DollarSign, Send, Check, Copy,
   Phone, Star, User, Shield, Clock, MessageSquare, ChevronRight, TableProperties,
-  Camera, Loader2, ZoomIn, ZoomOut, AlertTriangle,
+  Camera, Loader2, ZoomIn, ZoomOut, AlertTriangle, Download,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePrecoTabela, useAllLocations } from '@/hooks/usePrecoTabela';
@@ -27,6 +27,7 @@ import { normalizeText } from '@/lib/tabela-preco';
 import { getConfigTarifas, type ConfigTarifas } from '@/lib/pricing-engine';
 import { useToast } from '@/hooks/use-toast';
 import { usePlatformConfig } from '@/hooks/usePlatformConfig';
+import { openExternal, copyToClipboard, downloadImage } from '@/lib/native-helpers';
 
 // ── Crop helper: canvas-based crop to blob ──
 async function getCroppedBlob(imageSrc: string, crop: Area, outputSize = 400): Promise<Blob> {
@@ -176,12 +177,12 @@ export const TripCalculator: React.FC<{
 
   const handleCopy = async () => {
     if (!quoteMensagem) return;
-    try {
-      await navigator.clipboard.writeText(quoteMensagem);
+    const ok = await copyToClipboard(quoteMensagem);
+    if (ok) {
       setCopied(true);
       toast({ title: 'Copiado!' });
       setTimeout(() => setCopied(false), 2000);
-    } catch {
+    } else {
       toast({ title: 'Erro ao copiar', variant: 'destructive' });
     }
   };
@@ -192,7 +193,7 @@ export const TripCalculator: React.FC<{
     const url = phone
       ? `https://wa.me/55${phone}?text=${encodeURIComponent(quoteMensagem)}`
       : `https://wa.me/?text=${encodeURIComponent(quoteMensagem)}`;
-    window.open(url, '_blank');
+    openExternal(url);
   };
 
   const handleSendQuote = () => {
@@ -1019,33 +1020,40 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
     const canvas = canvasRef.current;
     if (!canvas) return;
     try {
-      const dataUrl = canvas.toDataURL('image/png');
-      const response = await fetch(dataUrl);
-      const blob = await response.blob();
+      const blob = await new Promise<Blob>((resolve, reject) => {
+        canvas.toBlob(b => b ? resolve(b) : reject(new Error('toBlob failed')), 'image/png');
+      });
       const file = new File([blob], 'cracha-rf-drive.png', { type: 'image/png' });
 
-      // Try native share (WhatsApp first on mobile)
-      if (navigator.share) {
+      // Native share — sends image only, no text
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
         try {
-          await navigator.share({ title: `${nomePlataforma} - Crachá`, files: [file] });
+          await navigator.share({ files: [file] });
           return;
-        } catch { /* user cancelled or not supported */ }
+        } catch { /* user cancelled */ }
       }
 
-      // Fallback: try WhatsApp Web direct
-      const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(`Meu crachá ${nomePlataforma}`)}`;
-      window.open(whatsappUrl, '_blank');
-
-      // Also download the image
-      const link = document.createElement('a');
-      link.href = dataUrl;
-      link.download = 'cracha-rf-drive.png';
-      link.click();
-      toast({ title: 'Crachá baixado! Cole no WhatsApp para enviar.' });
+      // Fallback: download image then open WhatsApp to attach manually
+      await downloadImage(blob, 'cracha-rf-drive.png');
+      toast({ title: 'Crachá salvo! Abra o WhatsApp e envie a imagem.' });
     } catch {
       toast({ title: 'Erro ao gerar crachá', variant: 'destructive' });
     }
-  }, [nomePlataforma, toast]);
+  }, [toast]);
+
+  const handleDownload = useCallback(async () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    try {
+      const blob = await new Promise<Blob>((resolve, reject) => {
+        canvas.toBlob(b => b ? resolve(b) : reject(new Error('toBlob failed')), 'image/png');
+      });
+      await downloadImage(blob, 'cracha-rf-drive.png');
+      toast({ title: 'Crachá salvo com sucesso!' });
+    } catch {
+      toast({ title: 'Erro ao baixar crachá', variant: 'destructive' });
+    }
+  }, [toast]);
 
   return (
     <div className="space-y-3">
@@ -1059,13 +1067,21 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
           borderRadius: '0px',
         }}
       />
-      <div className="flex gap-2 max-w-[420px] mx-auto">
+      <div className="flex flex-col gap-2 max-w-[420px] mx-auto">
         <Button
-          className="flex-1 h-11 rounded-xl gap-2 font-semibold bg-green-600 hover:bg-green-700 text-white"
+          className="w-full h-12 rounded-xl gap-2 font-semibold bg-green-600 hover:bg-green-700 text-white text-base"
           onClick={handleShare}
         >
-          <Send className="w-4 h-4" />
-          Compartilhar via WhatsApp
+          <Send className="w-5 h-5" />
+          Enviar pelo WhatsApp
+        </Button>
+        <Button
+          className="w-full h-11 rounded-xl gap-2 font-semibold text-base"
+          variant="outline"
+          onClick={handleDownload}
+        >
+          <Download className="w-5 h-5" />
+          Baixar Crachá
         </Button>
       </div>
     </div>

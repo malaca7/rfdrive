@@ -16,7 +16,7 @@ import AdminLayout from '@/components/AdminLayout';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Star, Search, Plus, Loader2, Link2, Copy, Check, Clock, ExternalLink,
-  MessageSquare, Filter, Trash2, User, Car, TrendingUp, AlertCircle,
+  MessageSquare, Filter, Trash2, User, Car, TrendingUp, AlertCircle, Eye,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
@@ -46,8 +46,9 @@ const STATUS_MAP: Record<string, { label: string; color: string; icon: React.Rea
 };
 
 function getEvalUrl(token: string): string {
-  const base = window.location.href.split('#')[0].replace(/\/$/, '');
-  return `${base}#/avaliar/${token}`;
+  const origin = window.location.origin;
+  const basePath = import.meta.env.BASE_URL || '/';
+  return `${origin}${basePath}#/avaliar/${token}`;
 }
 
 function timeAgo(dateStr: string): string {
@@ -81,6 +82,7 @@ const AdminAvaliacaoLinks: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [copiedToken, setCopiedToken] = useState<string | null>(null);
+  const [detailLink, setDetailLink] = useState<EvalLink | null>(null);
   const [createForm, setCreateForm] = useState({
     motorista_id: '',
     permite_comentario: true,
@@ -225,7 +227,7 @@ const AdminAvaliacaoLinks: React.FC = () => {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 mb-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
         <Card>
           <CardContent className="py-3 px-4 flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-white/[0.06] flex items-center justify-center">
@@ -267,17 +269,6 @@ const AdminAvaliacaoLinks: React.FC = () => {
             <div>
               <p className="text-lg font-bold leading-none text-red-400">{stats.expiradas}</p>
               <p className="text-[10px] text-muted-foreground mt-0.5">Expiradas</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="py-3 px-4 flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-yellow-500/10 flex items-center justify-center">
-              <Star className="w-4 h-4 text-yellow-400" />
-            </div>
-            <div>
-              <p className="text-lg font-bold leading-none text-yellow-400">{stats.mediaNotas ? stats.mediaNotas.toFixed(1) : '-'}</p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">Média</p>
             </div>
           </CardContent>
         </Card>
@@ -422,14 +413,25 @@ const AdminAvaliacaoLinks: React.FC = () => {
                         </div>
 
                         {/* Actions */}
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-8 w-8 text-muted-foreground hover:text-red-400 shrink-0"
-                          onClick={() => deleteMutation.mutate(link.id)}
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </Button>
+                        <div className="flex flex-col gap-1 shrink-0">
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-8 w-8 text-muted-foreground hover:text-accent"
+                            onClick={() => setDetailLink(link)}
+                            title="Detalhes"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-8 w-8 text-muted-foreground hover:text-red-400"
+                            onClick={() => deleteMutation.mutate(link.id)}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
@@ -544,6 +546,123 @@ const AdminAvaliacaoLinks: React.FC = () => {
               <Link2 className="w-4 h-4" /> Gerar Link
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ═══════ DETAIL DIALOG ═══════ */}
+      <Dialog open={!!detailLink} onOpenChange={(open) => { if (!open) setDetailLink(null); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Eye className="w-5 h-5 text-accent" />
+              Detalhes da Avaliação
+            </DialogTitle>
+            <DialogDescription>
+              Informações completas do link de avaliação.
+            </DialogDescription>
+          </DialogHeader>
+          {detailLink && (() => {
+            const motorista = motoristaMap[detailLink.motorista_id];
+            const statusInfo = STATUS_MAP[detailLink.status] || STATUS_MAP.ativa;
+            const isExpiredNow = new Date(detailLink.expira_em).getTime() < Date.now() && detailLink.status === 'ativa';
+            const effectiveStatus = isExpiredNow ? STATUS_MAP.expirada : statusInfo;
+            const url = getEvalUrl(detailLink.token);
+            return (
+              <div className="space-y-4 py-2">
+                {/* Motorista */}
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-full shrink-0 overflow-hidden bg-accent/20 flex items-center justify-center">
+                    {motorista?.avatar_url ? (
+                      <img src={motorista.avatar_url} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      <Car className="w-6 h-6 text-accent" />
+                    )}
+                  </div>
+                  <div>
+                    <p className="font-semibold">{motorista?.nome || 'Motorista removido'}</p>
+                    <p className="text-xs text-muted-foreground">{motorista?.telefone || ''}</p>
+                  </div>
+                  <Badge variant="outline" className={`ml-auto text-[10px] px-2 py-0.5 ${effectiveStatus.color}`}>
+                    {effectiveStatus.icon}
+                    <span className="ml-1">{isExpiredNow ? 'Expirada' : effectiveStatus.label}</span>
+                  </Badge>
+                </div>
+
+                <Separator />
+
+                {/* Info grid */}
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div className="bg-white/[0.03] rounded-lg p-3">
+                    <p className="text-[10px] text-muted-foreground font-medium mb-0.5">CRIADO EM</p>
+                    <p className="font-medium text-xs">{new Date(detailLink.created_at).toLocaleString('pt-BR')}</p>
+                  </div>
+                  <div className="bg-white/[0.03] rounded-lg p-3">
+                    <p className="text-[10px] text-muted-foreground font-medium mb-0.5">EXPIRA EM</p>
+                    <p className="font-medium text-xs">{new Date(detailLink.expira_em).toLocaleString('pt-BR')}</p>
+                  </div>
+                  <div className="bg-white/[0.03] rounded-lg p-3">
+                    <p className="text-[10px] text-muted-foreground font-medium mb-0.5">COMENTÁRIO</p>
+                    <p className="font-medium text-xs">{detailLink.permite_comentario ? '✅ Habilitado' : '❌ Desabilitado'}</p>
+                  </div>
+                  <div className="bg-white/[0.03] rounded-lg p-3">
+                    <p className="text-[10px] text-muted-foreground font-medium mb-0.5">TOKEN</p>
+                    <p className="font-mono font-medium text-[10px] truncate">{detailLink.token}</p>
+                  </div>
+                </div>
+
+                {/* Rating se respondida */}
+                {detailLink.status === 'respondida' && detailLink.nota && (
+                  <>
+                    <Separator />
+                    <div className="bg-yellow-500/[0.05] border border-yellow-500/20 rounded-xl p-4 space-y-3">
+                      <p className="text-[10px] text-yellow-400 font-semibold uppercase tracking-wider">RESPOSTA DO CLIENTE</p>
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-1">
+                          {[1, 2, 3, 4, 5].map(s => (
+                            <Star
+                              key={s}
+                              className={`w-5 h-5 ${s <= detailLink.nota! ? 'fill-yellow-400 text-yellow-400' : 'text-white/20'}`}
+                            />
+                          ))}
+                        </div>
+                        <span className="text-lg font-bold text-yellow-400">{detailLink.nota}/5</span>
+                      </div>
+                      {detailLink.respondida_em && (
+                        <p className="text-[10px] text-muted-foreground">
+                          Respondida em {new Date(detailLink.respondida_em).toLocaleString('pt-BR')}
+                        </p>
+                      )}
+                      {detailLink.comentario && (
+                        <div className="bg-white/[0.03] rounded-lg p-3 mt-2">
+                          <p className="text-[10px] text-muted-foreground font-medium mb-1">COMENTÁRIO</p>
+                          <p className="text-sm italic text-white/80">"{detailLink.comentario}"</p>
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
+
+                {/* Link URL */}
+                {(detailLink.status === 'ativa' && !isExpiredNow) && (
+                  <>
+                    <Separator />
+                    <div>
+                      <p className="text-[10px] text-muted-foreground font-medium mb-1.5">LINK</p>
+                      <div className="flex items-center gap-2">
+                        <code className="text-[10px] text-muted-foreground bg-white/5 rounded px-2 py-1 flex-1 truncate">
+                          {url}
+                        </code>
+                        <Button size="sm" variant="outline" className="gap-1 h-7 text-xs" onClick={() => { copyToClipboard(url); setCopiedToken(detailLink.token); setTimeout(() => setCopiedToken(null), 2000); }}>
+                          {copiedToken === detailLink.token ? <Check className="w-3 h-3 text-green-400" /> : <Copy className="w-3 h-3" />}
+                          Copiar
+                        </Button>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            );
+          })()}
         </DialogContent>
       </Dialog>
     </AdminLayout>

@@ -21,6 +21,7 @@ import { normalizeText } from '@/lib/tabela-preco';
 import { getConfigTarifas, type ConfigTarifas } from '@/lib/pricing-engine';
 import { useToast } from '@/hooks/use-toast';
 import { usePlatformConfig } from '@/hooks/usePlatformConfig';
+import { openExternal, copyToClipboard } from '@/lib/native-helpers';
 
 const MotoristaViagens: React.FC = () => {
   const { user } = useAuth();
@@ -40,6 +41,7 @@ const MotoristaViagens: React.FC = () => {
   const [clienteTelefone, setClienteTelefone] = useState('');
   const [copied, setCopied] = useState(false);
   const [showRegistrar, setShowRegistrar] = useState(false);
+  const [showClienteInfo, setShowClienteInfo] = useState(false);
 
   const filteredOrigens = useMemo(() => {
     if (!origem.trim()) return allLocations;
@@ -101,22 +103,31 @@ const MotoristaViagens: React.FC = () => {
       `📍 *Origem:* ${origem.trim()}`,
       `📍 *Destino:* ${destino.trim()}`,
       ``,
-      `💰 *Valor: R$ ${totalValue.toFixed(0)}*`,
+      `💰 *Detalhamento do valor:*`,
+      `   Tarifa base: R$ ${preco.valor.toFixed(2)}${preco.estimado ? ' _(estimado)_' : ''}`,
     ];
+    if (dynamicAdj) {
+      const ajusteValor = dynamicAdj.aplicar(preco.valor) - preco.valor;
+      lines.push(`   ⏰ ${dynamicAdj.regra.nome}: +R$ ${ajusteValor.toFixed(2)} (${dynamicAdj.regra.valor_ajuste}%)`);
+    }
+    if (temBagagem) lines.push(`   📦 Feira/Bagagem: +R$ ${taxaBagagemValor.toFixed(2)}`);
+    lines.push(`   ─────────────────`);
+    lines.push(`   *Total: R$ ${totalValue.toFixed(2)}*`);
+    lines.push(``);
     if (clienteNome.trim()) lines.push(`👤 *Cliente:* ${clienteNome.trim()}`);
     if (observacao.trim()) lines.push(`📝 *Obs:* ${observacao.trim()}`);
     lines.push(``, `_Consulta feita pela Tabela ${nomePlataforma}_`);
-    return lines.join('\n');
-  }, [preco, origem, destino, clienteNome, observacao, totalValue]);
+    return lines.filter(Boolean).join('\n');
+  }, [preco, origem, destino, clienteNome, observacao, totalValue, dynamicAdj, temBagagem, taxaBagagemValor]);
 
   const handleCopy = async () => {
     if (!quoteMensagem) return;
-    try {
-      await navigator.clipboard.writeText(quoteMensagem);
+    const ok = await copyToClipboard(quoteMensagem);
+    if (ok) {
       setCopied(true);
       toast({ title: 'Copiado!' });
       setTimeout(() => setCopied(false), 2000);
-    } catch {
+    } else {
       toast({ title: 'Erro ao copiar', variant: 'destructive' });
     }
   };
@@ -127,7 +138,7 @@ const MotoristaViagens: React.FC = () => {
     const url = phone
       ? `https://wa.me/55${phone}?text=${encodeURIComponent(quoteMensagem)}`
       : `https://wa.me/?text=${encodeURIComponent(quoteMensagem)}`;
-    window.open(url, '_blank');
+    openExternal(url);
   };
 
   // ── Registrar viagem como realizada ──
@@ -165,6 +176,7 @@ const MotoristaViagens: React.FC = () => {
       setClienteNome('');
       setClienteTelefone('');
       setShowRegistrar(false);
+      setShowClienteInfo(false);
       queryClient.invalidateQueries({ queryKey: ['minhas-viagens-registradas'] });
       queryClient.invalidateQueries({ queryKey: ['meu-desempenho'] });
     },
@@ -193,7 +205,7 @@ const MotoristaViagens: React.FC = () => {
   const handleClear = () => {
     setOrigem(''); setDestino(''); setObservacao('');
     setTemBagagem(false); setClienteNome(''); setClienteTelefone('');
-    setShowRegistrar(false);
+    setShowRegistrar(false); setShowClienteInfo(false);
   };
 
   return (
@@ -367,47 +379,44 @@ const MotoristaViagens: React.FC = () => {
                     <h3 className="text-sm font-bold">Enviar Orçamento</h3>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1.5">
-                      <label className="text-sm font-medium flex items-center gap-2">
-                        <User className="w-3.5 h-3.5 text-muted-foreground" /> Cliente
-                      </label>
-                      <Input value={clienteNome} onChange={e => setClienteNome(e.target.value)} placeholder="Nome (opcional)" className="h-10" />
-                    </div>
-                    <div className="space-y-1.5">
-                      <label className="text-sm font-medium flex items-center gap-2">
-                        <Phone className="w-3.5 h-3.5 text-muted-foreground" /> Telefone
-                      </label>
-                      <Input value={clienteTelefone} onChange={e => setClienteTelefone(e.target.value)} placeholder="(81) 9xxxx-xxxx" className="h-10" />
-                    </div>
+                  {/* Toggle info do cliente */}
+                  <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
+                    <input type="checkbox" id="showClienteInfo" checked={showClienteInfo} onChange={e => setShowClienteInfo(e.target.checked)} className="w-5 h-5 rounded border-border text-accent focus:ring-accent" />
+                    <label htmlFor="showClienteInfo" className="text-sm cursor-pointer">
+                      <span className="font-medium">Adicionar informação do cliente</span>
+                    </label>
                   </div>
 
-                  {/* Detalhamento visual */}
-                  <div className="bg-muted/30 rounded-xl p-4 space-y-2">
-                    <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide">Detalhamento</p>
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">Tarifa base{preco.estimado ? ' (estimado)' : ''}</span>
-                      <span className="font-medium">R$ {preco.valor.toFixed(0)}</span>
-                    </div>
-                    {dynamicAdj && (
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-purple-400 flex items-center gap-1.5">
-                          <Clock className="w-3 h-3" /> {dynamicAdj.regra.nome}
-                        </span>
-                        <span className="font-medium text-purple-400">+R$ {(dynamicAdj.aplicar(preco.valor) - preco.valor).toFixed(0)}</span>
-                      </div>
+                  <AnimatePresence>
+                    {showClienteInfo && (
+                      <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="space-y-1.5">
+                            <label className="text-sm font-medium flex items-center gap-2">
+                              <User className="w-3.5 h-3.5 text-muted-foreground" /> Cliente
+                            </label>
+                            <Input value={clienteNome} onChange={e => setClienteNome(e.target.value)} placeholder="Nome" className="h-10" />
+                          </div>
+                          <div className="space-y-1.5">
+                            <label className="text-sm font-medium flex items-center gap-2">
+                              <Phone className="w-3.5 h-3.5 text-muted-foreground" /> Telefone
+                            </label>
+                            <Input value={clienteTelefone} onChange={e => setClienteTelefone(e.target.value)} placeholder="(81) 9xxxx-xxxx" className="h-10" />
+                          </div>
+                        </div>
+                      </motion.div>
                     )}
-                    {temBagagem && (
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-orange-400 flex items-center gap-1.5"><span>📦</span> Feira/Bagagem</span>
-                        <span className="font-medium text-orange-400">+R$ {taxaBagagemValor.toFixed(0)}</span>
-                      </div>
-                    )}
-                    <Separator className="my-1" />
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-semibold">Total</span>
-                      <span className={`text-lg font-bold ${isTarifaMinima ? 'text-yellow-400' : 'text-green-400'}`}>R$ {totalValue.toFixed(0)}</span>
-                    </div>
+                  </AnimatePresence>
+
+                  {/* Mensagem do orçamento */}
+                  <div className="space-y-1.5">
+                    <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide">Mensagem do Orçamento</p>
+                    <Textarea
+                      value={quoteMensagem}
+                      readOnly
+                      className="resize-none text-xs font-mono leading-relaxed min-h-[120px] bg-muted/20"
+                      rows={6}
+                    />
                   </div>
 
                   <div className="flex gap-2">
@@ -425,7 +434,7 @@ const MotoristaViagens: React.FC = () => {
                   {/* Registrar como realizada */}
                   {!showRegistrar ? (
                     <Button
-                      className="w-full gap-2 h-12 rounded-xl font-bold text-base gradient-accent text-accent-foreground hover:opacity-90"
+                      className="w-full gap-2 h-12 rounded-xl font-bold text-base btn-themed"
                       onClick={() => setShowRegistrar(true)}
                     >
                       <CheckCircle className="w-5 h-5" />

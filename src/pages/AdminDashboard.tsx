@@ -26,10 +26,11 @@ import {
   Users, Car, Shield, Loader2, MessageSquare, Phone,
   Search, Filter, Eye, AlertTriangle, History,
   Smartphone, Globe, DollarSign, User, Ban, UserPlus,
-  FileText, ChevronDown, ChevronRight, Pencil, Trash2, Save, X, TableProperties, Star, Activity,
+  FileText, ChevronDown, ChevronRight, Pencil, Trash2, Save, X, TableProperties, Star, Activity, IdCard,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { buscarPrecoTabela } from '@/lib/tabela-preco';
+import { DriverBadge } from '@/components/DriverTools';
 
 // Lazy-load heavy admin sub-components (each ~500-1000 lines)
 const AdminPricing = React.lazy(() => import('@/components/AdminPricing'));
@@ -212,6 +213,10 @@ const AdminDashboard: React.FC = () => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<{ type: 'user' | 'ride'; id: string; label: string } | null>(null);
 
+  // ── Credential Dialog ──
+  const [showCredentialDialog, setShowCredentialDialog] = useState(false);
+  const [credentialUser, setCredentialUser] = useState<UserRecord | null>(null);
+
   // ── Create User Dialog ──
   const [showCreateUserDialog, setShowCreateUserDialog] = useState(false);
   const [createUserForm, setCreateUserForm] = useState({
@@ -292,19 +297,24 @@ const AdminDashboard: React.FC = () => {
   // ── Approval mutation ──
   const approvalMutation = useMutation({
     mutationFn: async ({ rideId, statusAdmin, observacao }: { rideId: string; statusAdmin: string; observacao: string }) => {
-      const { error: apError } = await supabase.from('aprovacoes').insert({
-        solicitacao_id: rideId,
-        admin_id: adminUser!.id,
-        status_admin: statusAdmin,
-        observacao,
-      });
-      if (apError) throw apError;
-
-      const { error: rideError } = await supabase.from('corridas').update({
+      if (!adminUser?.id) throw new Error('Usuário admin não identificado. Faça login novamente.');
+      // 1. Update corrida status first
+      await resilientUpdate('corridas', {
         status: statusAdmin,
         aprovado_admin: statusAdmin === 'aprovada',
-      }).eq('id', rideId);
-      if (rideError) throw rideError;
+      }, 'id', rideId);
+      // 2. Insert audit trail (non-blocking)
+      try {
+        const { error: apError } = await supabase.from('aprovacoes').insert({
+          solicitacao_id: rideId,
+          admin_id: adminUser.id,
+          status_admin: statusAdmin,
+          observacao: observacao || '',
+        });
+        if (apError) console.warn('Aprovação audit log falhou:', apError.message);
+      } catch (e) {
+        console.warn('Aprovação audit log error:', e);
+      }
     },
     onSuccess: () => {
       toast({ title: 'Solicitação atualizada com sucesso!' });
@@ -313,8 +323,8 @@ const AdminDashboard: React.FC = () => {
       setApprovalObs('');
       setSelectedRide(null);
     },
-    onError: () => {
-      toast({ title: 'Erro ao processar ação', variant: 'destructive' });
+    onError: (e: any) => {
+      toast({ title: 'Erro ao processar ação', description: e?.message || 'Erro desconhecido', variant: 'destructive' });
     },
   });
 
@@ -1063,6 +1073,14 @@ const AdminDashboard: React.FC = () => {
                                 onClick={() => openEditUserDialog(u)}
                               >
                                 <Pencil className="w-3.5 h-3.5" />
+                              </Button>
+                              <Button
+                                size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:text-amber-400"
+                                title="Gerar Credencial"
+                                onClick={() => { setCredentialUser(u); setShowCredentialDialog(true); }}
+                              >
+                                <IdCard className="w-3.5 h-3.5" />
+                              </Button>
                               </Button>
                               {/* Ativar/Desativar */}
                               <Button
@@ -1835,6 +1853,39 @@ const AdminDashboard: React.FC = () => {
               <Trash2 className="w-4 h-4" /> Excluir
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ═══════════════════ CREDENTIAL DIALOG ═══════════════════ */}
+      <Dialog open={showCredentialDialog} onOpenChange={setShowCredentialDialog}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <IdCard className="w-5 h-5 text-amber-400" />
+              Credencial — {credentialUser?.nome}
+            </DialogTitle>
+            <DialogDescription>
+              Visualize, baixe ou compartilhe o crachá do motorista.
+            </DialogDescription>
+          </DialogHeader>
+          {credentialUser && (
+            <DriverBadge
+              profile={{
+                id: credentialUser.id,
+                nome: credentialUser.nome,
+                telefone: credentialUser.telefone,
+                tipo: credentialUser.tipo,
+                status: credentialUser.status,
+                avatar_url: credentialUser.avatar_url || null,
+                veiculo_marca: credentialUser.veiculo_marca || null,
+                veiculo_modelo: credentialUser.veiculo_modelo || null,
+                veiculo_cor: credentialUser.veiculo_cor || null,
+                veiculo_placa: credentialUser.veiculo_placa || null,
+              }}
+              avgRating={null}
+              completedCount={0}
+            />
+          )}
         </DialogContent>
       </Dialog>
     </AppShell>

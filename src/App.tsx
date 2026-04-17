@@ -20,7 +20,6 @@ const AdminPrecosTarifas = React.lazy(() => import("./pages/AdminPrecosTarifas")
 const AdminPrecosHorarios = React.lazy(() => import("./pages/AdminPrecosHorarios"));
 const AdminPrecosTabela = React.lazy(() => import("./pages/AdminPrecosTabela"));
 const AdminConfig = React.lazy(() => import("./pages/AdminConfig"));
-const AdminPerform = React.lazy(() => import("./pages/AdminPerform"));
 const NotFound = React.lazy(() => import("./pages/NotFound"));
 const CalculadoraDigitalRF = React.lazy(() => import("./pages/CalculadoraDigitalRF"));
 const MotoristaDashboard = React.lazy(() => import("./pages/MotoristaDashboard"));
@@ -41,9 +40,10 @@ const PageLoader = () => (
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 30_000,
+      staleTime: 10_000,
       gcTime: 5 * 60_000,
-      refetchOnWindowFocus: false,
+      refetchOnWindowFocus: true,
+      refetchOnReconnect: true,
       retry: 1,
     },
   },
@@ -83,7 +83,6 @@ const AppRoutes = () => {
         {user && effectiveScreen === 'admin' && <Route path="/admin/precos/config/tarifas" element={<AdminPrecosTarifas />} />}
         {user && effectiveScreen === 'admin' && <Route path="/admin/precos/config/horarios" element={<AdminPrecosHorarios />} />}
         {user && effectiveScreen === 'admin' && <Route path="/admin/precos/tabela" element={<AdminPrecosTabela />} />}
-        {user && effectiveScreen === 'admin' && <Route path="/admin/perform" element={<AdminPerform />} />}
         {user && effectiveScreen === 'admin' && <Route path="/admin/config" element={<AdminConfig />} />}
         {user && effectiveScreen === 'admin' && <Route path="/admin/avaliacoes-links" element={<AdminAvaliacaoLinks />} />}
 

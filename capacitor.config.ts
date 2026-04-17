@@ -7,6 +7,14 @@ const config: CapacitorConfig = {
   server: {
     androidScheme: 'https',
   },
+  plugins: {
+    Browser: {
+      // Opens URLs in external browser / apps
+    },
+  },
+  android: {
+    allowMixedContent: true,
+  },
 };
 
 export default config;

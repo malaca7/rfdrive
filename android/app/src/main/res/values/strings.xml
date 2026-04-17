@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">RF Drive</string>
-    <string name="title_activity_main">RF Drive</string>
-    <string name="package_name">com.localizzou.app</string>
-    <string name="custom_url_scheme">com.localizzou.app</string>
+    <string name="app_name">Escritório RF</string>
+    <string name="title_activity_main">Escritório RF</string>
+    <string name="package_name">https://malaca7.github.io/rfdrive/#/admin/</string>
+    <string name="custom_url_scheme">https://malaca7.github.io/rfdrive/#/admin/</string>
 </resources>

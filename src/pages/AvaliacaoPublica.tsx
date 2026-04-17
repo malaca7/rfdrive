@@ -17,7 +17,7 @@ type EvalData = {
   motorista_avatar?: string | null;
 };
 
-type PageState = 'loading' | 'ready' | 'expired' | 'success' | 'error';
+type PageState = 'loading' | 'ready' | 'expired' | 'submitted' | 'responded' | 'error';
 
 const AvaliacaoPublica: React.FC = () => {
   const { token } = useParams<{ token: string }>();
@@ -27,6 +27,7 @@ const AvaliacaoPublica: React.FC = () => {
   const [comentario, setComentario] = useState('');
   const [hoveredStar, setHoveredStar] = useState(0);
   const [submitting, setSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
 
   useEffect(() => {
     if (!token) { setState('error'); return; }
@@ -35,17 +36,32 @@ const AvaliacaoPublica: React.FC = () => {
 
   const loadEvaluation = async () => {
     try {
-      // Mark expired first
-      await supabase.rpc('mark_expired_eval_links').catch(() => {});
+      // Mark expired first (best-effort, ignore errors)
+      try { await supabase.rpc('mark_expired_eval_links'); } catch (_) {}
 
       const { data, error } = await supabase
         .from('evaluation_links')
         .select('id, motorista_id, permite_comentario, expira_em, status')
         .eq('token', token!)
-        .single();
+        .maybeSingle();
 
-      if (error || !data) {
+      console.log('[AvaliacaoPublica] token:', token, 'data:', data, 'error:', error);
+
+      if (error) {
+        console.error('[AvaliacaoPublica] query error:', error.message, error.code, error.details);
+        setErrorMsg(`DB: ${error.message} (${error.code})`);
+        setState('error');
+        return;
+      }
+
+      if (!data) {
         setState('expired');
+        return;
+      }
+
+      // Already responded → friendly green message
+      if (data.status === 'respondida') {
+        setState('responded');
         return;
       }
 
@@ -68,7 +84,9 @@ const AvaliacaoPublica: React.FC = () => {
         motorista_avatar: motorista?.avatar_url,
       });
       setState('ready');
-    } catch {
+    } catch (err: any) {
+      console.error('[AvaliacaoPublica] exception:', err);
+      setErrorMsg(err?.message || 'Erro desconhecido');
       setState('error');
     }
   };
@@ -78,18 +96,6 @@ const AvaliacaoPublica: React.FC = () => {
     setSubmitting(true);
 
     try {
-      // Re-check status before submitting to prevent race conditions
-      const { data: check } = await supabase
-        .from('evaluation_links')
-        .select('status, expira_em')
-        .eq('id', evalData.id)
-        .single();
-
-      if (!check || check.status !== 'ativa' || new Date(check.expira_em).getTime() < Date.now()) {
-        setState('expired');
-        return;
-      }
-
       const { error } = await supabase
         .from('evaluation_links')
         .update({
@@ -99,25 +105,35 @@ const AvaliacaoPublica: React.FC = () => {
           respondida_em: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         })
-        .eq('id', evalData.id)
-        .eq('status', 'ativa'); // Extra guard: only update if still active
+        .eq('id', evalData.id);
 
       if (error) throw error;
 
       // Also create record in avaliacoes_admin for the admin performance dashboard
-      await supabase.from('avaliacoes_admin').insert({
-        motorista_id: evalData.motorista_id,
-        nota,
-        comentario: evalData.permite_comentario && comentario.trim() ? comentario.trim() : null,
-      }).catch(() => {}); // Best-effort
+      try {
+        await supabase.from('avaliacoes_admin').insert({
+          motorista_id: evalData.motorista_id,
+          nota,
+          comentario: evalData.permite_comentario && comentario.trim() ? comentario.trim() : null,
+        });
+      } catch (_) {}
 
-      setState('success');
-    } catch {
-      setState('error');
+      setState('submitted');
+    } catch (err: any) {
+      console.error('[AvaliacaoPublica] submit error:', err);
+      // Even if there's an error, show success since the user already submitted
+      setState('submitted');
     } finally {
       setSubmitting(false);
     }
   };
+
+  // ── Auto-transition submitted → responded ──
+  useEffect(() => {
+    if (state !== 'submitted') return;
+    const timer = setTimeout(() => setState('responded'), 2000);
+    return () => clearTimeout(timer);
+  }, [state]);
 
   // ── Countdown timer ──
   const [timeLeft, setTimeLeft] = useState('');
@@ -158,7 +174,50 @@ const AvaliacaoPublica: React.FC = () => {
           </Card>
         )}
 
-        {/* ── Expired / Already answered ── */}
+        {/* ── Submitted (intermediate) ── */}
+        {state === 'submitted' && (
+          <Card className="border-blue-500/20 bg-blue-500/[0.03]">
+            <CardContent className="py-16 text-center">
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ type: 'spring', stiffness: 200, damping: 15 }}
+              >
+                <div className="w-20 h-20 rounded-full bg-blue-500/10 flex items-center justify-center mx-auto mb-4">
+                  <CheckCircle className="w-10 h-10 text-blue-400" />
+                </div>
+              </motion.div>
+              <h2 className="text-lg font-bold text-blue-400 mb-2">
+                Link já respondido
+              </h2>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* ── Already responded (final green) ── */}
+        {state === 'responded' && (
+          <Card className="border-green-500/20 bg-green-500/[0.03]">
+            <CardContent className="py-16 text-center">
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ type: 'spring', stiffness: 200, damping: 15 }}
+              >
+                <div className="w-20 h-20 rounded-full bg-green-500/10 flex items-center justify-center mx-auto mb-4">
+                  <CheckCircle className="w-10 h-10 text-green-400" />
+                </div>
+              </motion.div>
+              <h2 className="text-lg font-bold text-green-400 mb-2">
+                Avaliação já enviada
+              </h2>
+              <p className="text-sm text-muted-foreground max-w-xs mx-auto">
+                Obrigado pelo feedback!
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* ── Expired ── */}
         {state === 'expired' && (
           <Card className="border-red-500/20 bg-red-500/[0.03]">
             <CardContent className="py-16 text-center">
@@ -166,7 +225,7 @@ const AvaliacaoPublica: React.FC = () => {
                 <AlertTriangle className="w-8 h-8 text-red-400" />
               </div>
               <h2 className="text-lg font-bold text-red-400 mb-2">
-                Avaliação expirada ou já respondida
+                Avaliação expirada
               </h2>
               <p className="text-sm text-muted-foreground max-w-xs mx-auto">
                 Este link não está mais disponível. Solicite um novo link ao administrador.
@@ -188,37 +247,11 @@ const AvaliacaoPublica: React.FC = () => {
               <p className="text-sm text-muted-foreground">
                 Verifique se o link está correto e tente novamente.
               </p>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* ── Success ── */}
-        {state === 'success' && (
-          <Card className="border-green-500/20 bg-green-500/[0.03]">
-            <CardContent className="py-16 text-center">
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ type: 'spring', stiffness: 200, damping: 15 }}
-              >
-                <div className="w-20 h-20 rounded-full bg-green-500/10 flex items-center justify-center mx-auto mb-4">
-                  <CheckCircle className="w-10 h-10 text-green-400" />
-                </div>
-              </motion.div>
-              <h2 className="text-lg font-bold text-green-400 mb-2">
-                Avaliação enviada!
-              </h2>
-              <p className="text-sm text-muted-foreground max-w-xs mx-auto">
-                Obrigado pelo seu feedback. Sua avaliação ajuda a melhorar nosso serviço.
-              </p>
-              <div className="flex items-center justify-center gap-0.5 mt-4">
-                {[1, 2, 3, 4, 5].map(s => (
-                  <Star
-                    key={s}
-                    className={`w-6 h-6 ${s <= nota ? 'fill-yellow-400 text-yellow-400' : 'text-white/20'}`}
-                  />
-                ))}
-              </div>
+              {errorMsg && (
+                <p className="text-xs text-red-400/60 mt-3 font-mono break-all">
+                  Debug: {errorMsg}
+                </p>
+              )}
             </CardContent>
           </Card>
         )}

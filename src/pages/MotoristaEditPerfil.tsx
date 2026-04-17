@@ -380,7 +380,7 @@ const MotoristaEditPerfil: React.FC = () => {
         {/* Save button */}
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
           <Button
-            className="w-full h-12 rounded-2xl font-bold text-base gradient-accent text-accent-foreground hover:opacity-90 gap-2"
+            className="w-full h-12 rounded-2xl font-bold text-base btn-themed gap-2"
             onClick={() => saveMutation.mutate()}
             disabled={saveMutation.isPending || !nome.trim() || !telefone.trim()}
           >

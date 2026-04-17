@@ -192,16 +192,23 @@ const AdminCorridas: React.FC = () => {
   // ── Mutations ──
   const approvalMutation = useMutation({
     mutationFn: async ({ rideId, statusAdmin, observacao }: { rideId: string; statusAdmin: string; observacao: string }) => {
-      const { error: apError } = await supabase.from('aprovacoes').insert({ solicitacao_id: rideId, admin_id: adminUser!.id, status_admin: statusAdmin, observacao });
-      if (apError) throw apError;
+      if (!adminUser?.id) throw new Error('Usuário admin não identificado. Faça login novamente.');
+      // 1. Update corrida status first (most important)
       const rideUpdates: Record<string, unknown> = { status: statusAdmin, aprovado_admin: statusAdmin === 'aprovada' };
       if (statusAdmin !== 'aprovada' && observacao) {
         rideUpdates.observacoes = observacao;
       }
       await resilientUpdate('corridas', rideUpdates, 'id', rideId);
+      // 2. Insert audit trail (non-blocking)
+      try {
+        const { error: apError } = await supabase.from('aprovacoes').insert({ solicitacao_id: rideId, admin_id: adminUser.id, status_admin: statusAdmin, observacao: observacao || '' });
+        if (apError) console.warn('Aprovação audit log falhou:', apError.message);
+      } catch (e) {
+        console.warn('Aprovação audit log error:', e);
+      }
     },
     onSuccess: () => { toast({ title: 'Solicitação atualizada!' }); queryClient.invalidateQueries({ queryKey: ['admin-rides'] }); setShowApprovalDialog(false); setApprovalObs(''); setSelectedRide(null); },
-    onError: () => { toast({ title: 'Erro ao processar ação', variant: 'destructive' }); },
+    onError: (e: any) => { toast({ title: 'Erro ao processar ação', description: e?.message || 'Erro desconhecido', variant: 'destructive' }); },
   });
 
   const updateRideMutation = useMutation({
@@ -209,7 +216,7 @@ const AdminCorridas: React.FC = () => {
       await resilientUpdate('corridas', updates, 'id', rideId);
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['admin-rides'] }); toast({ title: 'Corrida atualizada!' }); setShowEditRideDialog(false); setSelectedRide(null); },
-    onError: () => { toast({ title: 'Erro ao atualizar corrida', variant: 'destructive' }); },
+    onError: (e: any) => { toast({ title: 'Erro ao atualizar corrida', description: e?.message || 'Erro desconhecido', variant: 'destructive' }); },
   });
 
   const deleteMutation = useMutation({

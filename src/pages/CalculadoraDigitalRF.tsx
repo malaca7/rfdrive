@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { usePlatformConfig } from '@/hooks/usePlatformConfig';
+import { openExternal, copyToClipboard } from '@/lib/native-helpers';
 import { calcularPreco, getConfigTarifas, type PricingResult, type ConfigTarifas } from '@/lib/pricing-engine';
 import { usePrecoTabela, useAllLocations } from '@/hooks/usePrecoTabela';
 import { useDynamicAdjustment } from '@/hooks/useDynamicAdjustment';
@@ -136,21 +137,22 @@ const CalculadoraDigitalRF: React.FC = () => {
     return msg;
   };
 
-  const copiarMensagem = () => {
+  const copiarMensagem = async () => {
     const msg = mensagemGerada || gerarMensagem();
     if (!msg) return;
-    navigator.clipboard.writeText(msg).then(() => {
+    const ok = await copyToClipboard(msg);
+    if (ok) {
       setCopied(true);
       toast({ title: 'Mensagem copiada!' });
       setTimeout(() => setCopied(false), 2000);
-    });
+    }
   };
 
   const enviarWhatsApp = () => {
     const msg = mensagemGerada || gerarMensagem();
     if (!msg) return;
     const encoded = encodeURIComponent(msg);
-    window.open(`https://api.whatsapp.com/send?text=${encoded}`, '_blank', 'noopener,noreferrer');
+    openExternal(`https://api.whatsapp.com/send?text=${encoded}`);
   };
 
   const podeAvancar = etapa === 0 ? (!!origemTrim && !!destinoTrim) : etapa === 1 ? temPreco : false;
@@ -298,7 +300,7 @@ const CalculadoraDigitalRF: React.FC = () => {
                   <Button
                     onClick={avancar}
                     disabled={!podeAvancar}
-                    className="w-full h-12 rounded-2xl text-base font-bold gradient-accent text-white shadow-lg shadow-accent/30 hover:opacity-90 transition-opacity"
+                    className="w-full h-12 rounded-2xl text-base font-bold btn-themed"
                   >
                     Calcular Valor <ArrowRight className="w-5 h-5 ml-2" />
                   </Button>
@@ -477,7 +479,7 @@ const CalculadoraDigitalRF: React.FC = () => {
                     <Button
                       onClick={avancar}
                       disabled={!temPreco}
-                      className="flex-1 h-11 rounded-2xl text-base font-bold gradient-accent text-white shadow-lg shadow-accent/30 hover:opacity-90 transition-opacity"
+                      className="flex-1 h-11 rounded-2xl text-base font-bold btn-themed"
                     >
                       Gerar Mensagem <ArrowRight className="w-5 h-5 ml-2" />
                     </Button>

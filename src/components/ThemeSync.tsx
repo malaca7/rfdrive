@@ -34,7 +34,13 @@ function adjustLightness(hsl: string, delta: number): string {
 }
 
 export function ThemeSync() {
-  const { corPrimaria, corSecundaria, corTerciaria } = usePlatformConfig();
+  const {
+    corPrimaria, corSecundaria, corTerciaria,
+    corSucesso, corAlerta, corErro, corInfo,
+    corBotaoTexto, corBotaoFundo, corBotaoBorda, botaoBordaAtiva,
+    temaBorderRadius, temaCardOpacidade, temaFonte,
+    temaMutedOffset, temaGradienteDirecao, temaBotaoEstilo,
+  } = usePlatformConfig();
 
   useEffect(() => {
     const root = document.documentElement;
@@ -68,12 +74,34 @@ export function ThemeSync() {
     root.style.setProperty('--secondary-foreground', fg);
     root.style.setProperty('--sidebar-foreground', adjustLightness(fg, -6));
     root.style.setProperty('--sidebar-accent-foreground', adjustLightness(fg, -6));
-    root.style.setProperty('--muted-foreground', adjustLightness(fg, -46));
+    root.style.setProperty('--muted-foreground', adjustLightness(fg, -temaMutedOffset));
 
     // Gradient accent
     const darkerPrimary = adjustLightness(primary, -5);
-    root.style.setProperty('--gradient-accent', `linear-gradient(135deg, hsl(${primary}), hsl(${darkerPrimary}))`);
-    root.style.setProperty('--gradient-primary', `linear-gradient(135deg, hsl(${adjustLightness(bg, 2)}), hsl(${adjustLightness(bg, 8)}))`);
+    root.style.setProperty('--gradient-accent', `linear-gradient(${temaGradienteDirecao}, hsl(${primary}), hsl(${darkerPrimary}))`);
+    root.style.setProperty('--gradient-primary', `linear-gradient(${temaGradienteDirecao}, hsl(${adjustLightness(bg, 2)}), hsl(${adjustLightness(bg, 8)}))`);
+
+    // Border radius
+    root.style.setProperty('--radius', `${temaBorderRadius}px`);
+
+    // Card opacity
+    if (temaCardOpacidade < 100) {
+      root.style.setProperty('--card-opacity', String(temaCardOpacidade / 100));
+    } else {
+      root.style.removeProperty('--card-opacity');
+    }
+
+    // Font family
+    root.style.setProperty('--font-sans', `"${temaFonte}", system-ui, sans-serif`);
+    document.body.style.fontFamily = `"${temaFonte}", system-ui, sans-serif`;
+
+    // Button style
+    root.style.setProperty('--theme-button-style', temaBotaoEstilo);
+    root.dataset.btnStyle = temaBotaoEstilo;
+    root.style.setProperty('--theme-gradient-dir', temaGradienteDirecao);
+
+    // Button glow toggle
+    root.classList.toggle('no-btn-glow', !botaoBordaAtiva);
 
     // body bg
     document.body.style.background = `hsl(${bg})`;
@@ -82,7 +110,19 @@ export function ThemeSync() {
     root.style.setProperty('--theme-primary-hex', corPrimaria);
     root.style.setProperty('--theme-bg-hex', corSecundaria);
     root.style.setProperty('--theme-fg-hex', corTerciaria);
-  }, [corPrimaria, corSecundaria, corTerciaria]);
+
+    // Status colors
+    root.style.setProperty('--theme-success', corSucesso);
+    root.style.setProperty('--theme-warning', corAlerta);
+    root.style.setProperty('--theme-error', corErro);
+    root.style.setProperty('--theme-info', corInfo);
+
+    // Button colors
+    root.style.setProperty('--theme-btn-text', corBotaoTexto);
+    root.style.setProperty('--theme-btn-bg', corBotaoFundo);
+    root.style.setProperty('--theme-btn-glow', corBotaoBorda);
+    root.style.setProperty('--theme-btn-glow-active', botaoBordaAtiva ? '1' : '0');
+  }, [corPrimaria, corSecundaria, corTerciaria, corSucesso, corAlerta, corErro, corInfo, corBotaoTexto, corBotaoFundo, corBotaoBorda, botaoBordaAtiva, temaBorderRadius, temaCardOpacidade, temaFonte, temaMutedOffset, temaGradienteDirecao, temaBotaoEstilo]);
 
   return null;
 }

@@ -82,18 +82,29 @@ const MotoristaDashboard: React.FC = () => {
     enabled: !!user && !!dateRange,
   });
 
-  // ── Média de avaliação ──
+  // ── Média de avaliação (avaliacoes + links) ──
   const { data: avgRating } = useQuery({
     queryKey: ['driver-avg-rating', user?.id],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const allNotas: number[] = [];
+
+      const { data: d1 } = await supabase
         .from('avaliacoes')
         .select('nota')
         .eq('motorista_id', user!.id);
-      if (error) throw error;
-      if (!data || data.length === 0) return null;
-      const avg = data.reduce((sum, r) => sum + r.nota, 0) / data.length;
-      return { avg: Math.round(avg * 10) / 10, count: data.length };
+      d1?.forEach(r => allNotas.push(r.nota));
+
+      const { data: d3 } = await supabase
+        .from('evaluation_links')
+        .select('nota')
+        .eq('motorista_id', user!.id)
+        .eq('status', 'respondida')
+        .not('nota', 'is', null);
+      d3?.forEach(r => { if (r.nota) allNotas.push(r.nota); });
+
+      if (allNotas.length === 0) return null;
+      const avg = allNotas.reduce((s, n) => s + n, 0) / allNotas.length;
+      return { avg: Math.round(avg * 10) / 10, count: allNotas.length };
     },
     enabled: !!user,
   });
@@ -114,15 +125,18 @@ const MotoristaDashboard: React.FC = () => {
     enabled: !!user,
   });
 
-  const { data: avaliacoesAdmin } = useQuery({
-    queryKey: ['driver-avaliacoes-admin-list', user?.id],
+  // ── Avaliações via links públicos ──
+  const { data: avaliacoesLinks } = useQuery({
+    queryKey: ['driver-avaliacoes-links', user?.id],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('avaliacoes_admin')
-        .select('id, nota, comentario, created_at')
+        .from('evaluation_links')
+        .select('id, nota, comentario, respondida_em, created_at')
         .eq('motorista_id', user!.id)
-        .order('created_at', { ascending: false })
-        .limit(10);
+        .eq('status', 'respondida')
+        .not('nota', 'is', null)
+        .order('respondida_em', { ascending: false })
+        .limit(20);
       if (error) throw error;
       return data || [];
     },
@@ -223,11 +237,6 @@ const MotoristaDashboard: React.FC = () => {
                     <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-yellow-500/10 mx-auto mb-2">
                       <Star className="w-5 h-5 fill-yellow-400 text-yellow-400" />
                     </div>
-                    <div className="flex items-center justify-center gap-0.5 mb-1">
-                      {[1,2,3,4,5].map(s => (
-                        <Star key={s} className={`w-3 h-3 ${s <= Math.round(avgRating?.avg || 0) ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground/30'}`} />
-                      ))}
-                    </div>
                     <p className="text-[clamp(1.25rem,4vw,1.75rem)] font-extrabold text-yellow-400">{avgRating?.avg || '-'}</p>
                     <p className="text-[clamp(0.6rem,2vw,0.7rem)] text-muted-foreground font-medium">Avaliação Média</p>
                   </CardContent>
@@ -235,24 +244,8 @@ const MotoristaDashboard: React.FC = () => {
               </motion.div>
             </div>
 
-            {/* Rating */}
-            {avgRating && (
-              <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}>
-                <Card className="mb-[4%] border-yellow-500/20 bg-yellow-500/5">
-                  <CardContent className="py-3 flex items-center justify-between px-[4%]">
-                    <div className="flex items-center gap-2">
-                      <Star className="w-5 h-5 fill-yellow-400 text-yellow-400" />
-                      <span className="font-bold text-lg text-yellow-400">{avgRating.avg}</span>
-                      <span className="text-xs text-muted-foreground">/ 5</span>
-                    </div>
-                    <p className="text-xs text-muted-foreground">{avgRating.count} avaliação{avgRating.count > 1 ? 'ões' : ''}</p>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            )}
-
             {/* Avaliações Recebidas */}
-            {((avaliacoes && avaliacoes.length > 0) || (avaliacoesAdmin && avaliacoesAdmin.length > 0)) && (
+            {((avaliacoes && avaliacoes.length > 0) || (avaliacoesLinks && avaliacoesLinks.length > 0)) && (
               <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.28 }}>
                 <div className="flex items-center justify-between mb-3">
                   <h2 className="text-sm font-bold flex items-center gap-2">
@@ -260,21 +253,24 @@ const MotoristaDashboard: React.FC = () => {
                     Avaliações Recebidas
                   </h2>
                   <Badge variant="outline" className="text-xs">
-                    {(avaliacoes?.length || 0) + (avaliacoesAdmin?.length || 0)} total
+                    {(avaliacoes?.length || 0) + (avaliacoesLinks?.length || 0)} total
                   </Badge>
                 </div>
                 <div className="space-y-2 mb-[4%]">
-                  {avaliacoesAdmin?.map(a => (
-                    <Card key={`admin-${a.id}`} className="border-border/50">
+                  {avaliacoesLinks?.map(a => (
+                    <Card key={`link-${a.id}`} className="border-border/50">
                       <CardContent className="py-3">
                         <div className="flex items-center justify-between mb-1">
-                          <div className="flex items-center gap-0.5">
-                            {[1,2,3,4,5].map(s => (
-                              <Star key={s} className={`w-3 h-3 ${s <= a.nota ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground/30'}`} />
-                            ))}
+                          <div className="flex items-center gap-1">
+                            <div className="flex items-center gap-0.5">
+                              {[1,2,3,4,5].map(s => (
+                                <Star key={s} className={`w-3 h-3 ${s <= (a.nota || 0) ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground/30'}`} />
+                              ))}
+                            </div>
+                            <Badge variant="outline" className="text-[8px] px-1 py-0 h-3.5 border-accent/30 text-accent">cliente</Badge>
                           </div>
                           <span className="text-[10px] text-muted-foreground">
-                            {new Date(a.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}
+                            {new Date(a.respondida_em || a.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}
                           </span>
                         </div>
                         {a.comentario && <p className="text-xs text-muted-foreground">{a.comentario}</p>}

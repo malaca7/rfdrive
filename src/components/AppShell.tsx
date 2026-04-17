@@ -3,7 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Navigation, LogOut, User, Shield, Truck, BarChart3, Calculator, IdCard, UserCog, ClipboardList, Trophy } from 'lucide-react';
 import { usePlatformConfig } from '@/hooks/usePlatformConfig';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 
 const SCREEN_CONFIG: Record<string, { label: string; icon: React.ReactNode; activeClass: string; dotColor: string }> = {
   motorista: {
@@ -21,12 +21,12 @@ const SCREEN_CONFIG: Record<string, { label: string; icon: React.ReactNode; acti
 };
 
 const MOTORISTA_NAV = [
-  { path: '/motorista/dashboard', label: 'Dashboard', icon: <BarChart3 className="w-5 h-5" /> },
-  { path: '/motorista/dashboardall', label: 'Geral', icon: <Trophy className="w-5 h-5" /> },
-  { path: '/motorista/viagens', label: 'Registrar', icon: <Calculator className="w-5 h-5" /> },
-  { path: '/motorista/historico', label: 'Viagens', icon: <ClipboardList className="w-5 h-5" /> },
-  { path: '/motorista/credencial', label: 'Credencial', icon: <IdCard className="w-5 h-5" /> },
-  { path: '/motorista/editperfil', label: 'Perfil', icon: <UserCog className="w-5 h-5" /> },
+  { path: '/motorista/dashboard', label: 'Dashboard', icon: BarChart3, color: 'from-blue-500 to-cyan-400' },
+  { path: '/motorista/dashboardall', label: 'Geral', icon: Trophy, color: 'from-amber-500 to-yellow-400' },
+  { path: '/motorista/viagens', label: 'Registrar', icon: Calculator, color: 'from-emerald-500 to-green-400' },
+  { path: '/motorista/historico', label: 'Viagens', icon: ClipboardList, color: 'from-violet-500 to-purple-400' },
+  { path: '/motorista/credencial', label: 'Credencial', icon: IdCard, color: 'from-pink-500 to-rose-400' },
+  { path: '/motorista/editperfil', label: 'Perfil', icon: UserCog, color: 'from-slate-400 to-zinc-300' },
 ];
 
 const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -64,7 +64,7 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           </div>
           <div className="flex items-center gap-2">
             <div className="text-right mr-1">
-              <p className="text-sm font-semibold truncate max-w-[120px] text-white">{profile?.nome || ''}</p>
+              <p className="text-sm font-semibold truncate max-w-[120px] text-white">{(profile?.nome || '').split(' ')[0]}</p>
               {activeScreen && (
                 <p className="text-[10px] text-white/40 capitalize">{activeScreen}</p>
               )}
@@ -77,7 +77,7 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
               </div>
             )}
             <button
-              onClick={signOut}
+              onClick={() => { signOut(); navigate('/admin/login'); }}
               className="w-9 h-9 rounded-2xl flex items-center justify-center text-white/40 hover:text-red-400 hover:bg-red-500/10 transition-all"
             >
               <LogOut className="w-[18px] h-[18px]" />
@@ -88,72 +88,80 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
       {/* ── Main Content ── */}
       <main className="flex-1 overflow-y-auto overflow-x-hidden overscroll-contain">
-        {children}
+        <div className="page-enter">
+          {children}
+        </div>
       </main>
 
-      {/* ── Bottom Navigation ── */}
-      <nav className="shrink-0 z-50 bg-card/95 backdrop-blur-2xl border-t border-white/[0.06] safe-bottom">
-        <div className="w-full px-[4%] flex items-stretch justify-around h-16">
-          {(isMotoristaRoute || (!isAdminScreen && !isAdminRoute)) ? (
-            /* ── Motorista: 5 route-based nav items ── */
-            <>
-              {MOTORISTA_NAV.map(item => {
-                const isActive = location.pathname === item.path;
-                return (
-                  <button
-                    key={item.path}
-                    onClick={() => navigate(item.path)}
-                    className={`relative flex flex-col items-center justify-center gap-0.5 flex-1 transition-all duration-200 ${isActive ? 'text-accent' : 'text-white/30'}`}
-                    title={item.label}
-                  >
-                    {isActive && (
+      {/* ── Bottom Navigation — floating dock ── */}
+      <nav className="shrink-0 z-40 safe-bottom">
+        <div className="mx-3 mb-2 bg-card/90 backdrop-blur-2xl rounded-2xl border border-white/[0.08] shadow-2xl shadow-black/30">
+          <div className="flex items-stretch justify-around h-14 px-1">
+            {(isMotoristaRoute || (!isAdminScreen && !isAdminRoute)) ? (
+              <>
+                {MOTORISTA_NAV.map(item => {
+                  const isActive = location.pathname === item.path;
+                  const Icon = item.icon;
+                  return (
+                    <button
+                      key={item.path}
+                      onClick={() => navigate(item.path)}
+                      className="relative flex flex-col items-center justify-center gap-0.5 flex-1 tap-highlight"
+                      title={item.label}
+                    >
                       <motion.div
-                        layoutId="nav-indicator"
-                        className="absolute top-0 left-[25%] right-[25%] h-[3px] rounded-b-full bg-accent"
-                        transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-                      />
-                    )}
-                    <span className={`transition-transform duration-200 ${isActive ? 'scale-110' : 'scale-100'}`}>
-                      {item.icon}
-                    </span>
-                    <span className={`text-[10px] font-semibold ${isActive ? '' : 'opacity-60'}`}>{item.label}</span>
-                  </button>
-                );
-              })}
-              {/* If admin, add admin switch button */}
-              {isAdmin && (
+                        animate={{ scale: isActive ? 1.2 : 1, y: isActive ? -2 : 0 }}
+                        transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+                        className={`w-8 h-8 rounded-xl flex items-center justify-center transition-colors ${
+                          isActive ? `bg-gradient-to-br ${item.color} shadow-lg` : 'text-white/30'
+                        }`}
+                      >
+                        <Icon className={`w-4 h-4 ${isActive ? 'text-white' : ''}`} />
+                      </motion.div>
+                      <span className={`text-[8px] font-bold tracking-wide ${isActive ? 'text-white' : 'text-white/25'}`}>
+                        {item.label}
+                      </span>
+                    </button>
+                  );
+                })}
+                {isAdmin && (
+                  <>
+                    <div className="w-px self-stretch my-2 bg-white/10 mx-0.5" />
+                    <button
+                      onClick={() => { setActiveScreen('admin'); navigate('/admin'); }}
+                      className="relative flex flex-col items-center justify-center gap-0.5 flex-1 tap-highlight"
+                      title="Admin"
+                    >
+                      <div className="w-8 h-8 rounded-xl flex items-center justify-center bg-white/[0.06] border border-white/10 text-white/50 hover:text-white/80 hover:border-accent/30 transition-all">
+                        <Shield className="w-4 h-4" />
+                      </div>
+                      <span className="text-[8px] font-bold tracking-wide text-white/40">Admin</span>
+                    </button>
+                  </>
+                )}
+              </>
+            ) : (
+              <>
                 <button
-                  onClick={() => { setActiveScreen('admin'); navigate('/admin'); }}
-                  className="relative flex flex-col items-center justify-center gap-0.5 flex-1 transition-all duration-200 text-white/30"
-                  title="Admin"
+                  onClick={() => { setActiveScreen('motorista'); navigate('/motorista/dashboard'); }}
+                  className="relative flex flex-col items-center justify-center gap-0.5 flex-1 tap-highlight"
+                  title="Motorista"
                 >
-                  <Shield className="w-5 h-5" />
-                  <span className="text-[10px] font-semibold opacity-60">Admin</span>
+                  <div className="w-8 h-8 rounded-xl flex items-center justify-center bg-white/[0.06] border border-white/10 text-white/50 hover:text-white/80 hover:border-accent/30 transition-all">
+                    <Truck className="w-4 h-4" />
+                  </div>
+                  <span className="text-[8px] font-bold tracking-wide text-white/40">Motorista</span>
                 </button>
-              )}
-            </>
-          ) : (
-            /* ── Admin screen: only show Motorista switch button ── */
-            <>
-              <button
-                onClick={() => { setActiveScreen('motorista'); navigate('/motorista/dashboard'); }}
-                className="relative flex flex-col items-center justify-center gap-0.5 flex-1 transition-all duration-200 text-white/30 hover:text-white/60"
-                title="Motorista"
-              >
-                <Truck className="w-5 h-5" />
-                <span className="text-[10px] font-semibold opacity-60">Motorista</span>
-              </button>
-              <div className="relative flex flex-col items-center justify-center gap-0.5 flex-1 transition-all duration-200 text-accent">
-                <motion.div
-                  layoutId="nav-indicator"
-                  className="absolute top-0 left-[25%] right-[25%] h-[3px] rounded-b-full bg-accent"
-                  transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-                />
-                <Shield className="w-5 h-5" />
-                <span className="text-[10px] font-semibold">Admin</span>
-              </div>
-            </>
-          )}
+                <div className="w-px self-stretch my-2 bg-white/10 mx-0.5" />
+                <div className="relative flex flex-col items-center justify-center gap-0.5 flex-1">
+                  <div className="w-8 h-8 rounded-xl flex items-center justify-center bg-gradient-to-br from-indigo-500 to-blue-400 shadow-lg">
+                    <Shield className="w-4 h-4 text-white" />
+                  </div>
+                  <span className="text-[8px] font-bold tracking-wide text-white">Admin</span>
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </nav>
     </div>
