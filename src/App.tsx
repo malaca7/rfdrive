@@ -67,13 +67,14 @@ const AppRoutes = () => {
     <Suspense fallback={<PageLoader />}>
       <Routes>
         {/* Rotas públicas */}
-        <Route path="/" element={<CalculadoraDigitalRF />} />
+        <Route path="/" element={<AuthPage />} />
+        <Route path="/calculadora" element={<CalculadoraDigitalRF />} />
         <Route path="/calculadora-digital-RF" element={<CalculadoraDigitalRF />} />
         <Route path="/avaliar/:token" element={<AvaliacaoPublica />} />
 
         {/* Painel admin */}
-        {!user && <Route path="/admin/login" element={<AuthPage />} />}
-        {!user && <Route path="/admin/*" element={<Navigate to="/admin/login" replace />} />}
+        {!user && <Route path="/admin/login" element={<Navigate to="/" replace />} />}
+        {!user && <Route path="/admin/*" element={<Navigate to="/" replace />} />}
 
         {user && effectiveScreen === 'admin' && <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />}
         {user && effectiveScreen === 'admin' && <Route path="/admin/dashboard" element={<AdminDashboardPage />} />}
@@ -102,7 +103,7 @@ const AppRoutes = () => {
         {user && <Route path="/admin/*" element={<Navigate to="/admin" replace />} />}
 
         {/* Compat: rota antiga /login redireciona */}
-        <Route path="/login" element={<Navigate to="/admin/login" replace />} />
+        <Route path="/login" element={<Navigate to="/" replace />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Suspense>

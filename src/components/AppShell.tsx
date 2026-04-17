@@ -77,7 +77,7 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
               </div>
             )}
             <button
-              onClick={() => { signOut(); navigate('/admin/login'); }}
+              onClick={() => { signOut(); navigate('/'); }}
               className="w-9 h-9 rounded-2xl flex items-center justify-center text-white/40 hover:text-red-400 hover:bg-red-500/10 transition-all"
             >
               <LogOut className="w-[18px] h-[18px]" />

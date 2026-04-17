@@ -554,12 +554,18 @@ const CalculadoraDigitalRF: React.FC = () => {
         </AnimatePresence>
 
         {/* Footer */}
-        <div className="text-center py-4 space-y-1.5">
+        <div className="text-center py-4 space-y-2">
           <button
-            onClick={() => { window.location.hash = '/admin/login'; }}
-            className="text-[11px] text-white/30 hover:text-[hsl(45_100%_50%)] transition-colors underline underline-offset-2"
+            onClick={() => { window.location.hash = '/'; }}
+            className="text-[11px] text-white/30 hover:text-[hsl(45_100%_50%)] transition-colors flex items-center gap-1.5 mx-auto"
           >
-            Painel do Motorista
+            🔑 Acessar Painel
+          </button>
+          <button
+            onClick={() => { window.location.hash = '/'; }}
+            className="text-[11px] text-white/30 hover:text-white/50 transition-colors flex items-center gap-1.5 mx-auto"
+          >
+            ← Sair
           </button>
           <p className="text-[10px] text-white/25">
             {nomePlataforma} © {new Date().getFullYear()} — Calculadora Digital

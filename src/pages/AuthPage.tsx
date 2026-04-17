@@ -148,13 +148,13 @@ const AuthPage: React.FC = () => {
 
           </CardContent>
         </Card>
-        <div className="mt-4 text-center">
+        <div className="mt-5 flex flex-col items-center gap-2">
           <button
             type="button"
-            onClick={() => { window.location.hash = '/'; }}
-            className="text-[clamp(0.75rem,2.2vw,0.85rem)] text-white/40 hover:text-[hsl(45_100%_50%)] transition-colors"
+            onClick={() => { window.location.hash = '/calculadora'; }}
+            className="text-[clamp(0.75rem,2.2vw,0.85rem)] text-white/40 hover:text-[hsl(45_100%_50%)] transition-colors flex items-center gap-1.5"
           >
-            ← Voltar para Calculadora
+            📱 Calculadora Digital
           </button>
         </div>
       </motion.div>
