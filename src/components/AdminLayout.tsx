@@ -13,7 +13,7 @@ const ADMIN_NAV = [
   { path: '/admin/corridas', label: 'Corridas', icon: Car, color: 'from-violet-500 to-purple-400' },
   { path: '/admin/usuarios', label: 'Usuários', icon: Users, color: 'from-emerald-500 to-green-400' },
   { path: '/admin/precos', label: 'Preços', icon: DollarSign, color: 'from-amber-500 to-yellow-400' },
-  { path: '/admin/avaliacoes-links', label: 'Links', icon: Link2, color: 'from-pink-500 to-rose-400' },
+  { path: '/admin/avaliacoes-links', label: 'Avaliações', icon: Link2, color: 'from-pink-500 to-rose-400' },
   { path: '/admin/config', label: 'Config', icon: Settings, color: 'from-slate-400 to-zinc-300' },
 ];
 
