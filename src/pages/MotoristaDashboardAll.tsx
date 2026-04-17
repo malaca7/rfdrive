@@ -4,14 +4,15 @@ import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import AppShell from '@/components/AppShell';
 import { motion } from 'framer-motion';
 import {
-  Trophy, TrendingUp, Loader2, BarChart3,
-  Crown, Medal, Award, Calendar, Filter, Users, Car,
+  Trophy, TrendingUp, Loader2,
+  Crown, Medal, Award, Filter, Users, Car,
+  Activity, CheckCircle, Clock, Eye, AlertTriangle, XCircle,
+  FileText, MapPin, Calendar, Star,
 } from 'lucide-react';
 
 type PeriodFilter = 'semana' | 'semana_passada' | 'mes' | 'personalizado';
@@ -46,10 +47,16 @@ function getMonthRange(): [Date, Date] {
 }
 
 const RANK_ICONS = [
-  <Crown className="w-5 h-5 text-yellow-400" />,
-  <Medal className="w-5 h-5 text-gray-300" />,
-  <Award className="w-5 h-5 text-amber-600" />,
+  <Crown key="1" className="w-5 h-5 text-yellow-400" />,
+  <Medal key="2" className="w-5 h-5 text-gray-300" />,
+  <Award key="3" className="w-5 h-5 text-amber-600" />,
 ];
+
+const Bar = ({ value, max, color }: { value: number; max: number; color: string }) => (
+  <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+    <div className={`h-full ${color} rounded-full transition-all`} style={{ width: `${max > 0 ? (value / max) * 100 : 0}%` }} />
+  </div>
+);
 
 const MotoristaDashboardAll: React.FC = () => {
   const { user } = useAuth();
@@ -70,17 +77,16 @@ const MotoristaDashboardAll: React.FC = () => {
     }
   }, [period, customStart, customEnd]);
 
-  // ── Todas corridas aprovadas da plataforma no período ──
+  // ── Todas corridas da plataforma no período ──
   const { data: allRides, isLoading } = useQuery({
-    queryKey: ['plataforma-corridas', dateRange?.[0]?.toISOString(), dateRange?.[1]?.toISOString()],
+    queryKey: ['plataforma-corridas-full', dateRange?.[0]?.toISOString(), dateRange?.[1]?.toISOString()],
     queryFn: async () => {
       if (!dateRange) return [];
       const { data, error } = await supabase
         .from('corridas')
-        .select('id, motorista_id, valor, status, concluida_at, created_at')
-        .in('status', ['aprovada', 'finalizada'])
-        .gte('concluida_at', dateRange[0].toISOString())
-        .lte('concluida_at', dateRange[1].toISOString());
+        .select('id, motorista_id, status, origem_texto, destino_texto, created_at, concluida_at')
+        .gte('created_at', dateRange[0].toISOString())
+        .lte('created_at', dateRange[1].toISOString());
       if (error) throw error;
       return data || [];
     },
@@ -110,44 +116,120 @@ const MotoristaDashboardAll: React.FC = () => {
     enabled: motoristIds.length > 0,
   });
 
-  // ── Ranking / Stats ──
-  const { ranking, platformStats } = useMemo(() => {
-    if (!allRides) return { ranking: [], platformStats: { total: 0, receita: 0, motoristas: 0 } };
+  // ── Média de avaliação por motorista ──
+  const { data: driverRatings } = useQuery({
+    queryKey: ['plataforma-avaliacoes', motoristIds],
+    queryFn: async () => {
+      if (motoristIds.length === 0) return {};
+      const { data, error } = await supabase
+        .from('avaliacoes')
+        .select('motorista_id, nota')
+        .in('motorista_id', motoristIds);
+      if (error) throw error;
+      const map: Record<string, number[]> = {};
+      data?.forEach(a => {
+        if (!map[a.motorista_id]) map[a.motorista_id] = [];
+        map[a.motorista_id].push(a.nota);
+      });
+      const { data: linkEvals } = await supabase
+        .from('evaluation_links')
+        .select('motorista_id, nota')
+        .in('motorista_id', motoristIds)
+        .eq('status', 'respondida')
+        .not('nota', 'is', null);
+      linkEvals?.forEach(a => {
+        if (!map[a.motorista_id]) map[a.motorista_id] = [];
+        if (a.nota) map[a.motorista_id].push(a.nota);
+      });
+      return map;
+    },
+    enabled: motoristIds.length > 0,
+  });
+
+  // ── Stats computados ──
+  const { ranking, platformStats, statusBreakdown, topRoutes, ridesByDay, dayNames } = useMemo(() => {
+    if (!allRides) return {
+      ranking: [], platformStats: { total: 0, motoristas: 0, today: 0, week: 0, avgRating: null as number | null, totalRatings: 0, completedCount: 0, cancelledCount: 0 },
+      statusBreakdown: { nova: 0, aguardando_motorista: 0, aceita: 0, em_analise: 0, aprovada: 0, recusada: 0, nao_realizada: 0 },
+      topRoutes: [] as { origem: string; destino: string; count: number }[],
+      ridesByDay: Array(7).fill(0) as number[],
+      dayNames: ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'],
+    };
+
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const weekAgo = new Date(today.getTime() - 7 * 86400000);
+
+    const byStatus = { nova: 0, aguardando_motorista: 0, aceita: 0, em_analise: 0, aprovada: 0, recusada: 0, nao_realizada: 0 };
+    allRides.forEach(r => { if (r.status in byStatus) byStatus[r.status as keyof typeof byStatus]++; });
+
+    const ridesToday = allRides.filter(r => new Date(r.created_at) >= today).length;
+    const ridesWeek = allRides.filter(r => new Date(r.created_at) >= weekAgo).length;
+    const completedCount = allRides.filter(r => r.status === 'aprovada' || r.status === 'finalizada').length;
+    const cancelledCount = byStatus.recusada + byStatus.nao_realizada;
+
+    const allRatingsFlat: number[] = [];
+    if (driverRatings) {
+      Object.values(driverRatings).forEach(arr => arr.forEach(n => allRatingsFlat.push(n)));
+    }
+    const avgRating = allRatingsFlat.length > 0
+      ? allRatingsFlat.reduce((a, b) => a + b, 0) / allRatingsFlat.length : null;
 
     const byDriver: Record<string, { viagens: number }> = {};
-
-    allRides.forEach(r => {
+    allRides.filter(r => r.status === 'aprovada' || r.status === 'finalizada').forEach(r => {
       const mid = r.motorista_id || 'unknown';
       if (!byDriver[mid]) byDriver[mid] = { viagens: 0 };
       byDriver[mid].viagens++;
     });
 
     const rankArr = Object.entries(byDriver)
-      .map(([id, stats]) => ({
-        id,
-        nome: motoristas?.[id]?.nome || 'Motorista',
-        avatar_url: motoristas?.[id]?.avatar_url || null,
-        ...stats,
-        isMe: id === user?.id,
-      }))
+      .map(([id, stats]) => {
+        const ratings = driverRatings?.[id] || [];
+        const avgR = ratings.length > 0 ? ratings.reduce((a, b) => a + b, 0) / ratings.length : null;
+        return {
+          id,
+          nome: motoristas?.[id]?.nome || 'Motorista',
+          avatar_url: motoristas?.[id]?.avatar_url || null,
+          ...stats,
+          avgRating: avgR,
+          totalRatings: ratings.length,
+          isMe: id === user?.id,
+        };
+      })
       .sort((a, b) => b.viagens - a.viagens);
+
+    const routeCount: Record<string, { origem: string; destino: string; count: number }> = {};
+    allRides.forEach(r => {
+      if (r.origem_texto && r.destino_texto) {
+        const key = `${r.origem_texto}→${r.destino_texto}`;
+        if (!routeCount[key]) routeCount[key] = { origem: r.origem_texto, destino: r.destino_texto, count: 0 };
+        routeCount[key].count++;
+      }
+    });
+    const topR = Object.values(routeCount).sort((a, b) => b.count - a.count).slice(0, 5);
+
+    const dayN = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+    const byDay = Array(7).fill(0);
+    allRides.forEach(r => { byDay[new Date(r.created_at).getDay()]++; });
 
     return {
       ranking: rankArr,
-      platformStats: {
-        total: allRides.length,
-        motoristas: Object.keys(byDriver).length,
-      },
+      platformStats: { total: allRides.length, motoristas: Object.keys(byDriver).length, today: ridesToday, week: ridesWeek, avgRating, totalRatings: allRatingsFlat.length, completedCount, cancelledCount },
+      statusBreakdown: byStatus,
+      topRoutes: topR,
+      ridesByDay: byDay,
+      dayNames: dayN,
     };
-  }, [allRides, motoristas, user]);
+  }, [allRides, motoristas, user, driverRatings]);
 
   const myPosition = ranking.findIndex(r => r.isMe) + 1;
+  const maxDay = Math.max(...ridesByDay, 1);
 
-  const periodLabel = {
+  const periodLabel: Record<PeriodFilter, string> = {
     semana: 'Esta Semana',
     semana_passada: 'Semana Passada',
     mes: 'Este Mês',
-    personalizado: 'Período Personalizado',
+    personalizado: 'Personalizado',
   };
 
   return (
@@ -160,7 +242,7 @@ const MotoristaDashboardAll: React.FC = () => {
             Dashboard Geral
           </h1>
           <p className="text-muted-foreground text-[clamp(0.75rem,2.5vw,0.875rem)] mt-1">
-            Desempenho de todos os motoristas da plataforma
+            Visão completa da plataforma
           </p>
         </motion.div>
 
@@ -205,23 +287,184 @@ const MotoristaDashboardAll: React.FC = () => {
           </div>
         ) : (
           <>
-            {/* Platform Stats */}
-            <div className="grid grid-cols-2 gap-[3%] mb-[4%]">
-              <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+            {/* ── KPI Cards ── */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-[3%] mb-[4%]">
+              <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }}>
                 <Card className="border-accent/20">
-                  <CardContent className="py-[12%] text-center">
+                  <CardContent className="py-[10%] text-center">
                     <Car className="w-5 h-5 text-accent mx-auto mb-1" />
                     <p className="text-[clamp(1.1rem,3.5vw,1.5rem)] font-extrabold text-accent">{platformStats.total}</p>
-                    <p className="text-[clamp(0.55rem,1.8vw,0.65rem)] text-muted-foreground font-medium">Viagens</p>
+                    <p className="text-[clamp(0.55rem,1.8vw,0.65rem)] text-muted-foreground font-medium">Total Corridas</p>
                   </CardContent>
                 </Card>
               </motion.div>
-              <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
+              <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }}>
                 <Card className="border-blue-500/20">
-                  <CardContent className="py-[12%] text-center">
-                    <Users className="w-5 h-5 text-blue-400 mx-auto mb-1" />
-                    <p className="text-[clamp(1.1rem,3.5vw,1.5rem)] font-extrabold text-blue-400">{platformStats.motoristas}</p>
-                    <p className="text-[clamp(0.55rem,1.8vw,0.65rem)] text-muted-foreground font-medium">Motoristas</p>
+                  <CardContent className="py-[10%] text-center">
+                    <Activity className="w-5 h-5 text-blue-400 mx-auto mb-1" />
+                    <p className="text-[clamp(1.1rem,3.5vw,1.5rem)] font-extrabold text-blue-400">{platformStats.today}</p>
+                    <p className="text-[clamp(0.55rem,1.8vw,0.65rem)] text-muted-foreground font-medium">Corridas Hoje</p>
+                  </CardContent>
+                </Card>
+              </motion.div>
+              <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.16 }}>
+                <Card className="border-green-500/20">
+                  <CardContent className="py-[10%] text-center">
+                    <TrendingUp className="w-5 h-5 text-green-400 mx-auto mb-1" />
+                    <p className="text-[clamp(1.1rem,3.5vw,1.5rem)] font-extrabold text-green-400">{platformStats.week}</p>
+                    <p className="text-[clamp(0.55rem,1.8vw,0.65rem)] text-muted-foreground font-medium">Últimos 7 Dias</p>
+                  </CardContent>
+                </Card>
+              </motion.div>
+              <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+                <Card className="border-yellow-500/20">
+                  <CardContent className="py-[10%] text-center">
+                    <Star className="w-5 h-5 text-yellow-400 mx-auto mb-1" />
+                    <p className="text-[clamp(1.1rem,3.5vw,1.5rem)] font-extrabold text-yellow-400">
+                      {platformStats.avgRating ? platformStats.avgRating.toFixed(1) : '—'}
+                    </p>
+                    <p className="text-[clamp(0.55rem,1.8vw,0.65rem)] text-muted-foreground font-medium">
+                      Nota Média {platformStats.totalRatings > 0 && `(${platformStats.totalRatings})`}
+                    </p>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            </div>
+
+            {/* ── Status Breakdown + Rotas ── */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-[3%] mb-[4%]">
+              <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.22 }}>
+                <Card>
+                  <CardContent className="py-4 space-y-3">
+                    <h3 className="text-sm font-semibold flex items-center gap-2">
+                      <FileText className="w-4 h-4" />
+                      Status das Corridas
+                    </h3>
+                    <div className="space-y-2">
+                      {([
+                        { key: 'nova', label: 'Novas', icon: FileText, color: 'text-purple-400', bg: 'bg-purple-500' },
+                        { key: 'aguardando_motorista', label: 'Aguardando', icon: Clock, color: 'text-yellow-400', bg: 'bg-yellow-500' },
+                        { key: 'aceita', label: 'Aceitas', icon: Car, color: 'text-blue-400', bg: 'bg-blue-500' },
+                        { key: 'em_analise', label: 'Em Análise', icon: Eye, color: 'text-orange-400', bg: 'bg-orange-500' },
+                        { key: 'aprovada', label: 'Aprovadas', icon: CheckCircle, color: 'text-green-400', bg: 'bg-green-500' },
+                        { key: 'recusada', label: 'Recusadas', icon: XCircle, color: 'text-red-400', bg: 'bg-red-500' },
+                        { key: 'nao_realizada', label: 'Não Realizadas', icon: AlertTriangle, color: 'text-gray-400', bg: 'bg-gray-500' },
+                      ] as const).map(s => (
+                        <div key={s.key} className="flex items-center gap-2">
+                          <s.icon className={`w-3.5 h-3.5 ${s.color} shrink-0`} />
+                          <span className="text-xs w-24 truncate">{s.label}</span>
+                          <div className="flex-1">
+                            <Bar value={statusBreakdown[s.key]} max={platformStats.total} color={s.bg} />
+                          </div>
+                          <span className={`text-xs font-bold w-6 text-right ${s.color}`}>
+                            {statusBreakdown[s.key]}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="flex justify-between text-xs pt-2 border-t border-border/50">
+                      <span className="text-muted-foreground">Taxa de conclusão</span>
+                      <span className="font-semibold text-green-400">
+                        {platformStats.total > 0 ? ((platformStats.completedCount / platformStats.total) * 100).toFixed(0) : 0}%
+                      </span>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+
+              <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.26 }}>
+                <Card>
+                  <CardContent className="py-4 space-y-3">
+                    <h3 className="text-sm font-semibold flex items-center gap-2">
+                      <MapPin className="w-4 h-4 text-blue-400" />
+                      Rotas Mais Solicitadas
+                    </h3>
+                    {topRoutes.length === 0 ? (
+                      <p className="text-xs text-muted-foreground text-center py-4">Nenhuma rota registrada</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {topRoutes.map((route, i) => (
+                          <div key={i} className="bg-muted/30 rounded-lg px-3 py-2">
+                            <div className="flex items-center gap-2 justify-between">
+                              <div className="flex items-center gap-2 min-w-0 flex-1">
+                                <div className="w-2 h-2 rounded-full bg-green-500 shrink-0" />
+                                <span className="text-xs truncate">{route.origem}</span>
+                              </div>
+                              <Badge variant="outline" className="text-[10px] px-1.5 py-0 shrink-0">
+                                {route.count}x
+                              </Badge>
+                            </div>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              <div className="w-2 h-2 rounded-full bg-accent shrink-0" />
+                              <span className="text-xs text-muted-foreground truncate">{route.destino}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </motion.div>
+            </div>
+
+            {/* ── Corridas p/ Dia + Resumo ── */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-[3%] mb-[4%]">
+              <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.28 }}>
+                <Card>
+                  <CardContent className="py-4 space-y-3">
+                    <h3 className="text-sm font-semibold flex items-center gap-2">
+                      <Calendar className="w-4 h-4 text-purple-400" />
+                      Corridas por Dia
+                    </h3>
+                    <div className="flex items-end gap-1.5 h-24 px-1">
+                      {ridesByDay.map((count, i) => (
+                        <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                          <span className="text-[10px] font-bold text-muted-foreground">{count}</span>
+                          <div
+                            className="w-full bg-accent/80 rounded-t-sm transition-all"
+                            style={{ height: `${maxDay > 0 ? (count / maxDay) * 64 : 0}px`, minHeight: count > 0 ? '4px' : '0px' }}
+                          />
+                          <span className="text-[9px] text-muted-foreground">{dayNames[i]}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+
+              <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
+                <Card>
+                  <CardContent className="py-4 space-y-3">
+                    <h3 className="text-sm font-semibold flex items-center gap-2">
+                      <Users className="w-4 h-4 text-blue-400" />
+                      Resumo
+                    </h3>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="bg-accent/10 rounded-lg p-3 text-center">
+                        <Car className="w-4 h-4 text-accent mx-auto mb-1" />
+                        <p className="text-lg font-bold">{platformStats.motoristas}</p>
+                        <p className="text-[10px] text-muted-foreground">Motoristas Ativos</p>
+                      </div>
+                      <div className="bg-green-500/10 rounded-lg p-3 text-center">
+                        <CheckCircle className="w-4 h-4 text-green-400 mx-auto mb-1" />
+                        <p className="text-lg font-bold">{platformStats.completedCount}</p>
+                        <p className="text-[10px] text-muted-foreground">Concluídas</p>
+                      </div>
+                    </div>
+                    <div className="space-y-1.5 pt-1">
+                      <div className="flex justify-between text-xs">
+                        <span className="text-muted-foreground">Total de corridas</span>
+                        <span className="font-semibold">{platformStats.total}</span>
+                      </div>
+                      <div className="flex justify-between text-xs">
+                        <span className="text-muted-foreground">Canceladas/Recusadas</span>
+                        <span className="font-semibold text-red-400">{platformStats.cancelledCount}</span>
+                      </div>
+                      <div className="flex justify-between text-xs">
+                        <span className="text-muted-foreground">Corridas hoje</span>
+                        <span className="font-semibold text-blue-400">{platformStats.today}</span>
+                      </div>
+                    </div>
                   </CardContent>
                 </Card>
               </motion.div>
@@ -229,7 +472,7 @@ const MotoristaDashboardAll: React.FC = () => {
 
             {/* My position */}
             {myPosition > 0 && (
-              <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}>
+              <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.32 }}>
                 <Card className="mb-[4%] border-accent/30 bg-accent/5">
                   <CardContent className="py-3 px-[4%] flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -251,8 +494,8 @@ const MotoristaDashboardAll: React.FC = () => {
               </motion.div>
             )}
 
-            {/* Ranking */}
-            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
+            {/* ── Ranking ── */}
+            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}>
               <div className="flex items-center justify-between mb-3">
                 <h2 className="text-sm font-bold flex items-center gap-2">
                   <Trophy className="w-4 h-4 text-yellow-400" />
@@ -274,13 +517,11 @@ const MotoristaDashboardAll: React.FC = () => {
                     <Card key={driver.id} className={`border-border/50 transition-colors ${driver.isMe ? 'border-accent/40 bg-accent/5' : ''}`}>
                       <CardContent className="py-3 px-[4%]">
                         <div className="flex items-center gap-3">
-                          {/* Position */}
                           <div className="flex items-center justify-center w-8 shrink-0">
                             {i < 3 ? RANK_ICONS[i] : (
                               <span className="text-sm font-bold text-muted-foreground">#{i + 1}</span>
                             )}
                           </div>
-                          {/* Avatar */}
                           <div className="w-9 h-9 rounded-full bg-muted overflow-hidden shrink-0">
                             {driver.avatar_url ? (
                               <img src={driver.avatar_url} alt="" className="w-full h-full object-cover" />
@@ -290,15 +531,21 @@ const MotoristaDashboardAll: React.FC = () => {
                               </div>
                             )}
                           </div>
-                          {/* Name */}
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-semibold truncate">
                               {driver.nome}
                               {driver.isMe && <span className="text-accent ml-1">(você)</span>}
                             </p>
-                            <p className="text-xs text-muted-foreground">{driver.viagens} viagem{driver.viagens > 1 ? 'ns' : ''}</p>
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                              <span>{driver.viagens} viagem{driver.viagens > 1 ? 'ns' : ''}</span>
+                              {driver.avgRating && (
+                                <span className="flex items-center gap-0.5">
+                                  <Star className="w-2.5 h-2.5 fill-yellow-400 text-yellow-400" />
+                                  {driver.avgRating.toFixed(1)}
+                                </span>
+                              )}
+                            </div>
                           </div>
-                          {/* Corridas */}
                           <div className="text-right shrink-0">
                             <p className="text-sm font-bold text-accent">{driver.viagens}</p>
                             <p className="text-[10px] text-muted-foreground">corrida{driver.viagens !== 1 ? 's' : ''}</p>
