@@ -1,9 +1,12 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.escritoriorf.app',
+  appId: 'com.localizzou.app',
   appName: 'EscritorioRF',
-  webDir: 'dist'
+  webDir: 'dist',
+  server: {
+    androidScheme: 'https',
+  },
 };
 
 export default config;

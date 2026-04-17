@@ -2,31 +2,23 @@ import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
-import { defineConfig } from 'vite';
 
-// Remove crossorigin attributes for Capacitor builds (WebView compatibility)
 function removeCrossorigin(): Plugin {
   return {
     name: 'remove-crossorigin',
     enforce: 'post',
     transformIndexHtml(html) {
-      if (process.env.CAPACITOR === 'true') {
-        return html.replace(/ crossorigin/g, '');
-      }
-      return html;
+      return html.replace(/ crossorigin/g, '');
     },
   };
 }
 
-// https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
   base: './',
   server: {
     host: "::",
     port: 8080,
-    hmr: {
-      overlay: false,
-    },
+    hmr: { overlay: false },
   },
   plugins: [
     react(),
