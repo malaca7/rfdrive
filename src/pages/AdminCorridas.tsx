@@ -24,6 +24,7 @@ import { useToast } from '@/hooks/use-toast';
 import { buscarPrecoTabela } from '@/lib/tabela-preco';
 import { useAllLocations } from '@/hooks/usePrecoTabela';
 import { normalizeText } from '@/lib/tabela-preco';
+import { getConfigTarifas, type ConfigTarifas } from '@/lib/pricing-engine';
 
 type Solicitacao = {
   id: string;
@@ -172,6 +173,14 @@ const AdminCorridas: React.FC = () => {
     return allLocations.filter(d => normalizeText(d).includes(q));
   }, [createRideForm.destino_texto, allLocations]);
 
+  const { data: configTarifas } = useQuery<ConfigTarifas | null>({
+    queryKey: ['config-tarifas-admin'],
+    queryFn: () => getConfigTarifas(),
+    staleTime: 10_000,
+  });
+
+  const taxaBagagemValor = configTarifas?.taxa_bagagem ?? 5;
+
   const precoTabelaCreate = useMemo(() => {
     if (!createRideForm.origem_texto.trim() || !createRideForm.destino_texto.trim()) return null;
     return buscarPrecoTabela(createRideForm.origem_texto, createRideForm.destino_texto);
@@ -270,7 +279,13 @@ const AdminCorridas: React.FC = () => {
         : (createRideForm.data
           ? new Date(`${createRideForm.data}T${createRideForm.hora || '12:00'}`).toISOString()
           : new Date().toISOString());
-      const valor = createRideForm.valor ? parseFloat(createRideForm.valor) : (precoTabelaCreate?.valor ?? null);
+      let valor = createRideForm.valor ? parseFloat(createRideForm.valor) : (precoTabelaCreate?.valor ?? null);
+      if (valor != null && createRideForm.temBagagem) valor += taxaBagagemValor;
+      // Append client info to observacoes (columns don't exist in corridas)
+      const obsParts: string[] = [];
+      if (createRideForm.observacoes.trim()) obsParts.push(createRideForm.observacoes.trim());
+      if (createRideForm.clienteNome.trim()) obsParts.push(`Cliente: ${createRideForm.clienteNome.trim()}`);
+      if (createRideForm.clienteTelefone.trim()) obsParts.push(`Tel: ${createRideForm.clienteTelefone.trim()}`);
       const { error } = await supabase.from('corridas').insert({
         cliente_id: createRideForm.motorista_id,
         motorista_id: createRideForm.motorista_id,
@@ -281,10 +296,8 @@ const AdminCorridas: React.FC = () => {
         status: 'aprovada',
         aprovado_admin: true,
         concluida_at: concluidaAt,
-        observacoes: createRideForm.observacoes.trim() || null,
+        observacoes: obsParts.length > 0 ? obsParts.join(' | ') : null,
         tem_bagagem: createRideForm.temBagagem,
-        cliente_nome: createRideForm.clienteNome.trim() || null,
-        cliente_telefone: createRideForm.clienteTelefone.trim() || null,
         preco_regra_aplicada: precoTabelaCreate ? (precoTabelaCreate.estimado ? 'estimado' : 'tabela') : 'manual',
       });
       if (error) throw error;
@@ -747,6 +760,9 @@ const AdminCorridas: React.FC = () => {
               <Input type="number" step="0.01" min="0" value={createRideForm.valor}
                 onChange={e => setCreateRideForm(f => ({ ...f, valor: e.target.value }))}
                 placeholder={precoTabelaCreate ? `Tabelado: ${precoTabelaCreate.valor.toFixed(2)}` : 'Ex: 25.00'} />
+              {createRideForm.temBagagem && (
+                <p className="text-[11px] text-amber-400 mt-1">+ R$ {taxaBagagemValor.toFixed(2)} de bagagem/feira será adicionado</p>
+              )}
             </div>
 
             {/* Bagagem */}
