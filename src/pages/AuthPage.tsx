@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { motion } from 'framer-motion';
-import { Navigation, Loader2, Phone } from 'lucide-react';
+import { Navigation, Loader2, Phone, Eye, EyeOff } from 'lucide-react';
 import { usePlatformConfig } from '@/hooks/usePlatformConfig';
 import { useToast } from '@/hooks/use-toast';
 
@@ -21,11 +21,23 @@ const AuthPage: React.FC = () => {
   const isLogin = true;
   const [telefone, setTelefone] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(() => localStorage.getItem('localizzou_remember') === 'true');
   const [nome, setNome] = useState('');
   const [loading, setLoading] = useState(false);
   const { signIn, signUp } = useAuth();
   const { toast } = useToast();
-  const { nomePlataforma, logoUrl } = usePlatformConfig();
+  const { nomePlataforma, logoUrl, slogan } = usePlatformConfig();
+
+  // Load saved credentials on mount
+  useEffect(() => {
+    if (localStorage.getItem('localizzou_remember') === 'true') {
+      const savedPhone = localStorage.getItem('localizzou_saved_phone') || '';
+      const savedPass = localStorage.getItem('localizzou_saved_pass') || '';
+      if (savedPhone) setTelefone(formatPhone(savedPhone));
+      if (savedPass) setPassword(savedPass);
+    }
+  }, []);
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setTelefone(formatPhone(e.target.value));
@@ -48,6 +60,14 @@ const AuthPage: React.FC = () => {
             description: 'Verifique seu telefone e senha.',
             variant: 'destructive',
           });
+        } else if (rememberMe) {
+          localStorage.setItem('localizzou_remember', 'true');
+          localStorage.setItem('localizzou_saved_phone', telefone.replace(/\D/g, ''));
+          localStorage.setItem('localizzou_saved_pass', password);
+        } else {
+          localStorage.removeItem('localizzou_remember');
+          localStorage.removeItem('localizzou_saved_phone');
+          localStorage.removeItem('localizzou_saved_pass');
         }
       } else {
         await signUp(telefone, password, nome);
@@ -82,7 +102,7 @@ const AuthPage: React.FC = () => {
             {logoUrl ? <img src={logoUrl} alt="" className="w-full h-full object-cover" /> : <Navigation className="w-[45%] h-[45%] text-white" />}
           </motion.div>
           <h1 className="text-[clamp(1.75rem,6vw,2.5rem)] font-extrabold text-white tracking-tight">{nomePlataforma}</h1>
-          <p className="text-white/40 text-[clamp(0.8rem,2.5vw,0.95rem)] mt-1">Seu transporte inteligente</p>
+          <p className="text-white/40 text-[clamp(0.8rem,2.5vw,0.95rem)] mt-1">{slogan}</p>
         </div>
 
         <Card className="bg-card/90 backdrop-blur-2xl border border-white/[0.06] rounded-3xl overflow-hidden">
@@ -125,17 +145,36 @@ const AuthPage: React.FC = () => {
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="password" className="text-xs font-semibold text-white/60">Senha</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  required
-                  minLength={6}
-                  className="h-12 rounded-2xl text-sm bg-white/[0.05] border-white/[0.08] text-white placeholder:text-white/25 focus:border-[hsl(45_100%_50%)] focus:ring-[hsl(45_100%_50%/0.2)]"
-                />
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    required
+                    minLength={6}
+                    className="pr-10 h-12 rounded-2xl text-sm bg-white/[0.05] border-white/[0.08] text-white placeholder:text-white/25 focus:border-[hsl(45_100%_50%)] focus:ring-[hsl(45_100%_50%/0.2)]"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(v => !v)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors"
+                    tabIndex={-1}
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
               </div>
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="w-4 h-4 rounded border-white/20 bg-white/[0.05] text-[hsl(45_100%_50%)] focus:ring-[hsl(45_100%_50%/0.3)] accent-[hsl(45,100%,50%)]"
+                />
+                <span className="text-xs text-white/50">Lembrar meu login</span>
+              </label>
               <Button
                 type="submit"
                 className="w-full h-12 rounded-2xl btn-themed font-bold text-sm"

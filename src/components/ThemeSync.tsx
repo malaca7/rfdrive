@@ -35,12 +35,18 @@ function adjustLightness(hsl: string, delta: number): string {
 
 export function ThemeSync() {
   const {
+    nomePlataforma, slogan,
     corPrimaria, corSecundaria, corTerciaria,
     corSucesso, corAlerta, corErro, corInfo,
     corBotaoTexto, corBotaoFundo, corBotaoBorda, botaoBordaAtiva,
     temaBorderRadius, temaCardOpacidade, temaFonte,
     temaMutedOffset, temaGradienteDirecao, temaBotaoEstilo,
   } = usePlatformConfig();
+
+  // Dynamic page title
+  useEffect(() => {
+    document.title = slogan ? `${nomePlataforma} | ${slogan}` : nomePlataforma;
+  }, [nomePlataforma, slogan]);
 
   useEffect(() => {
     const root = document.documentElement;

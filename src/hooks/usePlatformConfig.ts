@@ -24,6 +24,7 @@ export type PlatformConfig = {
   tema_botao_estilo: string;
   logo_url: string;
   badge_bg_url: string;
+  slogan: string;
 };
 
 const DEFAULTS: Omit<PlatformConfig, 'id'> = {
@@ -48,6 +49,7 @@ const DEFAULTS: Omit<PlatformConfig, 'id'> = {
   tema_botao_estilo: 'gradient',
   logo_url: '',
   badge_bg_url: '',
+  slogan: 'Seu transporte inteligente',
 };
 
 export function usePlatformConfig() {
@@ -88,5 +90,6 @@ export function usePlatformConfig() {
     temaBotaoEstilo: (data as any)?.tema_botao_estilo || DEFAULTS.tema_botao_estilo,
     logoUrl: (data as any)?.logo_url || DEFAULTS.logo_url,
     badgeBgUrl: (data as any)?.badge_bg_url || DEFAULTS.badge_bg_url,
+    slogan: (data as any)?.slogan || DEFAULTS.slogan,
   };
 }

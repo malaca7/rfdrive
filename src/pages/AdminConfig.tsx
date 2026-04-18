@@ -36,6 +36,7 @@ type ConfigPlataforma = {
   tema_gradiente_direcao: string;
   tema_botao_estilo: string;
   logo_url: string;
+  slogan: string;
   updated_at: string;
 };
 
@@ -43,6 +44,7 @@ const DEFAULT_CONFIG: Omit<ConfigPlataforma, 'id' | 'updated_at'> = {
   taxa_semanal_motorista: 0,
   nome_plataforma: 'RF Drive',
   logo_url: '',
+  slogan: 'Seu transporte inteligente',
   cor_primaria: '#FFD000',
   cor_secundaria: '#0a0a0a',
   cor_terciaria: '#ffffff',
@@ -106,6 +108,7 @@ const AdminConfig: React.FC = () => {
         tema_gradiente_direcao: (config as any).tema_gradiente_direcao ?? '135deg',
         tema_botao_estilo: (config as any).tema_botao_estilo ?? 'gradient',
         logo_url: (config as any).logo_url ?? '',
+        slogan: (config as any).slogan ?? 'Seu transporte inteligente',
       });
       setHasChanges(false);
     }
@@ -368,6 +371,17 @@ const AdminConfig: React.FC = () => {
                       }} />
                     </label>
                   </div>
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="border bg-accent/10 border-accent/20">
+              <CardContent className="py-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+                  <div>
+                    <p className="text-sm font-semibold text-accent">Slogan da Plataforma</p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">Frase exibida na tela de login e no título da página.</p>
+                  </div>
+                  <Input value={form.slogan} onChange={e => updateField('slogan', e.target.value)} placeholder="Seu transporte inteligente" className="w-full sm:w-52 font-semibold" />
                 </div>
               </CardContent>
             </Card>
