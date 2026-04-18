@@ -65,38 +65,46 @@ const MotoristaViagens: React.FC = () => {
   });
 
   const taxaBagagemValor = configTarifas?.taxa_bagagem ?? 5;
+  const tarifaMesmoBairro = configTarifas?.tarifa_mesmo_bairro ?? 10;
+
+  // Override preco.valor for mesmo_bairro with configured value
+  const precoEfetivo = useMemo(() => {
+    if (!preco) return null;
+    if (preco.mesmo_bairro) return { ...preco, valor: tarifaMesmoBairro };
+    return preco;
+  }, [preco, tarifaMesmoBairro]);
 
   const totalValue = useMemo(() => {
-    if (!preco) return 0;
-    let total = preco.valor;
+    if (!precoEfetivo) return 0;
+    let total = precoEfetivo.valor;
     if (dynamicAdj) total = dynamicAdj.aplicar(total);
     if (temBagagem) total += taxaBagagemValor;
     const minima = configTarifas?.tarifa_minima ?? 0;
     if (minima > 0 && total < minima) total = minima;
     return Math.round(total * 100) / 100;
-  }, [preco, dynamicAdj, temBagagem, taxaBagagemValor, configTarifas]);
+  }, [precoEfetivo, dynamicAdj, temBagagem, taxaBagagemValor, configTarifas]);
 
   const isTarifaMinima = useMemo(() => {
-    if (!preco) return false;
+    if (!precoEfetivo) return false;
     const minima = configTarifas?.tarifa_minima ?? 0;
     if (minima <= 0) return false;
-    let total = preco.valor;
+    let total = precoEfetivo.valor;
     if (dynamicAdj) total = dynamicAdj.aplicar(total);
     if (temBagagem) total += taxaBagagemValor;
     return total < minima;
-  }, [preco, dynamicAdj, temBagagem, taxaBagagemValor, configTarifas]);
+  }, [precoEfetivo, dynamicAdj, temBagagem, taxaBagagemValor, configTarifas]);
 
   const rawTotalValue = useMemo(() => {
-    if (!preco) return 0;
-    let total = preco.valor;
+    if (!precoEfetivo) return 0;
+    let total = precoEfetivo.valor;
     if (dynamicAdj) total = dynamicAdj.aplicar(total);
     if (temBagagem) total += taxaBagagemValor;
     return Math.round(total * 100) / 100;
-  }, [preco, dynamicAdj, temBagagem, taxaBagagemValor]);
+  }, [precoEfetivo, dynamicAdj, temBagagem, taxaBagagemValor]);
 
   // ── Quote message ──
   const quoteMensagem = useMemo(() => {
-    if (!preco || !origem.trim() || !destino.trim()) return '';
+    if (!precoEfetivo || !origem.trim() || !destino.trim()) return '';
     const hasAdicionais = dynamicAdj || temBagagem;
     const lines: string[] = [
       `─────────────────────`,
@@ -111,22 +119,22 @@ const MotoristaViagens: React.FC = () => {
     lines.push(``);
     if (hasAdicionais) {
       lines.push(`💰 *Detalhamento:*`);
-      lines.push(`   Tarifa ${preco.estimado ? '(estimada)' : 'tabelada'}: R$ ${preco.valor.toFixed(2).replace('.', ',')}`);
+      lines.push(`   Tarifa ${precoEfetivo.mesmo_bairro ? '(mesmo bairro)' : precoEfetivo.estimado ? '(estimada)' : 'tabelada'}: R$ ${precoEfetivo.valor.toFixed(2).replace('.', ',')}`);
       if (dynamicAdj) {
-        const ajusteValor = dynamicAdj.aplicar(preco.valor) - preco.valor;
+        const ajusteValor = dynamicAdj.aplicar(precoEfetivo.valor) - precoEfetivo.valor;
         lines.push(`   ⏰ ${dynamicAdj.regra.nome}: +R$ ${ajusteValor.toFixed(2).replace('.', ',')}`);
       }
       if (temBagagem) lines.push(`   📦 Feira/Bagagem: +R$ ${taxaBagagemValor.toFixed(2).replace('.', ',')}`);
       lines.push(`   ─────────────────`);
       lines.push(`   ✅ *Total: R$ ${totalValue.toFixed(2).replace('.', ',')}*`);
     } else {
-      lines.push(`✅ *Valor: R$ ${totalValue.toFixed(2).replace('.', ',')}*${preco.estimado ? ' _(estimado)_' : ''}`);
+      lines.push(`✅ *Valor: R$ ${totalValue.toFixed(2).replace('.', ',')}*${precoEfetivo.mesmo_bairro ? ' _(mesmo bairro)_' : precoEfetivo.estimado ? ' _(estimado)_' : ''}`);
     }
     if (observacao.trim()) lines.push(``, `📝 *Obs:* ${observacao.trim()}`);
     if (clienteNome.trim()) lines.push(``);
     lines.push(``, `─────────────────────`, `_${nomePlataforma} • Mobilidade com Excelência!_`);
     return lines.join('\n');
-  }, [preco, origem, destino, clienteNome, observacao, totalValue, dynamicAdj, temBagagem, taxaBagagemValor]);
+  }, [precoEfetivo, origem, destino, clienteNome, observacao, totalValue, dynamicAdj, temBagagem, taxaBagagemValor, nomePlataforma]);
 
   const handleCopy = async () => {
     if (!quoteMensagem) return;
@@ -143,7 +151,7 @@ const MotoristaViagens: React.FC = () => {
   // ── Registrar viagem como realizada ──
   const registrarMutation = useMutation({
     mutationFn: async () => {
-      if (!preco || !user) throw new Error('Dados incompletos');
+      if (!precoEfetivo || !user) throw new Error('Dados incompletos');
       const concluidaAt = new Date().toISOString();
       const { error } = await supabase.from('corridas').insert({
         cliente_id: user.id,
@@ -156,11 +164,11 @@ const MotoristaViagens: React.FC = () => {
         observacao_motorista: observacao.trim() || null,
         concluida_at: concluidaAt,
         tem_bagagem: temBagagem || null,
-        preco_regra_aplicada: preco.estimado ? 'estimado' : 'tabela',
+        preco_regra_aplicada: precoEfetivo.mesmo_bairro ? 'mesmo_bairro' : precoEfetivo.estimado ? 'estimado' : 'tabela',
         preco_detalhes: {
-          origem_tabela: preco.origem_tabela,
-          destino_tabela: preco.destino_tabela,
-          valor_base: preco.valor,
+          origem_tabela: precoEfetivo.origem_tabela,
+          destino_tabela: precoEfetivo.destino_tabela,
+          valor_base: precoEfetivo.valor,
           cliente_nome: clienteNome.trim() || null,
           cliente_telefone: clienteTelefone.trim() || null,
           ...(dynamicAdj ? {
@@ -303,29 +311,37 @@ const MotoristaViagens: React.FC = () => {
 
             {/* Price preview */}
             <AnimatePresence>
-              {preco && (
+              {precoEfetivo && (
                 <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
-                  className={`${preco.estimado ? 'bg-amber-500/10 border-amber-500/20' : 'bg-green-500/10 border-green-500/20'} border rounded-xl p-[4%]`}>
+                  className={`${precoEfetivo.mesmo_bairro ? 'bg-blue-500/10 border-blue-500/20' : precoEfetivo.estimado ? 'bg-amber-500/10 border-amber-500/20' : 'bg-green-500/10 border-green-500/20'} border rounded-xl p-[4%]`}>
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <TableProperties className={`w-3.5 h-3.5 ${preco.estimado ? 'text-amber-400' : 'text-green-400'}`} />
+                        <TableProperties className={`w-3.5 h-3.5 ${precoEfetivo.mesmo_bairro ? 'text-blue-400' : precoEfetivo.estimado ? 'text-amber-400' : 'text-green-400'}`} />
                         <div>
-                          <p className="text-[10px] text-muted-foreground">{preco.estimado ? 'Preço estimado' : 'Preço tabelado'}</p>
-                          <p className={`text-sm font-medium ${preco.estimado ? 'text-amber-400/80' : 'text-green-400/80'}`}>
-                            R$ {preco.valor.toFixed(2).replace('.', ',')}
+                          <p className="text-[10px] text-muted-foreground">{precoEfetivo.mesmo_bairro ? 'Mesmo bairro' : precoEfetivo.estimado ? 'Preço estimado' : 'Preço tabelado'}</p>
+                          <p className={`text-sm font-medium ${precoEfetivo.mesmo_bairro ? 'text-blue-400/80' : precoEfetivo.estimado ? 'text-amber-400/80' : 'text-green-400/80'}`}>
+                            R$ {precoEfetivo.valor.toFixed(2).replace('.', ',')}
                           </p>
                         </div>
                       </div>
                       <div className="text-right">
                         <p className="text-[10px] text-muted-foreground">
-                          {preco.estimado ? 'Média via Centro do Cabo' : preco.match_exato ? 'Correspondência exata' : 'Melhor correspondência'}
+                          {precoEfetivo.mesmo_bairro ? 'Viagem pro mesmo bairro' : precoEfetivo.estimado ? 'Média via Centro do Cabo' : precoEfetivo.match_exato ? 'Correspondência exata' : 'Melhor correspondência'}
                         </p>
-                        <p className="text-[10px] text-muted-foreground truncate max-w-[160px]">
-                          {preco.origem_tabela} → {preco.destino_tabela}
-                        </p>
+                        {!precoEfetivo.mesmo_bairro && (
+                          <p className="text-[10px] text-muted-foreground truncate max-w-[160px]">
+                            {precoEfetivo.origem_tabela} → {precoEfetivo.destino_tabela}
+                          </p>
+                        )}
                       </div>
                     </div>
+                    {precoEfetivo.mesmo_bairro && (
+                      <div className="flex items-center gap-2 bg-blue-500/10 border border-blue-500/20 rounded-lg px-3 py-2">
+                        <MapPin className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+                        <span className="text-xs text-blue-400">Viagem pro mesmo bairro — tarifa fixa R$ {precoEfetivo.valor.toFixed(2).replace('.', ',')}</span>
+                      </div>
+                    )}
                     {dynamicAdj && (
                       <div className="flex items-center justify-between bg-purple-500/10 border border-purple-500/20 rounded-lg px-3 py-2">
                         <div className="flex items-center gap-2">
@@ -362,7 +378,7 @@ const MotoristaViagens: React.FC = () => {
                           {isTarifaMinima && (
                             <span className="text-xs text-muted-foreground line-through">R$ {rawTotalValue.toFixed(2).replace('.', ',')}</span>
                           )}
-                          <span className={`text-2xl font-extrabold ${isTarifaMinima ? 'text-yellow-400' : preco.estimado ? 'text-amber-400' : 'text-green-400'}`}>
+                          <span className={`text-2xl font-extrabold ${isTarifaMinima ? 'text-yellow-400' : precoEfetivo.mesmo_bairro ? 'text-blue-400' : precoEfetivo.estimado ? 'text-amber-400' : 'text-green-400'}`}>
                             R$ {totalValue.toFixed(2).replace('.', ',')}
                           </span>
                         </div>
@@ -373,7 +389,7 @@ const MotoristaViagens: React.FC = () => {
               )}
             </AnimatePresence>
 
-            {!preco && origem.trim() && destino.trim() && (
+            {!precoEfetivo && origem.trim() && destino.trim() && (
               <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 text-center">
                 <p className="text-sm text-red-400">Rota não encontrada na tabela</p>
                 <p className="text-[10px] text-muted-foreground">Verifique origem e destino</p>
