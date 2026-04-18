@@ -53,6 +53,8 @@
     --gradient-hero: linear-gradient(180deg, hsl(220 15% 4%) 0%, hsl(220 12% 8%) 100%);
     --shadow-card: 0 2px 12px 0 rgba(0,0,0,0.45);
     --shadow-elevated: 0 12px 40px -8px rgba(0,0,0,0.65);
+
+    --bar: 220 12% 8%;
   }
 
   .dark {
@@ -84,6 +86,8 @@
     --gradient-hero: linear-gradient(180deg, hsl(220 15% 3%) 0%, hsl(220 12% 7%) 100%);
     --shadow-card: 0 2px 12px 0 rgba(0,0,0,0.55);
     --shadow-elevated: 0 12px 40px -8px rgba(0,0,0,0.75);
+
+    --bar: 220 12% 7%;
   }
 
   .light {
@@ -124,6 +128,8 @@
     --gradient-hero: linear-gradient(180deg, hsl(220 15% 97%) 0%, hsl(220 12% 93%) 100%);
     --shadow-card: 0 2px 12px 0 rgba(0,0,0,0.06);
     --shadow-elevated: 0 12px 40px -8px rgba(0,0,0,0.12);
+
+    --bar: 0 0% 100%;
   }
 }
 
@@ -273,5 +279,37 @@
   }
   @keyframes spin {
     to { transform: rotate(360deg); }
+  }
+
+  /* ═══ Bar glow effects ═══ */
+  .bar-glow-bottom {
+    position: relative;
+  }
+  .bar-glow-bottom::after {
+    content: '';
+    position: absolute;
+    bottom: -8px;
+    left: 5%;
+    right: 5%;
+    height: 8px;
+    background: linear-gradient(to bottom, hsl(215 80% 55% / 0.25), transparent);
+    filter: blur(4px);
+    pointer-events: none;
+    border-radius: 0 0 50% 50%;
+  }
+  .bar-glow-top {
+    position: relative;
+  }
+  .bar-glow-top::before {
+    content: '';
+    position: absolute;
+    top: -8px;
+    left: 5%;
+    right: 5%;
+    height: 8px;
+    background: linear-gradient(to top, hsl(215 80% 55% / 0.25), transparent);
+    filter: blur(4px);
+    pointer-events: none;
+    border-radius: 50% 50% 0 0;
   }
 }

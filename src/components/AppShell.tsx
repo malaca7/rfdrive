@@ -55,7 +55,7 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return (
     <div className="h-[100dvh] w-full flex flex-col bg-background overflow-hidden">
       {/* ── Top Bar ── */}
-      <header className="shrink-0 z-50 bg-card/98 backdrop-blur-2xl border-b border-border/40 safe-top shadow-lg shadow-black/10 dark:shadow-black/30">
+      <header className="shrink-0 z-50 bg-bar backdrop-blur-2xl border-b border-border/40 safe-top shadow-lg shadow-black/10 dark:shadow-black/30 bar-glow-bottom">
         <div className="w-full px-[4%] h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl gradient-accent flex items-center justify-center shadow-lg shadow-accent/30 glow-accent overflow-hidden">
@@ -102,8 +102,8 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       </main>
 
       {/* ── Bottom Navigation — floating dock ── */}
-      <nav className="shrink-0 z-40 safe-bottom">
-        <div className="mx-3 mb-2 bg-card/95 backdrop-blur-2xl rounded-2xl border border-border/40 shadow-2xl shadow-black/20 dark:shadow-black/50">
+      <nav className="shrink-0 z-40 safe-bottom bar-glow-top">
+        <div className="mx-3 mb-2 bg-bar backdrop-blur-2xl rounded-2xl border border-border/40 shadow-2xl shadow-black/20 dark:shadow-black/50">
           <div className="flex items-stretch justify-around h-[66px] px-1">
             {(isMotoristaRoute || (!isAdminScreen && !isAdminRoute)) ? (
               <>
@@ -140,10 +140,10 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                       className="relative flex flex-col items-center justify-center gap-1 flex-1 tap-highlight"
                       title="Admin"
                     >
-                      <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-muted/50 border border-border text-foreground hover:text-accent hover:border-accent/40 transition-all">
+                      <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-gradient-to-br from-indigo-500/20 to-blue-500/20 border border-indigo-400/40 text-indigo-400 hover:from-indigo-500/30 hover:to-blue-500/30 hover:border-indigo-400/60 transition-all">
                         <Shield className="w-5 h-5" />
                       </div>
-                      <span className="text-[10px] font-bold tracking-wide text-foreground/70">Admin</span>
+                      <span className="text-[10px] font-bold tracking-wide text-indigo-400">Admin</span>
                     </button>
                   </>
                 )}
@@ -155,10 +155,10 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                   className="relative flex flex-col items-center justify-center gap-1 flex-1 tap-highlight"
                   title="Motorista"
                 >
-                  <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-muted/50 border border-border text-foreground hover:text-accent hover:border-accent/40 transition-all">
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-gradient-to-br from-emerald-500/20 to-green-500/20 border border-emerald-400/40 text-emerald-400 hover:from-emerald-500/30 hover:to-green-500/30 hover:border-emerald-400/60 transition-all">
                     <Truck className="w-5 h-5" />
                   </div>
-                  <span className="text-[10px] font-bold tracking-wide text-foreground/70">Motorista</span>
+                  <span className="text-[10px] font-bold tracking-wide text-emerald-400">Motorista</span>
                 </button>
                 <div className="w-px self-stretch my-2.5 bg-border mx-0.5" />
                 <div className="relative flex flex-col items-center justify-center gap-1 flex-1">

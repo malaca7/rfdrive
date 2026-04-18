@@ -605,7 +605,7 @@ const AdminAvaliacaoLinks: React.FC = () => {
                   exit={{ opacity: 0, y: -8 }}
                   transition={{ delay: i * 0.02 }}
                 >
-                  <Card className={`transition-colors hover:border-white/10 ${link.status === 'expirada' || isExpiredNow ? 'opacity-50' : ''}`}>
+                  <Card className={`transition-colors hover:border-border ${link.status === 'expirada' || isExpiredNow ? 'opacity-50' : ''}`}>
                     <CardContent className="py-3 px-4">
                       <div className="flex items-start gap-3">
                         {/* Avatar */}

@@ -329,7 +329,7 @@ const AdminUsuarios: React.FC = () => {
             const isAdmin = u.roles?.includes('admin') || u.tipo === 'admin';
             return (
               <motion.div key={u.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.015 }}>
-                <Card className={`transition-colors hover:border-white/10 ${u.status === 'banido' ? 'border-red-500/30 bg-red-500/5 opacity-60' : ''}`}>
+                <Card className={`transition-colors hover:border-border ${u.status === 'banido' ? 'border-red-500/30 bg-red-500/5 opacity-60' : ''}`}>
                   <CardContent className="py-2.5 px-3 sm:py-3 sm:px-4">
                     <div className="flex items-center gap-2 sm:gap-3">
                       <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full shrink-0 overflow-hidden bg-accent/20 flex items-center justify-center">
@@ -400,9 +400,9 @@ const AdminUsuarios: React.FC = () => {
               <Label className="text-xs">Foto do Veículo</Label>
               <div className="flex items-center gap-3 mt-1">
                 {selectedUser?.veiculo_foto ? (
-                  <img src={selectedUser.veiculo_foto} alt="Veículo" className="w-24 h-16 rounded-lg object-cover border border-white/10" />
+                  <img src={selectedUser.veiculo_foto} alt="Veículo" className="w-24 h-16 rounded-lg object-cover border border-border" />
                 ) : (
-                  <div className="w-24 h-16 rounded-lg bg-muted/30 border border-dashed border-white/10 flex items-center justify-center">
+                  <div className="w-24 h-16 rounded-lg bg-muted/30 border border-dashed border-border flex items-center justify-center">
                     <Car className="w-6 h-6 text-muted-foreground" />
                   </div>
                 )}

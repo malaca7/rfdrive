@@ -223,7 +223,7 @@ const AdminConfig: React.FC = () => {
                         >✕</button>
                       </div>
                     ) : (
-                      <div className="w-14 h-14 rounded-xl border-2 border-dashed border-white/10 flex items-center justify-center">
+                      <div className="w-14 h-14 rounded-xl border-2 border-dashed border-border flex items-center justify-center">
                         <Image className="w-5 h-5 text-muted-foreground/40" />
                       </div>
                     )}
