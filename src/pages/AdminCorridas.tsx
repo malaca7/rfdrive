@@ -228,6 +228,27 @@ const AdminCorridas: React.FC = () => {
     let total = precoTabelaCreate.valor;
     if (dynamicAdjCreate) total = dynamicAdjCreate.aplicar(total);
     if (createRideForm.temBagagem) total += taxaBagagemValor;
+    // Aplicar tarifa mínima
+    const minima = configTarifas?.tarifa_minima ?? 0;
+    if (minima > 0 && total < minima) total = minima;
+    return Math.round(total * 100) / 100;
+  }, [precoTabelaCreate, dynamicAdjCreate, createRideForm.temBagagem, taxaBagagemValor, configTarifas]);
+
+  const isTarifaMinimaCreate = useMemo(() => {
+    if (!precoTabelaCreate) return false;
+    const minima = configTarifas?.tarifa_minima ?? 0;
+    if (minima <= 0) return false;
+    let total = precoTabelaCreate.valor;
+    if (dynamicAdjCreate) total = dynamicAdjCreate.aplicar(total);
+    if (createRideForm.temBagagem) total += taxaBagagemValor;
+    return total < minima;
+  }, [precoTabelaCreate, dynamicAdjCreate, createRideForm.temBagagem, taxaBagagemValor, configTarifas]);
+
+  const rawTotalCreateValue = useMemo(() => {
+    if (!precoTabelaCreate) return 0;
+    let total = precoTabelaCreate.valor;
+    if (dynamicAdjCreate) total = dynamicAdjCreate.aplicar(total);
+    if (createRideForm.temBagagem) total += taxaBagagemValor;
     return Math.round(total * 100) / 100;
   }, [precoTabelaCreate, dynamicAdjCreate, createRideForm.temBagagem, taxaBagagemValor]);
 
@@ -814,15 +835,6 @@ const AdminCorridas: React.FC = () => {
                   A viagem será registrada com a data e hora atuais.
                 </div>
               )}
-              {dynamicAdjCreate && (
-                <div className="bg-purple-500/10 border border-purple-500/20 rounded-lg p-2.5 text-xs flex items-center justify-between">
-                  <span className="text-purple-400 flex items-center gap-1.5">
-                    <Clock className="w-3 h-3" />
-                    {dynamicAdjCreate.regra.nome}
-                  </span>
-                  <span className="font-bold text-purple-400">{dynamicAdjCreate.label}</span>
-                </div>
-              )}
             </div>
 
             {/* Bagagem */}
@@ -836,7 +848,7 @@ const AdminCorridas: React.FC = () => {
 
             {/* Preço tabelado */}
             {precoTabelaCreate && (
-              <div className={`${precoTabelaCreate.mesmo_bairro ? 'bg-blue-500/10 border-blue-500/20' : precoTabelaCreate.estimado ? 'bg-amber-500/10 border-amber-500/20' : 'bg-green-500/10 border-green-500/20'} border rounded-lg p-3 space-y-2`}>
+              <div className={`${precoTabelaCreate.mesmo_bairro ? 'bg-blue-500/10 border-blue-500/20' : precoTabelaCreate.estimado ? 'bg-amber-500/10 border-amber-500/20' : 'bg-green-500/10 border-green-500/20'} border rounded-xl p-3 space-y-2`}>
                 {/* Preço base */}
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -846,42 +858,76 @@ const AdminCorridas: React.FC = () => {
                       <p className={`text-base font-semibold ${precoTabelaCreate.mesmo_bairro ? 'text-blue-400' : precoTabelaCreate.estimado ? 'text-amber-400' : 'text-green-400'}`}>R$ {precoTabelaCreate.valor.toFixed(2)}</p>
                     </div>
                   </div>
-                  <Button type="button" variant="ghost" size="sm" className="text-xs text-green-400 hover:text-green-300 h-6"
-                    onClick={() => setCreateRideForm(f => ({ ...f, valor: (totalCreateValue ?? precoTabelaCreate.valor).toFixed(2) }))}>Aplicar Total</Button>
+                  <div className="flex items-center gap-2">
+                    <div className="text-right">
+                      <p className="text-[10px] text-muted-foreground">
+                        {precoTabelaCreate.mesmo_bairro ? 'Viagem pro mesmo bairro' : precoTabelaCreate.estimado ? 'Média via Centro do Cabo' : precoTabelaCreate.match_exato ? 'Correspondência exata' : 'Melhor correspondência'}
+                      </p>
+                      {!precoTabelaCreate.mesmo_bairro && (
+                        <p className="text-[10px] text-muted-foreground truncate max-w-[160px]">
+                          {precoTabelaCreate.origem_tabela} → {precoTabelaCreate.destino_tabela}
+                        </p>
+                      )}
+                    </div>
+                    <Button type="button" variant="ghost" size="sm" className="text-xs text-green-400 hover:text-green-300 h-6"
+                      onClick={() => setCreateRideForm(f => ({ ...f, valor: (totalCreateValue ?? precoTabelaCreate.valor).toFixed(2) }))}>Aplicar Total</Button>
+                  </div>
                 </div>
                 {/* Mesmo bairro */}
                 {precoTabelaCreate.mesmo_bairro && (
-                  <div className="flex items-center gap-2 bg-blue-500/10 border border-blue-500/20 rounded-lg px-3 py-1.5">
-                    <MapPin className="w-3 h-3 text-blue-400 shrink-0" />
+                  <div className="flex items-center gap-2 bg-blue-500/10 border border-blue-500/20 rounded-lg px-3 py-2">
+                    <MapPin className="w-3.5 h-3.5 text-blue-400 shrink-0" />
                     <span className="text-xs text-blue-400">Viagem pro mesmo bairro — tarifa fixa R$ {precoTabelaCreate.valor.toFixed(2)}</span>
                   </div>
                 )}
                 {/* Adicionais */}
                 {dynamicAdjCreate && (
-                  <div className="flex items-center justify-between bg-purple-500/10 border border-purple-500/20 rounded-lg px-3 py-1.5">
-                    <span className="text-xs text-purple-400 flex items-center gap-1.5"><Clock className="w-3 h-3" /> {dynamicAdjCreate.regra.nome}</span>
+                  <div className="flex items-center justify-between bg-purple-500/10 border border-purple-500/20 rounded-lg px-3 py-2">
+                    <div className="flex items-center gap-2">
+                      <Clock className="w-3.5 h-3.5 text-purple-400" />
+                      <span className="text-xs text-muted-foreground">{dynamicAdjCreate.regra.nome}</span>
+                    </div>
                     <span className="text-sm font-bold text-purple-400">
                       +R$ {(dynamicAdjCreate.aplicar(precoTabelaCreate.valor) - precoTabelaCreate.valor).toFixed(2)}
                     </span>
                   </div>
                 )}
                 {createRideForm.temBagagem && (
-                  <div className="flex items-center justify-between bg-orange-500/10 border border-orange-500/20 rounded-lg px-3 py-1.5">
-                    <span className="text-xs text-muted-foreground flex items-center gap-1.5"><span className="text-orange-400">📦</span> Feira/Bagagem</span>
+                  <div className="flex items-center justify-between bg-orange-500/10 border border-orange-500/20 rounded-lg px-3 py-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-orange-400 text-xs">📦</span>
+                      <span className="text-xs text-muted-foreground">Feira/Bagagem</span>
+                    </div>
                     <span className="text-sm font-bold text-orange-400">+R$ {taxaBagagemValor.toFixed(2)}</span>
                   </div>
                 )}
+                {isTarifaMinimaCreate && (
+                  <div className="flex items-center gap-2 bg-yellow-500/10 border border-yellow-500/20 rounded-lg px-3 py-2">
+                    <AlertTriangle className="w-3.5 h-3.5 text-yellow-400 shrink-0" />
+                    <span className="text-xs text-yellow-400">Tarifa mínima aplicada</span>
+                  </div>
+                )}
                 {/* Valor total em destaque */}
-                {(dynamicAdjCreate || createRideForm.temBagagem) && totalCreateValue != null && (
-                  <div className="border-t border-border pt-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-semibold">Valor Total</span>
-                      <span className={`text-lg font-extrabold ${precoTabelaCreate.mesmo_bairro ? 'text-blue-400' : precoTabelaCreate.estimado ? 'text-amber-400' : 'text-green-400'}`}>
-                        R$ {totalCreateValue.toFixed(2)}
+                <div className="border-t border-border pt-3 mt-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-semibold">Valor Total</span>
+                    <div className="flex items-center gap-2">
+                      {isTarifaMinimaCreate && (
+                        <span className="text-xs text-muted-foreground line-through">R$ {rawTotalCreateValue.toFixed(2)}</span>
+                      )}
+                      <span className={`text-xl font-extrabold ${isTarifaMinimaCreate ? 'text-yellow-400' : precoTabelaCreate.mesmo_bairro ? 'text-blue-400' : precoTabelaCreate.estimado ? 'text-amber-400' : 'text-green-400'}`}>
+                        R$ {(totalCreateValue ?? precoTabelaCreate.valor).toFixed(2)}
                       </span>
                     </div>
                   </div>
-                )}
+                </div>
+              </div>
+            )}
+
+            {!precoTabelaCreate && createRideForm.origem_texto.trim() && createRideForm.destino_texto.trim() && (
+              <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 text-center">
+                <p className="text-sm text-red-400">Rota não encontrada na tabela</p>
+                <p className="text-[10px] text-muted-foreground">Verifique origem e destino</p>
               </div>
             )}
 
