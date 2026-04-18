@@ -166,14 +166,25 @@ const AuthPage: React.FC = () => {
                   </button>
                 </div>
               </div>
-              <label className="flex items-center gap-2 cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                  className="w-4 h-4 rounded border-white/20 bg-white/[0.05] text-[hsl(45_100%_50%)] focus:ring-[hsl(45_100%_50%/0.3)] accent-[hsl(45,100%,50%)]"
-                />
-                <span className="text-xs text-white/50">Lembrar meu login</span>
+              <label className="flex items-center gap-2.5 cursor-pointer select-none group">
+                <button
+                  type="button"
+                  onClick={() => setRememberMe(v => !v)}
+                  className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all duration-200 shrink-0 ${
+                    rememberMe
+                      ? 'bg-accent border-accent shadow-[0_0_8px_hsl(var(--accent)/0.4)]'
+                      : 'border-white/20 bg-white/[0.05] group-hover:border-white/30'
+                  }`}
+                >
+                  {rememberMe && (
+                    <svg className="w-3 h-3 text-accent-foreground" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M2.5 6L5 8.5L9.5 3.5" />
+                    </svg>
+                  )}
+                </button>
+                <span className={`text-xs transition-colors ${rememberMe ? 'text-white/70' : 'text-white/40 group-hover:text-white/50'}`}>
+                  Lembrar meu login
+                </span>
               </label>
               <Button
                 type="submit"
