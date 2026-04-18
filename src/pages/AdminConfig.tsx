@@ -260,6 +260,8 @@ const AdminConfig: React.FC = () => {
     );
   }
 
+  const [activeTab, setActiveTab] = useState<'geral' | 'tema' | 'financeiro'>('geral');
+
   const FONT_OPTIONS = [
     'Plus Jakarta Sans',
     'Inter',
@@ -289,6 +291,12 @@ const AdminConfig: React.FC = () => {
     { value: 'outline', label: 'Contorno' },
   ];
 
+  const tabs = [
+    { id: 'geral' as const, label: 'Geral', icon: <Settings className="w-4 h-4" /> },
+    { id: 'tema' as const, label: 'Tema', icon: <Palette className="w-4 h-4" /> },
+    { id: 'financeiro' as const, label: 'Financeiro', icon: <DollarSign className="w-4 h-4" /> },
+  ];
+
   return (
     <AdminLayout>
       <div className="mb-4">
@@ -298,12 +306,28 @@ const AdminConfig: React.FC = () => {
         <p className="text-xs text-muted-foreground mt-1">Configurações gerais da plataforma</p>
       </div>
 
+      {/* ── Tabs ── */}
+      <div className="flex gap-1 mb-5 bg-muted/30 p-1 rounded-xl">
+        {tabs.map(t => (
+          <button
+            key={t.id}
+            onClick={() => setActiveTab(t.id)}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-lg text-xs font-semibold transition-all ${
+              activeTab === t.id
+                ? 'bg-accent text-accent-foreground shadow-md'
+                : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+            }`}
+          >
+            {t.icon}
+            {t.label}
+          </button>
+        ))}
+      </div>
+
       <div className="space-y-5">
         {/* ══ FINANCEIRO ══ */}
+        {activeTab === 'financeiro' && (
         <div>
-          <h3 className="text-sm font-semibold flex items-center gap-2 mb-3">
-            <DollarSign className="w-4 h-4 text-green-400" /> Financeiro
-          </h3>
           <Card className="border bg-green-500/10 border-green-500/20">
             <CardContent className="py-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
@@ -325,12 +349,11 @@ const AdminConfig: React.FC = () => {
             </CardContent>
           </Card>
         </div>
+        )}
 
         {/* ══ GERAL ══ */}
+        {activeTab === 'geral' && (
         <div>
-          <h3 className="text-sm font-semibold flex items-center gap-2 mb-3">
-            <Settings className="w-4 h-4 text-accent" /> Geral
-          </h3>
           <div className="space-y-3">
             <Card className="border bg-accent/10 border-accent/20">
               <CardContent className="py-4">
@@ -414,11 +437,14 @@ const AdminConfig: React.FC = () => {
             </Card>
           </div>
         </div>
+        )}
 
         {/* ══ CORES DO TEMA ══ */}
+        {activeTab === 'tema' && (
+        <>
         <div>
           <h3 className="text-sm font-semibold flex items-center gap-2 mb-3">
-            <Palette className="w-4 h-4 text-purple-400" /> Cores do Tema
+            <Palette className="w-4 h-4 text-purple-400" /> Cores
           </h3>
           <div className="space-y-3">
             {[
@@ -713,6 +739,8 @@ const AdminConfig: React.FC = () => {
             </CardContent>
           </Card>
         </div>
+        </>
+        )}
       </div>
 
       <div className="mt-6">
