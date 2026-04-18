@@ -8,6 +8,7 @@ import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 import { useDispatchEngine } from "@/hooks/useDispatchEngine";
 import { ThemeSync } from "@/components/ThemeSync";
 import React, { Suspense } from "react";
+import { useAppUpdate } from "@/hooks/useAppUpdate";
 
 // Lazy-load pages — each becomes a separate chunk
 const AuthPage = React.lazy(() => import("./pages/AuthPage"));
@@ -48,6 +49,29 @@ const queryClient = new QueryClient({
     },
   },
 });
+
+const UpdatePrompt = () => {
+  const { updateAvailable, doUpdate } = useAppUpdate();
+  if (!updateAvailable) return null;
+  return (
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm">
+      <div className="bg-card rounded-2xl shadow-2xl p-6 mx-4 max-w-sm w-full text-center space-y-4">
+        <div className="text-4xl">🚀</div>
+        <h2 className="text-lg font-bold">Nova versão disponível!</h2>
+        <p className="text-sm text-muted-foreground">
+          Versão <span className="font-semibold text-foreground">{updateAvailable.versionName}</span> disponível.
+          Atualize para ter as últimas melhorias.
+        </p>
+        <button
+          onClick={doUpdate}
+          className="w-full h-12 rounded-xl font-semibold text-white bg-accent hover:bg-accent/90 transition-colors text-base"
+        >
+          Atualizar agora
+        </button>
+      </div>
+    </div>
+  );
+};
 
 const AppRoutes = () => {
   const { user, activeScreen, loading, roles } = useAuth();
@@ -120,6 +144,7 @@ const App = () => (
       <ThemeSync />
       <Toaster />
       <Sonner />
+      <UpdatePrompt />
       <HashRouter>
         <AuthProvider>
           <AppRoutes />
