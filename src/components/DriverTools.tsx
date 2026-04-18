@@ -469,7 +469,7 @@ export const TripCalculator: React.FC<{
                 {/* Mensagem do orçamento */}
                 <div className="bg-muted/20 rounded-xl p-3">
                   <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide mb-2">Mensagem</p>
-                  <div className="text-xs whitespace-pre-wrap leading-relaxed max-h-[200px] overflow-y-auto">
+                  <div className="text-xs whitespace-pre-wrap leading-relaxed max-h-[100px] overflow-y-auto">
                     {quoteMensagem}
                   </div>
                 </div>

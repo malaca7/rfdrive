@@ -135,15 +135,6 @@ const MotoristaViagens: React.FC = () => {
     }
   };
 
-  const handleWhatsApp = () => {
-    if (!quoteMensagem) return;
-    const phone = clienteTelefone.replace(/\D/g, '');
-    const url = phone
-      ? `https://wa.me/55${phone}?text=${encodeURIComponent(quoteMensagem)}`
-      : `https://wa.me/?text=${encodeURIComponent(quoteMensagem)}`;
-    openExternal(url);
-  };
-
   // ── Registrar viagem como realizada ──
   const registrarMutation = useMutation({
     mutationFn: async () => {
@@ -437,23 +428,15 @@ const MotoristaViagens: React.FC = () => {
                   {/* Mensagem do orçamento */}
                   <div className="space-y-1.5">
                     <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide">Mensagem do Orçamento</p>
-                    <Textarea
-                      value={quoteMensagem}
-                      readOnly
-                      className="resize-none text-xs font-mono leading-relaxed min-h-[120px] bg-muted/20"
-                      rows={6}
-                    />
+                    <div className="text-xs whitespace-pre-wrap leading-relaxed bg-muted/20 rounded-lg p-3 max-h-[100px] overflow-y-auto">
+                      {quoteMensagem}
+                    </div>
                   </div>
 
-                  <div className="flex gap-2">
-                    <Button variant="outline" className="flex-1 gap-1.5 h-11 rounded-xl font-semibold" onClick={handleCopy}>
-                      {copied ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
-                      {copied ? 'Copiado!' : 'Copiar'}
-                    </Button>
-                    <Button className="flex-1 gap-1.5 h-11 rounded-xl font-semibold bg-green-600 hover:bg-green-700 text-white shadow-lg shadow-green-600/20" onClick={handleWhatsApp}>
-                      <MessageSquare className="w-4 h-4" /> WhatsApp
-                    </Button>
-                  </div>
+                  <Button className="w-full gap-2 h-11 rounded-xl font-semibold" onClick={handleCopy}>
+                    {copied ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
+                    {copied ? 'Copiado!' : 'Copiar Orçamento'}
+                  </Button>
 
                   <Separator />
 
