@@ -8,6 +8,16 @@ android {
 }
     namespace "com.localizzou.app"
     compileSdk 36
+
+    signingConfigs {
+        release {
+            storeFile file('escritoriorf.keystore')
+            storePassword '12345677'
+            keyAlias 'escritoriorf'
+            keyPassword '12345677'
+        }
+    }
+
     defaultConfig {
         applicationId "com.localizzou.app"
         minSdkVersion rootProject.ext.minSdkVersion
@@ -23,8 +33,9 @@ android {
     }
     buildTypes {
         release {
+            signingConfig signingConfigs.release
             minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
 }
