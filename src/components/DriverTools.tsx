@@ -17,7 +17,7 @@ import {
 } from '@/components/ui/dialog';
 import {
   Calculator, MapPin, Navigation, DollarSign, Send, Check, Copy,
-  Phone, Star, User, Shield, Clock, MessageSquare, ChevronRight, TableProperties,
+  Phone, Star, User, Shield, Clock, ChevronRight, TableProperties,
   Camera, Loader2, ZoomIn, ZoomOut, AlertTriangle, Download,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -153,28 +153,30 @@ export const TripCalculator: React.FC<{
 
   const quoteMensagem = useMemo(() => {
     if (!preco || !origem.trim() || !destino.trim()) return '';
-    const lines = [
-      `🚗 *Orçamento ${nomePlataforma}*`,
+    const hasAdicionais = dynamicAdj || temBagagem;
+    const lines: string[] = [
+      `*${nomePlataforma} — Orçamento*`,
       ``,
-      `📍 *Origem:* ${origem.trim()}`,
-      `📍 *Destino:* ${destino.trim()}`,
-      ``,
-      `💰 *Detalhamento do valor:*`,
-      `   Tarifa base: R$ ${preco.valor.toFixed(2)}${preco.estimado ? ' _(estimado)_' : ''}`,
+      `📍 ${origem.trim()} → ${destino.trim()}`,
     ];
-    if (dynamicAdj) {
-      const ajusteValor = dynamicAdj.aplicar(preco.valor) - preco.valor;
-      lines.push(`   ⏰ ${dynamicAdj.regra.nome}: +R$ ${ajusteValor.toFixed(2)} (${dynamicAdj.regra.valor_ajuste}%)`);
-    }
-    if (temBagagem) lines.push(`   📦 Feira/Bagagem: +R$ ${taxaBagagemValor.toFixed(2)}`);
-    lines.push(`   ─────────────────`);
-    lines.push(`   *Total: R$ ${totalValue.toFixed(2)}*`);
+    if (clienteNome.trim()) lines.push(`👤 ${clienteNome.trim()}`);
     lines.push(``);
-    if (clienteNome.trim()) lines.push(`👤 *Cliente:* ${clienteNome.trim()}`);
-    if (observacao.trim()) lines.push(`📝 *Obs:* ${observacao.trim()}`);
-    lines.push(``, `_Consulta feita pela Tabela ${nomePlataforma}_`);
-    return lines.filter(Boolean).join('\n');
-  }, [preco, origem, destino, clienteNome, observacao, totalValue, dynamicAdj, temBagagem, taxaBagagemValor]);
+    // Valor
+    if (hasAdicionais) {
+      lines.push(`Tarifa: R$ ${preco.valor.toFixed(2)}${preco.mesmo_bairro ? ' (mesmo bairro)' : preco.estimado ? ' (estimado)' : ''}`);
+      if (dynamicAdj) {
+        const ajuste = dynamicAdj.aplicar(preco.valor) - preco.valor;
+        lines.push(`${dynamicAdj.regra.nome}: +R$ ${ajuste.toFixed(2)}`);
+      }
+      if (temBagagem) lines.push(`Bagagem/Feira: +R$ ${taxaBagagemValor.toFixed(2)}`);
+      lines.push(`*Total: R$ ${totalValue.toFixed(2)}*`);
+    } else {
+      lines.push(`*Valor: R$ ${totalValue.toFixed(2)}*${preco.mesmo_bairro ? ' (mesmo bairro)' : preco.estimado ? ' (estimado)' : ''}`);
+    }
+    if (observacao.trim()) lines.push(``, `Obs: ${observacao.trim()}`);
+    lines.push(``, `_${nomePlataforma}_`);
+    return lines.join('\n');
+  }, [preco, origem, destino, clienteNome, observacao, totalValue, dynamicAdj, temBagagem, taxaBagagemValor, nomePlataforma]);
 
   const handleCopy = async () => {
     if (!quoteMensagem) return;
@@ -186,15 +188,6 @@ export const TripCalculator: React.FC<{
     } else {
       toast({ title: 'Erro ao copiar', variant: 'destructive' });
     }
-  };
-
-  const handleWhatsApp = () => {
-    if (!quoteMensagem) return;
-    const phone = clienteTelefone.replace(/\D/g, '');
-    const url = phone
-      ? `https://wa.me/55${phone}?text=${encodeURIComponent(quoteMensagem)}`
-      : `https://wa.me/?text=${encodeURIComponent(quoteMensagem)}`;
-    openExternal(url);
   };
 
   const handleSendQuote = () => {
@@ -293,7 +286,7 @@ export const TripCalculator: React.FC<{
           {/* Observação */}
           <div className="space-y-1.5">
             <label className="text-sm font-medium flex items-center gap-2">
-              <MessageSquare className="w-3.5 h-3.5 text-muted-foreground" />
+              <Clock className="w-3.5 h-3.5 text-muted-foreground" />
               Observação <span className="text-xs text-muted-foreground font-normal">(opcional)</span>
             </label>
             <Textarea
