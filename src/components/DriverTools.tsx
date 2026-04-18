@@ -171,15 +171,15 @@ export const TripCalculator: React.FC<{
     lines.push(``);
     // Valor
     if (hasAdicionais) {
-      lines.push(`Tarifa: R$ ${precoEfetivo.valor.toFixed(2)}${precoEfetivo.mesmo_bairro ? ' (mesmo bairro)' : precoEfetivo.estimado ? ' (estimado)' : ''}`);
+      lines.push(`Tarifa: R$ ${precoEfetivo.valor.toFixed(2).replace('.', ',')}${precoEfetivo.mesmo_bairro ? ' (mesmo bairro)' : precoEfetivo.estimado ? ' (estimado)' : ''}`);
       if (dynamicAdj) {
         const ajuste = dynamicAdj.aplicar(precoEfetivo.valor) - precoEfetivo.valor;
-        lines.push(`${dynamicAdj.regra.nome}: +R$ ${ajuste.toFixed(2)}`);
+        lines.push(`${dynamicAdj.regra.nome}: +R$ ${ajuste.toFixed(2).replace('.', ',')}`);
       }
-      if (temBagagem) lines.push(`Bagagem/Feira: +R$ ${taxaBagagemValor.toFixed(2)}`);
-      lines.push(`*Total: R$ ${totalValue.toFixed(2)}*`);
+      if (temBagagem) lines.push(`Bagagem/Feira: +R$ ${taxaBagagemValor.toFixed(2).replace('.', ',')}`);
+      lines.push(`*Total: R$ ${totalValue.toFixed(2).replace('.', ',')}*`);
     } else {
-      lines.push(`*Valor: R$ ${totalValue.toFixed(2)}*${precoEfetivo.mesmo_bairro ? ' (mesmo bairro)' : precoEfetivo.estimado ? ' (estimado)' : ''}`);
+      lines.push(`*Valor: R$ ${totalValue.toFixed(2).replace('.', ',')}*${precoEfetivo.mesmo_bairro ? ' (mesmo bairro)' : precoEfetivo.estimado ? ' (estimado)' : ''}`);
     }
     if (observacao.trim()) lines.push(``, `Obs: ${observacao.trim()}`);
     lines.push(``, `_${nomePlataforma}_`);
@@ -340,7 +340,7 @@ export const TripCalculator: React.FC<{
                           {precoEfetivo.mesmo_bairro ? 'Mesmo bairro' : precoEfetivo.estimado ? 'Preço estimado' : 'Preço tabelado'}
                         </p>
                         <p className={`text-base font-semibold ${precoEfetivo.mesmo_bairro ? 'text-blue-400' : precoEfetivo.estimado ? 'text-amber-400' : 'text-green-400'}`}>
-                          R$ {precoEfetivo.valor.toFixed(2)}
+                          R$ {precoEfetivo.valor.toFixed(2).replace('.', ',')}
                         </p>
                       </div>
                     </div>
@@ -358,7 +358,7 @@ export const TripCalculator: React.FC<{
                   {precoEfetivo.mesmo_bairro && (
                     <div className="flex items-center gap-2 bg-blue-500/10 border border-blue-500/20 rounded-lg px-3 py-2">
                       <MapPin className="w-3.5 h-3.5 text-blue-400 shrink-0" />
-                      <span className="text-xs text-blue-400">Viagem pro mesmo bairro — tarifa fixa R$ {precoEfetivo.valor.toFixed(2)}</span>
+                      <span className="text-xs text-blue-400">Viagem pro mesmo bairro — tarifa fixa R$ {precoEfetivo.valor.toFixed(2).replace('.', ',')}</span>
                     </div>
                   )}
                   {/* Adicionais */}
@@ -369,7 +369,7 @@ export const TripCalculator: React.FC<{
                         <span className="text-xs text-muted-foreground">{dynamicAdj.regra.nome}</span>
                       </div>
                       <span className="text-sm font-bold text-purple-400">
-                        +R$ {(dynamicAdj.aplicar(precoEfetivo.valor) - precoEfetivo.valor).toFixed(2)}
+                        +R$ {(dynamicAdj.aplicar(precoEfetivo.valor) - precoEfetivo.valor).toFixed(2).replace('.', ',')}
                       </span>
                     </div>
                   )}
@@ -379,7 +379,7 @@ export const TripCalculator: React.FC<{
                         <span className="text-orange-400 text-xs">📦</span>
                         <span className="text-xs text-muted-foreground">Feira/Bagagem</span>
                       </div>
-                      <span className="text-sm font-bold text-orange-400">+R$ {taxaBagagemValor.toFixed(2)}</span>
+                      <span className="text-sm font-bold text-orange-400">+R$ {taxaBagagemValor.toFixed(2).replace('.', ',')}</span>
                     </div>
                   )}
                   {isTarifaMinima && (
@@ -394,10 +394,10 @@ export const TripCalculator: React.FC<{
                       <span className="text-sm font-semibold">Valor Total</span>
                       <div className="flex items-center gap-2">
                         {isTarifaMinima && (
-                          <span className="text-xs text-muted-foreground line-through">R$ {rawTotalValue.toFixed(2)}</span>
+                          <span className="text-xs text-muted-foreground line-through">R$ {rawTotalValue.toFixed(2).replace('.', ',')}</span>
                         )}
                         <span className={`text-xl font-extrabold ${isTarifaMinima ? 'text-yellow-400' : precoEfetivo.mesmo_bairro ? 'text-blue-400' : precoEfetivo.estimado ? 'text-amber-400' : 'text-green-400'}`}>
-                          R$ {totalValue.toFixed(2)}
+                          R$ {totalValue.toFixed(2).replace('.', ',')}
                         </span>
                       </div>
                     </div>

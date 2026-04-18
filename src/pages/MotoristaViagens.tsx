@@ -104,18 +104,18 @@ const MotoristaViagens: React.FC = () => {
       `📍 *Destino:* ${destino.trim()}`,
       ``,
       `💰 *Detalhamento do valor:*`,
-      `   Tarifa base: R$ ${preco.valor.toFixed(2)}${preco.estimado ? ' _(estimado)_' : ''}`,
+      `   Tarifa base: R$ ${preco.valor.toFixed(2).replace('.', ',')}${preco.estimado ? ' _(estimado)_' : ''}`,
     ];
     if (dynamicAdj) {
       const ajusteValor = dynamicAdj.aplicar(preco.valor) - preco.valor;
       const ajusteLabel = dynamicAdj.regra.tipo_ajuste === 'fixo'
-        ? `+R$ ${dynamicAdj.regra.valor_ajuste.toFixed(2)}`
+        ? `+R$ ${dynamicAdj.regra.valor_ajuste.toFixed(2).replace('.', ',')}`
         : `+${dynamicAdj.regra.valor_ajuste}%`;
-      lines.push(`   ⏰ ${dynamicAdj.regra.nome}: ${ajusteLabel} (R$ ${ajusteValor.toFixed(2)})`);
+      lines.push(`   ⏰ ${dynamicAdj.regra.nome}: ${ajusteLabel} (R$ ${ajusteValor.toFixed(2).replace('.', ',')})`);
     }
-    if (temBagagem) lines.push(`   📦 Feira/Bagagem: +R$ ${taxaBagagemValor.toFixed(2)}`);
+    if (temBagagem) lines.push(`   📦 Feira/Bagagem: +R$ ${taxaBagagemValor.toFixed(2).replace('.', ',')}`);
     lines.push(`   ─────────────────`);
-    lines.push(`   *Total: R$ ${totalValue.toFixed(2)}*`);
+    lines.push(`   *Total: R$ ${totalValue.toFixed(2).replace('.', ',')}*`);
     lines.push(``);
     if (clienteNome.trim()) lines.push(`👤 *Cliente:* ${clienteNome.trim()}`);
     if (observacao.trim()) lines.push(`📝 *Obs:* ${observacao.trim()}`);
@@ -301,7 +301,7 @@ const MotoristaViagens: React.FC = () => {
               <input type="checkbox" id="temBagagemViagem" checked={temBagagem} onChange={e => setTemBagagem(e.target.checked)} className="w-5 h-5 rounded border-border text-accent focus:ring-accent" />
               <label htmlFor="temBagagemViagem" className="text-sm cursor-pointer">
                 <span className="font-medium">Feira ou Bagagem?</span>
-                <span className="text-muted-foreground"> (+R$ {taxaBagagemValor.toFixed(0)})</span>
+                <span className="text-muted-foreground"> (+R$ {taxaBagagemValor.toFixed(2).replace('.', ',')})</span>
               </label>
             </div>
 
@@ -317,9 +317,9 @@ const MotoristaViagens: React.FC = () => {
                         <div>
                           <p className="text-[10px] text-muted-foreground">{preco.estimado ? 'Preço estimado' : 'Preço tabelado'}</p>
                           <p className={`text-[clamp(1.1rem,3.5vw,1.35rem)] font-bold ${isTarifaMinima ? 'text-yellow-400' : preco.estimado ? 'text-amber-400' : 'text-green-400'}`}>
-                            R$ {totalValue.toFixed(0)}
+                            R$ {totalValue.toFixed(2).replace('.', ',')}
                           </p>
-                          {isTarifaMinima && <p className="text-xs text-muted-foreground line-through">R$ {rawTotalValue.toFixed(0)}</p>}
+                          {isTarifaMinima && <p className="text-xs text-muted-foreground line-through">R$ {rawTotalValue.toFixed(2).replace('.', ',')}</p>}
                         </div>
                       </div>
                       <div className="text-right">
@@ -339,7 +339,7 @@ const MotoristaViagens: React.FC = () => {
                         </div>
                         <span className="text-sm font-bold text-purple-400">
                           {dynamicAdj.regra.tipo_ajuste === 'fixo'
-                            ? `+R$ ${dynamicAdj.regra.valor_ajuste.toFixed(2)}`
+                            ? `+R$ ${dynamicAdj.regra.valor_ajuste.toFixed(2).replace('.', ',')}`
                             : `+${dynamicAdj.regra.valor_ajuste}%`}
                         </span>
                       </div>
@@ -350,7 +350,7 @@ const MotoristaViagens: React.FC = () => {
                           <span className="text-orange-400 text-xs">📦</span>
                           <span className="text-xs text-muted-foreground">Taxa Feira/Bagagem</span>
                         </div>
-                        <span className="text-sm font-bold text-orange-400">R$ {taxaBagagemValor.toFixed(0)}</span>
+                        <span className="text-sm font-bold text-orange-400">R$ {taxaBagagemValor.toFixed(2).replace('.', ',')}</span>
                       </div>
                     )}
                     {isTarifaMinima && (
@@ -467,7 +467,7 @@ const MotoristaViagens: React.FC = () => {
                         <div className="bg-muted/30 rounded-lg p-3 space-y-1 text-xs">
                           <p><span className="text-muted-foreground">Origem:</span> {origem}</p>
                           <p><span className="text-muted-foreground">Destino:</span> {destino}</p>
-                          <p><span className="text-muted-foreground">Valor:</span> <span className="text-green-400 font-bold">R$ {totalValue.toFixed(0)}</span></p>
+                          <p><span className="text-muted-foreground">Valor:</span> <span className="text-green-400 font-bold">R$ {totalValue.toFixed(2).replace('.', ',')}</span></p>
                         </div>
                       </div>
                       <div className="flex gap-2">
@@ -507,7 +507,7 @@ const MotoristaViagens: React.FC = () => {
                       <div className="flex items-center gap-2">
                         {ride.valor != null && (
                           <Badge variant="outline" className="text-green-400 border-green-500/30 text-[10px]">
-                            R$ {ride.valor.toFixed(0)}
+                            R$ {ride.valor.toFixed(2).replace('.', ',')}
                           </Badge>
                         )}
                         <Badge variant="outline" className="text-yellow-400 border-yellow-500/30 text-[10px]">

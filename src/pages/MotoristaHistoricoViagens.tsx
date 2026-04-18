@@ -110,7 +110,7 @@ const MotoristaHistoricoViagens: React.FC = () => {
             <div className="flex items-center gap-2">
               {ride.valor != null && (
                 <Badge variant="outline" className="text-green-400 border-green-500/30 text-[10px]">
-                  R$ {ride.valor.toFixed(2)}
+                  R$ {ride.valor.toFixed(2).replace('.', ',')}
                 </Badge>
               )}
             </div>
@@ -177,7 +177,7 @@ const MotoristaHistoricoViagens: React.FC = () => {
             { label: 'Análise', value: emAnalise.length, color: 'text-orange-400', border: 'border-orange-500/20', icon: <Clock className="w-3.5 h-3.5" /> },
             { label: 'N/ Realiz.', value: naoRealizadas.length, color: 'text-gray-400', border: 'border-gray-500/20', icon: <AlertTriangle className="w-3.5 h-3.5" /> },
             { label: 'Recusadas', value: recusadas.length, color: 'text-red-400', border: 'border-red-500/20', icon: <XCircle className="w-3.5 h-3.5" /> },
-            { label: 'Receita', value: `R$${receita.toFixed(0)}`, color: 'text-accent', border: 'border-accent/20', icon: <DollarSign className="w-3.5 h-3.5" /> },
+            { label: 'Receita', value: `R$${receita.toFixed(2).replace('.', ',')}`, color: 'text-accent', border: 'border-accent/20', icon: <DollarSign className="w-3.5 h-3.5" /> },
           ].map(s => (
             <motion.div key={s.label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
               <Card className={s.border}>

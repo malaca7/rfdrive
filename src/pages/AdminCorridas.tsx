@@ -544,8 +544,8 @@ const AdminCorridas: React.FC = () => {
                       </div>
                       {(ride.valor != null || ride.valor_estimado != null) && (
                         <div className="flex items-center gap-4 text-xs flex-wrap">
-                          {ride.valor != null && <span className="flex items-center gap-1 text-green-400 font-semibold"><DollarSign className="w-3 h-3" />R$ {Number(ride.valor).toFixed(2)}</span>}
-                          {ride.valor_estimado != null && <span className="flex items-center gap-1 text-muted-foreground">Est: R$ {Number(ride.valor_estimado).toFixed(2)}</span>}
+                          {ride.valor != null && <span className="flex items-center gap-1 text-green-400 font-semibold"><DollarSign className="w-3 h-3" />R$ {Number(ride.valor).toFixed(2).replace('.', ',')}</span>}
+                          {ride.valor_estimado != null && <span className="flex items-center gap-1 text-muted-foreground">Est: R$ {Number(ride.valor_estimado).toFixed(2).replace('.', ',')}</span>}
                         </div>
                       )}
                       {(ride.avaliacao_cliente || ride.avaliacao_motorista) && (
@@ -601,7 +601,7 @@ const AdminCorridas: React.FC = () => {
                 <div className="flex items-center gap-2 text-sm"><User className="w-3.5 h-3.5 text-muted-foreground" /><span className="font-medium">{selectedRide.cliente?.nome}</span></div>
                 <div className="flex items-center gap-2 text-sm"><div className="w-2 h-2 rounded-full bg-green-500" /><span>{selectedRide.origem_texto}</span></div>
                 <div className="flex items-center gap-2 text-sm"><div className="w-2 h-2 rounded-full bg-accent" /><span>{selectedRide.destino_texto}</span></div>
-                {selectedRide.valor != null && <div className="flex items-center gap-2 text-sm text-green-400 font-semibold"><DollarSign className="w-3.5 h-3.5" />R$ {Number(selectedRide.valor).toFixed(2)}</div>}
+                {selectedRide.valor != null && <div className="flex items-center gap-2 text-sm text-green-400 font-semibold"><DollarSign className="w-3.5 h-3.5" />R$ {Number(selectedRide.valor).toFixed(2).replace('.', ',')}</div>}
               </div>
               <div>
                 <label className="text-sm font-medium mb-1.5 flex items-center gap-1.5"><MessageSquare className="w-4 h-4" />Observação (opcional)</label>
@@ -633,7 +633,7 @@ const AdminCorridas: React.FC = () => {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <TableProperties className="w-4 h-4 text-green-400" />
-                      <div><p className="text-[10px] text-muted-foreground">Preço tabelado RF</p><p className="text-lg font-bold text-green-400">R$ {precoTabelaAdmin.valor.toFixed(2)}</p></div>
+                      <div><p className="text-[10px] text-muted-foreground">Preço tabelado RF</p><p className="text-lg font-bold text-green-400">R$ {precoTabelaAdmin.valor.toFixed(2).replace('.', ',')}</p></div>
                     </div>
                     <Button type="button" variant="ghost" size="sm" className="text-xs text-green-400 hover:text-green-300 h-6"
                       onClick={() => setEditRideForm(f => ({ ...f, valor: precoTabelaAdmin.valor.toFixed(2), valor_estimado: precoTabelaAdmin.valor.toFixed(2) }))}>Aplicar</Button>
@@ -689,8 +689,8 @@ const AdminCorridas: React.FC = () => {
               {(selectedRide.valor != null || selectedRide.valor_estimado != null) && (
                 <div><p className="text-xs text-muted-foreground mb-2 font-medium">VALORES</p>
                   <div className="bg-muted/50 rounded-lg p-3 flex gap-6">
-                    {selectedRide.valor != null && <div><p className="text-[10px] text-muted-foreground">Valor Final</p><p className="text-lg font-bold text-green-400">R$ {Number(selectedRide.valor).toFixed(2)}</p></div>}
-                    {selectedRide.valor_estimado != null && <div><p className="text-[10px] text-muted-foreground">Estimado</p><p className="text-lg font-bold text-muted-foreground">R$ {Number(selectedRide.valor_estimado).toFixed(2)}</p></div>}
+                    {selectedRide.valor != null && <div><p className="text-[10px] text-muted-foreground">Valor Final</p><p className="text-lg font-bold text-green-400">R$ {Number(selectedRide.valor).toFixed(2).replace('.', ',')}</p></div>}
+                    {selectedRide.valor_estimado != null && <div><p className="text-[10px] text-muted-foreground">Estimado</p><p className="text-lg font-bold text-muted-foreground">R$ {Number(selectedRide.valor_estimado).toFixed(2).replace('.', ',')}</p></div>}
                   </div>
                 </div>
               )}
@@ -843,7 +843,7 @@ const AdminCorridas: React.FC = () => {
                 className={`w-9 h-5 rounded-full transition-colors relative ${createRideForm.temBagagem ? 'bg-accent' : 'bg-muted'}`}>
                 <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform ${createRideForm.temBagagem ? 'translate-x-4' : 'translate-x-0.5'}`} />
               </button>
-              <Label className="text-xs cursor-pointer" onClick={() => setCreateRideForm(f => ({ ...f, temBagagem: !f.temBagagem }))}>📦 Com bagagem/feira (+R$ {taxaBagagemValor.toFixed(2)})</Label>
+              <Label className="text-xs cursor-pointer" onClick={() => setCreateRideForm(f => ({ ...f, temBagagem: !f.temBagagem }))}>📦 Com bagagem/feira (+R$ {taxaBagagemValor.toFixed(2).replace('.', ',')})</Label>
             </div>
 
             {/* Preço tabelado */}
@@ -855,7 +855,7 @@ const AdminCorridas: React.FC = () => {
                     <TableProperties className={`w-4 h-4 ${precoTabelaCreate.mesmo_bairro ? 'text-blue-400' : precoTabelaCreate.estimado ? 'text-amber-400' : 'text-green-400'}`} />
                     <div>
                       <p className="text-[10px] text-muted-foreground">{precoTabelaCreate.mesmo_bairro ? 'Mesmo bairro' : precoTabelaCreate.estimado ? 'Preço estimado' : 'Preço tabelado'}</p>
-                      <p className={`text-base font-semibold ${precoTabelaCreate.mesmo_bairro ? 'text-blue-400' : precoTabelaCreate.estimado ? 'text-amber-400' : 'text-green-400'}`}>R$ {precoTabelaCreate.valor.toFixed(2)}</p>
+                      <p className={`text-base font-semibold ${precoTabelaCreate.mesmo_bairro ? 'text-blue-400' : precoTabelaCreate.estimado ? 'text-amber-400' : 'text-green-400'}`}>R$ {precoTabelaCreate.valor.toFixed(2).replace('.', ',')}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -877,7 +877,7 @@ const AdminCorridas: React.FC = () => {
                 {precoTabelaCreate.mesmo_bairro && (
                   <div className="flex items-center gap-2 bg-blue-500/10 border border-blue-500/20 rounded-lg px-3 py-2">
                     <MapPin className="w-3.5 h-3.5 text-blue-400 shrink-0" />
-                    <span className="text-xs text-blue-400">Viagem pro mesmo bairro — tarifa fixa R$ {precoTabelaCreate.valor.toFixed(2)}</span>
+                    <span className="text-xs text-blue-400">Viagem pro mesmo bairro — tarifa fixa R$ {precoTabelaCreate.valor.toFixed(2).replace('.', ',')}</span>
                   </div>
                 )}
                 {/* Adicionais */}
@@ -888,7 +888,7 @@ const AdminCorridas: React.FC = () => {
                       <span className="text-xs text-muted-foreground">{dynamicAdjCreate.regra.nome}</span>
                     </div>
                     <span className="text-sm font-bold text-purple-400">
-                      +R$ {(dynamicAdjCreate.aplicar(precoTabelaCreate.valor) - precoTabelaCreate.valor).toFixed(2)}
+                      +R$ {(dynamicAdjCreate.aplicar(precoTabelaCreate.valor) - precoTabelaCreate.valor).toFixed(2).replace('.', ',')}
                     </span>
                   </div>
                 )}
@@ -898,7 +898,7 @@ const AdminCorridas: React.FC = () => {
                       <span className="text-orange-400 text-xs">📦</span>
                       <span className="text-xs text-muted-foreground">Feira/Bagagem</span>
                     </div>
-                    <span className="text-sm font-bold text-orange-400">+R$ {taxaBagagemValor.toFixed(2)}</span>
+                    <span className="text-sm font-bold text-orange-400">+R$ {taxaBagagemValor.toFixed(2).replace('.', ',')}</span>
                   </div>
                 )}
                 {isTarifaMinimaCreate && (
@@ -913,10 +913,10 @@ const AdminCorridas: React.FC = () => {
                     <span className="text-sm font-semibold">Valor Total</span>
                     <div className="flex items-center gap-2">
                       {isTarifaMinimaCreate && (
-                        <span className="text-xs text-muted-foreground line-through">R$ {rawTotalCreateValue.toFixed(2)}</span>
+                        <span className="text-xs text-muted-foreground line-through">R$ {rawTotalCreateValue.toFixed(2).replace('.', ',')}</span>
                       )}
                       <span className={`text-xl font-extrabold ${isTarifaMinimaCreate ? 'text-yellow-400' : precoTabelaCreate.mesmo_bairro ? 'text-blue-400' : precoTabelaCreate.estimado ? 'text-amber-400' : 'text-green-400'}`}>
-                        R$ {(totalCreateValue ?? precoTabelaCreate.valor).toFixed(2)}
+                        R$ {(totalCreateValue ?? precoTabelaCreate.valor).toFixed(2).replace('.', ',')}
                       </span>
                     </div>
                   </div>
@@ -936,7 +936,7 @@ const AdminCorridas: React.FC = () => {
               <Label className="text-xs">Valor (R$)</Label>
               <Input type="number" step="0.01" min="0" value={createRideForm.valor}
                 onChange={e => setCreateRideForm(f => ({ ...f, valor: e.target.value }))}
-                placeholder={totalCreateValue ? `Total: R$ ${totalCreateValue.toFixed(2)}` : (precoTabelaCreate ? `Base: R$ ${precoTabelaCreate.valor.toFixed(2)}` : 'Ex: 25.00')} />
+                placeholder={totalCreateValue ? `Total: R$ ${totalCreateValue.toFixed(2).replace('.', ',')}` : (precoTabelaCreate ? `Base: R$ ${precoTabelaCreate.valor.toFixed(2).replace('.', ',')}` : 'Ex: 25,00')} />
             </div>
 
             {/* Cliente info */}
