@@ -121,38 +121,46 @@ export const TripCalculator: React.FC<{
   });
 
   const taxaBagagemValor = configTarifas?.taxa_bagagem ?? 5;
+  const tarifaMesmoBairro = configTarifas?.tarifa_mesmo_bairro ?? 10;
+
+  // Override preco.valor for mesmo_bairro with configured value
+  const precoEfetivo = useMemo(() => {
+    if (!preco) return null;
+    if (preco.mesmo_bairro) return { ...preco, valor: tarifaMesmoBairro };
+    return preco;
+  }, [preco, tarifaMesmoBairro]);
 
   const totalValue = useMemo(() => {
-    if (!preco) return 0;
-    let total = preco.valor;
+    if (!precoEfetivo) return 0;
+    let total = precoEfetivo.valor;
     if (dynamicAdj) total = dynamicAdj.aplicar(total);
     if (temBagagem) total += taxaBagagemValor;
     // Aplicar tarifa mínima
     const minima = configTarifas?.tarifa_minima ?? 0;
     if (minima > 0 && total < minima) total = minima;
     return Math.round(total * 100) / 100;
-  }, [preco, dynamicAdj, temBagagem, taxaBagagemValor, configTarifas]);
+  }, [precoEfetivo, dynamicAdj, temBagagem, taxaBagagemValor, configTarifas]);
 
   const isTarifaMinima = useMemo(() => {
-    if (!preco) return false;
+    if (!precoEfetivo) return false;
     const minima = configTarifas?.tarifa_minima ?? 0;
     if (minima <= 0) return false;
-    let total = preco.valor;
+    let total = precoEfetivo.valor;
     if (dynamicAdj) total = dynamicAdj.aplicar(total);
     if (temBagagem) total += taxaBagagemValor;
     return total < minima;
-  }, [preco, dynamicAdj, temBagagem, taxaBagagemValor, configTarifas]);
+  }, [precoEfetivo, dynamicAdj, temBagagem, taxaBagagemValor, configTarifas]);
 
   const rawTotalValue = useMemo(() => {
-    if (!preco) return 0;
-    let total = preco.valor;
+    if (!precoEfetivo) return 0;
+    let total = precoEfetivo.valor;
     if (dynamicAdj) total = dynamicAdj.aplicar(total);
     if (temBagagem) total += taxaBagagemValor;
     return Math.round(total * 100) / 100;
-  }, [preco, dynamicAdj, temBagagem, taxaBagagemValor]);
+  }, [precoEfetivo, dynamicAdj, temBagagem, taxaBagagemValor]);
 
   const quoteMensagem = useMemo(() => {
-    if (!preco || !origem.trim() || !destino.trim()) return '';
+    if (!precoEfetivo || !origem.trim() || !destino.trim()) return '';
     const hasAdicionais = dynamicAdj || temBagagem;
     const lines: string[] = [
       `*${nomePlataforma} — Orçamento*`,
@@ -163,20 +171,20 @@ export const TripCalculator: React.FC<{
     lines.push(``);
     // Valor
     if (hasAdicionais) {
-      lines.push(`Tarifa: R$ ${preco.valor.toFixed(2)}${preco.mesmo_bairro ? ' (mesmo bairro)' : preco.estimado ? ' (estimado)' : ''}`);
+      lines.push(`Tarifa: R$ ${precoEfetivo.valor.toFixed(2)}${precoEfetivo.mesmo_bairro ? ' (mesmo bairro)' : precoEfetivo.estimado ? ' (estimado)' : ''}`);
       if (dynamicAdj) {
-        const ajuste = dynamicAdj.aplicar(preco.valor) - preco.valor;
+        const ajuste = dynamicAdj.aplicar(precoEfetivo.valor) - precoEfetivo.valor;
         lines.push(`${dynamicAdj.regra.nome}: +R$ ${ajuste.toFixed(2)}`);
       }
       if (temBagagem) lines.push(`Bagagem/Feira: +R$ ${taxaBagagemValor.toFixed(2)}`);
       lines.push(`*Total: R$ ${totalValue.toFixed(2)}*`);
     } else {
-      lines.push(`*Valor: R$ ${totalValue.toFixed(2)}*${preco.mesmo_bairro ? ' (mesmo bairro)' : preco.estimado ? ' (estimado)' : ''}`);
+      lines.push(`*Valor: R$ ${totalValue.toFixed(2)}*${precoEfetivo.mesmo_bairro ? ' (mesmo bairro)' : precoEfetivo.estimado ? ' (estimado)' : ''}`);
     }
     if (observacao.trim()) lines.push(``, `Obs: ${observacao.trim()}`);
     lines.push(``, `_${nomePlataforma}_`);
     return lines.join('\n');
-  }, [preco, origem, destino, clienteNome, observacao, totalValue, dynamicAdj, temBagagem, taxaBagagemValor, nomePlataforma]);
+  }, [precoEfetivo, origem, destino, clienteNome, observacao, totalValue, dynamicAdj, temBagagem, taxaBagagemValor, nomePlataforma]);
 
   const handleCopy = async () => {
     if (!quoteMensagem) return;
@@ -191,7 +199,7 @@ export const TripCalculator: React.FC<{
   };
 
   const handleSendQuote = () => {
-    if (!preco) return;
+    if (!precoEfetivo) return;
     onSendQuote?.({ origem: origem.trim(), destino: destino.trim(), valor: totalValue, mensagem: quoteMensagem });
     toast({ title: 'Orçamento enviado!' });
   };
@@ -315,42 +323,42 @@ export const TripCalculator: React.FC<{
 
           {/* Price preview */}
           <AnimatePresence>
-            {preco && (
+            {precoEfetivo && (
               <motion.div
                 initial={{ opacity: 0, y: -8 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -8 }}
-                className={`${preco.mesmo_bairro ? 'bg-blue-500/10 border-blue-500/20' : preco.estimado ? 'bg-amber-500/10 border-amber-500/20' : 'bg-green-500/10 border-green-500/20'} border rounded-xl p-[4%]`}
+                className={`${precoEfetivo.mesmo_bairro ? 'bg-blue-500/10 border-blue-500/20' : precoEfetivo.estimado ? 'bg-amber-500/10 border-amber-500/20' : 'bg-green-500/10 border-green-500/20'} border rounded-xl p-[4%]`}
               >
                 <div className="space-y-2">
                   {/* Preço estimado - valor base sem adicionais */}
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <TableProperties className={`w-4 h-4 ${preco.mesmo_bairro ? 'text-blue-400' : preco.estimado ? 'text-amber-400' : 'text-green-400'}`} />
+                      <TableProperties className={`w-4 h-4 ${precoEfetivo.mesmo_bairro ? 'text-blue-400' : precoEfetivo.estimado ? 'text-amber-400' : 'text-green-400'}`} />
                       <div>
                         <p className="text-[10px] text-muted-foreground">
-                          {preco.mesmo_bairro ? 'Mesmo bairro' : preco.estimado ? 'Preço estimado' : 'Preço tabelado'}
+                          {precoEfetivo.mesmo_bairro ? 'Mesmo bairro' : precoEfetivo.estimado ? 'Preço estimado' : 'Preço tabelado'}
                         </p>
-                        <p className={`text-base font-semibold ${preco.mesmo_bairro ? 'text-blue-400' : preco.estimado ? 'text-amber-400' : 'text-green-400'}`}>
-                          R$ {preco.valor.toFixed(2)}
+                        <p className={`text-base font-semibold ${precoEfetivo.mesmo_bairro ? 'text-blue-400' : precoEfetivo.estimado ? 'text-amber-400' : 'text-green-400'}`}>
+                          R$ {precoEfetivo.valor.toFixed(2)}
                         </p>
                       </div>
                     </div>
                     <div className="text-right">
                       <p className="text-[10px] text-muted-foreground">
-                        {preco.mesmo_bairro ? 'Viagem pro mesmo bairro' : preco.estimado ? 'Média via Centro do Cabo' : preco.match_exato ? 'Correspondência exata' : 'Melhor correspondência'}
+                        {precoEfetivo.mesmo_bairro ? 'Viagem pro mesmo bairro' : precoEfetivo.estimado ? 'Média via Centro do Cabo' : precoEfetivo.match_exato ? 'Correspondência exata' : 'Melhor correspondência'}
                       </p>
-                      {!preco.mesmo_bairro && (
+                      {!precoEfetivo.mesmo_bairro && (
                         <p className="text-[10px] text-muted-foreground truncate max-w-[160px]">
-                          {preco.origem_tabela} → {preco.destino_tabela}
+                          {precoEfetivo.origem_tabela} → {precoEfetivo.destino_tabela}
                         </p>
                       )}
                     </div>
                   </div>
-                  {preco.mesmo_bairro && (
+                  {precoEfetivo.mesmo_bairro && (
                     <div className="flex items-center gap-2 bg-blue-500/10 border border-blue-500/20 rounded-lg px-3 py-2">
                       <MapPin className="w-3.5 h-3.5 text-blue-400 shrink-0" />
-                      <span className="text-xs text-blue-400">Viagem pro mesmo bairro — tarifa fixa R$ 10,00</span>
+                      <span className="text-xs text-blue-400">Viagem pro mesmo bairro — tarifa fixa R$ {precoEfetivo.valor.toFixed(2)}</span>
                     </div>
                   )}
                   {/* Adicionais */}
@@ -361,7 +369,7 @@ export const TripCalculator: React.FC<{
                         <span className="text-xs text-muted-foreground">{dynamicAdj.regra.nome}</span>
                       </div>
                       <span className="text-sm font-bold text-purple-400">
-                        +R$ {(dynamicAdj.aplicar(preco.valor) - preco.valor).toFixed(2)}
+                        +R$ {(dynamicAdj.aplicar(precoEfetivo.valor) - precoEfetivo.valor).toFixed(2)}
                       </span>
                     </div>
                   )}
@@ -388,7 +396,7 @@ export const TripCalculator: React.FC<{
                         {isTarifaMinima && (
                           <span className="text-xs text-muted-foreground line-through">R$ {rawTotalValue.toFixed(2)}</span>
                         )}
-                        <span className={`text-xl font-extrabold ${isTarifaMinima ? 'text-yellow-400' : preco.mesmo_bairro ? 'text-blue-400' : preco.estimado ? 'text-amber-400' : 'text-green-400'}`}>
+                        <span className={`text-xl font-extrabold ${isTarifaMinima ? 'text-yellow-400' : precoEfetivo.mesmo_bairro ? 'text-blue-400' : precoEfetivo.estimado ? 'text-amber-400' : 'text-green-400'}`}>
                           R$ {totalValue.toFixed(2)}
                         </span>
                       </div>
@@ -399,7 +407,7 @@ export const TripCalculator: React.FC<{
             )}
           </AnimatePresence>
 
-          {!preco && origem.trim() && destino.trim() && (
+          {!precoEfetivo && origem.trim() && destino.trim() && (
             <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 text-center">
               <p className="text-sm text-red-400">Rota não encontrada na tabela</p>
               <p className="text-[10px] text-muted-foreground">Verifique origem e destino</p>
@@ -416,7 +424,7 @@ export const TripCalculator: React.FC<{
 
       {/* Send Quote */}
       <AnimatePresence>
-        {preco && (
+        {precoEfetivo && (
           <motion.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}

@@ -45,6 +45,7 @@ export interface ConfigTarifas {
   tarifa_minima: number;
   tarifa_base_km: number;
   taxa_bagagem: number;
+  tarifa_mesmo_bairro: number;
   bandeirada: number;
   ativo: boolean;
 }

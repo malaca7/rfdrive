@@ -180,6 +180,7 @@ const AdminCorridas: React.FC = () => {
   });
 
   const taxaBagagemValor = configTarifas?.taxa_bagagem ?? 5;
+  const tarifaMesmoBairro = configTarifas?.tarifa_mesmo_bairro ?? 10;
 
   const { data: regrasHorario } = useQuery<RegraHorario[]>({
     queryKey: ['regras-horario-admin'],
@@ -190,10 +191,17 @@ const AdminCorridas: React.FC = () => {
     staleTime: 30_000,
   });
 
-  const precoTabelaCreate = useMemo(() => {
+  const precoTabelaCreateRaw = useMemo(() => {
     if (!createRideForm.origem_texto.trim() || !createRideForm.destino_texto.trim()) return null;
     return buscarPrecoTabela(createRideForm.origem_texto, createRideForm.destino_texto);
   }, [createRideForm.origem_texto, createRideForm.destino_texto]);
+
+  // Override valor for mesmo_bairro with configured tarifa
+  const precoTabelaCreate = useMemo(() => {
+    if (!precoTabelaCreateRaw) return null;
+    if (precoTabelaCreateRaw.mesmo_bairro) return { ...precoTabelaCreateRaw, valor: tarifaMesmoBairro };
+    return precoTabelaCreateRaw;
+  }, [precoTabelaCreateRaw, tarifaMesmoBairro]);
 
   const precoTabelaAdmin = useMemo(() => {
     if (!editRideForm.origem_texto.trim() || !editRideForm.destino_texto.trim()) return null;
@@ -845,7 +853,7 @@ const AdminCorridas: React.FC = () => {
                 {precoTabelaCreate.mesmo_bairro && (
                   <div className="flex items-center gap-2 bg-blue-500/10 border border-blue-500/20 rounded-lg px-3 py-1.5">
                     <MapPin className="w-3 h-3 text-blue-400 shrink-0" />
-                    <span className="text-xs text-blue-400">Viagem pro mesmo bairro — tarifa fixa R$ 10,00</span>
+                    <span className="text-xs text-blue-400">Viagem pro mesmo bairro — tarifa fixa R$ {precoTabelaCreate.valor.toFixed(2)}</span>
                   </div>
                 )}
                 {/* Adicionais */}

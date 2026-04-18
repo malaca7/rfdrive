@@ -145,6 +145,7 @@ const TarifasTab: React.FC<{
   const [form, setForm] = useState({
     tarifa_minima: '',
     taxa_bagagem: '',
+    tarifa_mesmo_bairro: '',
   });
   const [hasChanges, setHasChanges] = useState(false);
 
@@ -154,6 +155,7 @@ const TarifasTab: React.FC<{
       setForm({
         tarifa_minima: String(config.tarifa_minima ?? 0),
         taxa_bagagem: String(config.taxa_bagagem ?? 5),
+        tarifa_mesmo_bairro: String(config.tarifa_mesmo_bairro ?? 10),
       });
       setHasChanges(false);
     }
@@ -169,6 +171,7 @@ const TarifasTab: React.FC<{
       const payload = {
         tarifa_minima: parseFloat(form.tarifa_minima) || 0,
         taxa_bagagem: parseFloat(form.taxa_bagagem) || 0,
+        tarifa_mesmo_bairro: parseFloat(form.tarifa_mesmo_bairro) || 10,
         updated_at: new Date().toISOString(),
       };
 
@@ -212,6 +215,16 @@ const TarifasTab: React.FC<{
       placeholder: '5.00',
       color: 'text-purple-400',
       bgColor: 'bg-purple-500/10 border-purple-500/20',
+    },
+    {
+      key: 'tarifa_mesmo_bairro',
+      label: 'Tarifa Mesmo Bairro',
+      desc: 'Valor fixo cobrado quando origem e destino são no mesmo bairro.',
+      icon: <MapPin className="w-4 h-4" />,
+      prefix: 'R$',
+      placeholder: '10.00',
+      color: 'text-blue-400',
+      bgColor: 'bg-blue-500/10 border-blue-500/20',
     },
   ];
 
