@@ -97,30 +97,35 @@ const MotoristaViagens: React.FC = () => {
   // ── Quote message ──
   const quoteMensagem = useMemo(() => {
     if (!preco || !origem.trim() || !destino.trim()) return '';
-    const lines = [
-      `🚗 *Orçamento ${nomePlataforma}*`,
-      ``,
-      `📍 *Origem:* ${origem.trim()}`,
-      `📍 *Destino:* ${destino.trim()}`,
-      ``,
-      `💰 *Detalhamento do valor:*`,
-      `   Tarifa base: R$ ${preco.valor.toFixed(2).replace('.', ',')}${preco.estimado ? ' _(estimado)_' : ''}`,
+    const hasAdicionais = dynamicAdj || temBagagem;
+    const lines: string[] = [
+      `─────────────────────`,
+      `  🚘 *${nomePlataforma}*`,
+      `  _Orçamento de Viagem_`,
+      `─────────────────────`,
     ];
-    if (dynamicAdj) {
-      const ajusteValor = dynamicAdj.aplicar(preco.valor) - preco.valor;
-      const ajusteLabel = dynamicAdj.regra.tipo_ajuste === 'fixo'
-        ? `+R$ ${dynamicAdj.regra.valor_ajuste.toFixed(2).replace('.', ',')}`
-        : `+${dynamicAdj.regra.valor_ajuste}%`;
-      lines.push(`   ⏰ ${dynamicAdj.regra.nome}: ${ajusteLabel} (R$ ${ajusteValor.toFixed(2).replace('.', ',')})`);
+    if (clienteNome.trim()) {
+      lines.push(``, `👤 *Cliente:* ${clienteNome.trim()}`);
     }
-    if (temBagagem) lines.push(`   📦 Feira/Bagagem: +R$ ${taxaBagagemValor.toFixed(2).replace('.', ',')}`);
-    lines.push(`   ─────────────────`);
-    lines.push(`   *Total: R$ ${totalValue.toFixed(2).replace('.', ',')}*`);
+    lines.push(``, `📍 *Origem:* ${origem.trim()}`, `🏁 *Destino:* ${destino.trim()}`);
     lines.push(``);
-    if (clienteNome.trim()) lines.push(`👤 *Cliente:* ${clienteNome.trim()}`);
-    if (observacao.trim()) lines.push(`📝 *Obs:* ${observacao.trim()}`);
-    lines.push(``, `_Consulta feita pela Tabela ${nomePlataforma}_`);
-    return lines.filter(Boolean).join('\n');
+    if (hasAdicionais) {
+      lines.push(`💰 *Detalhamento:*`);
+      lines.push(`   Tarifa ${preco.estimado ? '(estimada)' : 'tabelada'}: R$ ${preco.valor.toFixed(2).replace('.', ',')}`);
+      if (dynamicAdj) {
+        const ajusteValor = dynamicAdj.aplicar(preco.valor) - preco.valor;
+        lines.push(`   ⏰ ${dynamicAdj.regra.nome}: +R$ ${ajusteValor.toFixed(2).replace('.', ',')}`);
+      }
+      if (temBagagem) lines.push(`   📦 Feira/Bagagem: +R$ ${taxaBagagemValor.toFixed(2).replace('.', ',')}`);
+      lines.push(`   ─────────────────`);
+      lines.push(`   ✅ *Total: R$ ${totalValue.toFixed(2).replace('.', ',')}*`);
+    } else {
+      lines.push(`✅ *Valor: R$ ${totalValue.toFixed(2).replace('.', ',')}*${preco.estimado ? ' _(estimado)_' : ''}`);
+    }
+    if (observacao.trim()) lines.push(``, `📝 *Obs:* ${observacao.trim()}`);
+    if (clienteNome.trim()) lines.push(``);
+    lines.push(``, `─────────────────────`, `_${nomePlataforma} • Transporte com confiança_`);
+    return lines.join('\n');
   }, [preco, origem, destino, clienteNome, observacao, totalValue, dynamicAdj, temBagagem, taxaBagagemValor]);
 
   const handleCopy = async () => {

@@ -163,26 +163,31 @@ export const TripCalculator: React.FC<{
     if (!precoEfetivo || !origem.trim() || !destino.trim()) return '';
     const hasAdicionais = dynamicAdj || temBagagem;
     const lines: string[] = [
-      `*${nomePlataforma} — Orçamento*`,
-      ``,
-      `📍 ${origem.trim()} → ${destino.trim()}`,
+      `─────────────────────`,
+      `  🚘 *${nomePlataforma}*`,
+      `  _Orçamento de Viagem_`,
+      `─────────────────────`,
     ];
-    if (clienteNome.trim()) lines.push(`👤 ${clienteNome.trim()}`);
+    if (clienteNome.trim()) {
+      lines.push(``, `👤 *Cliente:* ${clienteNome.trim()}`);
+    }
+    lines.push(``, `📍 *Origem:* ${origem.trim()}`, `🏁 *Destino:* ${destino.trim()}`);
     lines.push(``);
-    // Valor
     if (hasAdicionais) {
-      lines.push(`Tarifa: R$ ${precoEfetivo.valor.toFixed(2).replace('.', ',')}${precoEfetivo.mesmo_bairro ? ' (mesmo bairro)' : precoEfetivo.estimado ? ' (estimado)' : ''}`);
+      lines.push(`💰 *Detalhamento:*`);
+      lines.push(`   Tarifa ${precoEfetivo.mesmo_bairro ? '(mesmo bairro)' : precoEfetivo.estimado ? '(estimada)' : 'tabelada'}: R$ ${precoEfetivo.valor.toFixed(2).replace('.', ',')}`);
       if (dynamicAdj) {
         const ajuste = dynamicAdj.aplicar(precoEfetivo.valor) - precoEfetivo.valor;
-        lines.push(`${dynamicAdj.regra.nome}: +R$ ${ajuste.toFixed(2).replace('.', ',')}`);
+        lines.push(`   ⏰ ${dynamicAdj.regra.nome}: +R$ ${ajuste.toFixed(2).replace('.', ',')}`);
       }
-      if (temBagagem) lines.push(`Bagagem/Feira: +R$ ${taxaBagagemValor.toFixed(2).replace('.', ',')}`);
-      lines.push(`*Total: R$ ${totalValue.toFixed(2).replace('.', ',')}*`);
+      if (temBagagem) lines.push(`   📦 Feira/Bagagem: +R$ ${taxaBagagemValor.toFixed(2).replace('.', ',')}`);
+      lines.push(`   ─────────────────`);
+      lines.push(`   ✅ *Total: R$ ${totalValue.toFixed(2).replace('.', ',')}*`);
     } else {
-      lines.push(`*Valor: R$ ${totalValue.toFixed(2).replace('.', ',')}*${precoEfetivo.mesmo_bairro ? ' (mesmo bairro)' : precoEfetivo.estimado ? ' (estimado)' : ''}`);
+      lines.push(`✅ *Valor: R$ ${totalValue.toFixed(2).replace('.', ',')}*${precoEfetivo.mesmo_bairro ? ' _(mesmo bairro)_' : precoEfetivo.estimado ? ' _(estimado)_' : ''}`);
     }
-    if (observacao.trim()) lines.push(``, `Obs: ${observacao.trim()}`);
-    lines.push(``, `_${nomePlataforma}_`);
+    if (observacao.trim()) lines.push(``, `📝 *Obs:* ${observacao.trim()}`);
+    lines.push(``, `─────────────────────`, `_${nomePlataforma} • Transporte com confiança_`);
     return lines.join('\n');
   }, [precoEfetivo, origem, destino, clienteNome, observacao, totalValue, dynamicAdj, temBagagem, taxaBagagemValor, nomePlataforma]);
 
