@@ -85,6 +85,46 @@
     --shadow-card: 0 2px 12px 0 rgba(0,0,0,0.55);
     --shadow-elevated: 0 12px 40px -8px rgba(0,0,0,0.75);
   }
+
+  .light {
+    --background: 220 20% 97%;
+    --foreground: 220 15% 10%;
+    --card: 0 0% 100%;
+    --card-foreground: 220 15% 10%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 15% 10%;
+    --primary: 45 100% 50%;
+    --primary-foreground: 0 0% 0%;
+    --secondary: 220 14% 93%;
+    --secondary-foreground: 220 15% 10%;
+    --muted: 220 14% 93%;
+    --muted-foreground: 220 5% 42%;
+    --accent: 45 100% 50%;
+    --accent-foreground: 0 0% 0%;
+    --destructive: 0 84% 50%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 13% 87%;
+    --input: 220 13% 87%;
+    --ring: 45 100% 50%;
+
+    --success: 142 71% 45%;
+    --success-foreground: 0 0% 100%;
+
+    --sidebar-background: 220 20% 97%;
+    --sidebar-foreground: 220 15% 16%;
+    --sidebar-primary: 45 100% 50%;
+    --sidebar-primary-foreground: 0 0% 0%;
+    --sidebar-accent: 220 14% 93%;
+    --sidebar-accent-foreground: 220 15% 16%;
+    --sidebar-border: 220 13% 87%;
+    --sidebar-ring: 45 100% 50%;
+
+    --gradient-primary: linear-gradient(135deg, hsl(220 15% 96%), hsl(220 12% 91%));
+    --gradient-accent: linear-gradient(135deg, hsl(45 100% 50%), hsl(40 100% 45%));
+    --gradient-hero: linear-gradient(180deg, hsl(220 15% 97%) 0%, hsl(220 12% 93%) 100%);
+    --shadow-card: 0 2px 12px 0 rgba(0,0,0,0.06);
+    --shadow-elevated: 0 12px 40px -8px rgba(0,0,0,0.12);
+  }
 }
 
 @layer base {
@@ -93,7 +133,6 @@
   }
   body {
     @apply bg-background text-foreground font-sans antialiased;
-    background: hsl(220 15% 4%);
     -webkit-tap-highlight-color: transparent;
     overscroll-behavior: none;
     touch-action: pan-x pan-y;
@@ -127,7 +166,7 @@
 
 @layer utilities {
   .glass {
-    @apply bg-card/95 backdrop-blur-2xl border border-white/[0.08];
+    @apply bg-card/95 backdrop-blur-2xl border border-border/30;
     box-shadow: var(--shadow-card);
   }
   .gradient-primary {
