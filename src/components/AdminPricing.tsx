@@ -17,7 +17,7 @@ import {
   MapPin, DollarSign, Clock, Zap, Plus, Pencil, Trash2, Save,
   ChevronRight, ChevronDown, Search, Loader2, ToggleLeft, ToggleRight,
   TreePine, ArrowRight, Calculator, AlertTriangle, CheckCircle, Info,
-  Map, Tag, Layers,
+  Map, Tag, Layers, Users,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -146,6 +146,8 @@ const TarifasTab: React.FC<{
     tarifa_minima: '',
     taxa_bagagem: '',
     tarifa_mesmo_bairro: '',
+    taxa_carro_6_tipo: 'fixo' as 'percentual' | 'fixo',
+    taxa_carro_6_valor: '',
   });
   const [hasChanges, setHasChanges] = useState(false);
 
@@ -156,6 +158,8 @@ const TarifasTab: React.FC<{
         tarifa_minima: String(config.tarifa_minima ?? 0),
         taxa_bagagem: String(config.taxa_bagagem ?? 5),
         tarifa_mesmo_bairro: String(config.tarifa_mesmo_bairro ?? 10),
+        taxa_carro_6_tipo: (config as any).taxa_carro_6_tipo || 'fixo',
+        taxa_carro_6_valor: String((config as any).taxa_carro_6_valor ?? 0),
       });
       setHasChanges(false);
     }
@@ -172,6 +176,8 @@ const TarifasTab: React.FC<{
         tarifa_minima: parseFloat(form.tarifa_minima) || 0,
         taxa_bagagem: parseFloat(form.taxa_bagagem) || 0,
         tarifa_mesmo_bairro: parseFloat(form.tarifa_mesmo_bairro) || 10,
+        taxa_carro_6_tipo: form.taxa_carro_6_tipo,
+        taxa_carro_6_valor: parseFloat(form.taxa_carro_6_valor) || 0,
         updated_at: new Date().toISOString(),
       };
 
@@ -266,6 +272,44 @@ const TarifasTab: React.FC<{
             </CardContent>
           </Card>
         ))}
+
+        {/* Carro 6 Lugares - card especial com tipo + valor */}
+        <Card className="border bg-cyan-500/10 border-cyan-500/20">
+          <CardContent className="py-4">
+            <div className="flex items-start gap-4">
+              <div className="mt-1 text-cyan-400"><Users className="w-4 h-4" /></div>
+              <div className="flex-1 min-w-0 space-y-3">
+                <div>
+                  <p className="text-sm font-semibold text-cyan-400">Taxa Carro 6 Lugares</p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">Adicional cobrado quando o passageiro solicita veículo com 6 lugares.</p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Select value={form.taxa_carro_6_tipo} onValueChange={v => { updateField('taxa_carro_6_tipo', v); }}>
+                    <SelectTrigger className="w-[140px] h-9 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="fixo">Valor fixo (R$)</SelectItem>
+                      <SelectItem value="percentual">Percentual (%)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <div className="flex items-center gap-2 flex-1">
+                    <span className="text-xs text-muted-foreground font-medium">{form.taxa_carro_6_tipo === 'fixo' ? 'R$' : '%'}</span>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={form.taxa_carro_6_valor}
+                      onChange={e => updateField('taxa_carro_6_valor', e.target.value)}
+                      placeholder={form.taxa_carro_6_tipo === 'fixo' ? '10.00' : '20'}
+                      className="w-28 text-right font-semibold"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       <Button

@@ -47,6 +47,8 @@ export interface ConfigTarifas {
   taxa_bagagem: number;
   tarifa_mesmo_bairro: number;
   bandeirada: number;
+  taxa_carro_6_tipo: 'percentual' | 'fixo';
+  taxa_carro_6_valor: number;
   ativo: boolean;
 }
 

@@ -13,7 +13,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Calculator, MapPin, DollarSign, CheckCircle, Loader2, Clock,
   MessageSquare, ChevronRight, TableProperties, AlertTriangle, Send,
-  Copy, Check, Phone, User,
+  Copy, Check, Phone, User, Users,
 } from 'lucide-react';
 import { usePrecoTabela, useAllLocations } from '@/hooks/usePrecoTabela';
 import { useDynamicAdjustment } from '@/hooks/useDynamicAdjustment';
@@ -37,6 +37,7 @@ const MotoristaViagens: React.FC = () => {
   const [showDestinoSugg, setShowDestinoSugg] = useState(false);
   const [observacao, setObservacao] = useState('');
   const [temBagagem, setTemBagagem] = useState(false);
+  const [carro6Lugares, setCarro6Lugares] = useState(false);
   const [clienteNome, setClienteNome] = useState('');
   const [clienteTelefone, setClienteTelefone] = useState('');
   const [copied, setCopied] = useState(false);
@@ -66,6 +67,8 @@ const MotoristaViagens: React.FC = () => {
 
   const taxaBagagemValor = configTarifas?.taxa_bagagem ?? 5;
   const tarifaMesmoBairro = configTarifas?.tarifa_mesmo_bairro ?? 10;
+  const taxaCarro6Tipo = configTarifas?.taxa_carro_6_tipo ?? 'fixo';
+  const taxaCarro6Valor = configTarifas?.taxa_carro_6_valor ?? 0;
 
   // Override preco.valor for mesmo_bairro with configured value
   const precoEfetivo = useMemo(() => {
@@ -79,10 +82,13 @@ const MotoristaViagens: React.FC = () => {
     let total = precoEfetivo.valor;
     if (dynamicAdj) total = dynamicAdj.aplicar(total);
     if (temBagagem) total += taxaBagagemValor;
+    if (carro6Lugares && taxaCarro6Valor > 0) {
+      total += taxaCarro6Tipo === 'percentual' ? precoEfetivo.valor * (taxaCarro6Valor / 100) : taxaCarro6Valor;
+    }
     const minima = configTarifas?.tarifa_minima ?? 0;
     if (minima > 0 && total < minima) total = minima;
     return Math.round(total * 100) / 100;
-  }, [precoEfetivo, dynamicAdj, temBagagem, taxaBagagemValor, configTarifas]);
+  }, [precoEfetivo, dynamicAdj, temBagagem, taxaBagagemValor, carro6Lugares, taxaCarro6Tipo, taxaCarro6Valor, configTarifas]);
 
   const isTarifaMinima = useMemo(() => {
     if (!precoEfetivo) return false;
@@ -91,21 +97,27 @@ const MotoristaViagens: React.FC = () => {
     let total = precoEfetivo.valor;
     if (dynamicAdj) total = dynamicAdj.aplicar(total);
     if (temBagagem) total += taxaBagagemValor;
+    if (carro6Lugares && taxaCarro6Valor > 0) {
+      total += taxaCarro6Tipo === 'percentual' ? precoEfetivo.valor * (taxaCarro6Valor / 100) : taxaCarro6Valor;
+    }
     return total < minima;
-  }, [precoEfetivo, dynamicAdj, temBagagem, taxaBagagemValor, configTarifas]);
+  }, [precoEfetivo, dynamicAdj, temBagagem, taxaBagagemValor, carro6Lugares, taxaCarro6Tipo, taxaCarro6Valor, configTarifas]);
 
   const rawTotalValue = useMemo(() => {
     if (!precoEfetivo) return 0;
     let total = precoEfetivo.valor;
     if (dynamicAdj) total = dynamicAdj.aplicar(total);
     if (temBagagem) total += taxaBagagemValor;
+    if (carro6Lugares && taxaCarro6Valor > 0) {
+      total += taxaCarro6Tipo === 'percentual' ? precoEfetivo.valor * (taxaCarro6Valor / 100) : taxaCarro6Valor;
+    }
     return Math.round(total * 100) / 100;
-  }, [precoEfetivo, dynamicAdj, temBagagem, taxaBagagemValor]);
+  }, [precoEfetivo, dynamicAdj, temBagagem, taxaBagagemValor, carro6Lugares, taxaCarro6Tipo, taxaCarro6Valor]);
 
   // ── Quote message ──
   const quoteMensagem = useMemo(() => {
     if (!precoEfetivo || !origem.trim() || !destino.trim()) return '';
-    const hasAdicionais = dynamicAdj || temBagagem;
+    const hasAdicionais = dynamicAdj || temBagagem || carro6Lugares;
     const lines: string[] = [
       `─────────────────────`,
       `  🚘 *${nomePlataforma}*`,
@@ -125,6 +137,10 @@ const MotoristaViagens: React.FC = () => {
         lines.push(`   ⏰ ${dynamicAdj.regra.nome}: +R$ ${ajusteValor.toFixed(2).replace('.', ',')}`);
       }
       if (temBagagem) lines.push(`   📦 Feira/Bagagem: +R$ ${taxaBagagemValor.toFixed(2).replace('.', ',')}`);
+      if (carro6Lugares && taxaCarro6Valor > 0) {
+        const c6add = taxaCarro6Tipo === 'percentual' ? precoEfetivo.valor * (taxaCarro6Valor / 100) : taxaCarro6Valor;
+        lines.push(`   🚐 Carro 6 lugares: +R$ ${c6add.toFixed(2).replace('.', ',')}`);
+      }
       lines.push(`   ─────────────────`);
       lines.push(`   ✅ *Total: R$ ${totalValue.toFixed(2).replace('.', ',')}*`);
     } else {
@@ -134,7 +150,7 @@ const MotoristaViagens: React.FC = () => {
     if (clienteNome.trim()) lines.push(``);
     lines.push(``, `─────────────────────`, `_${siglaPlataforma} • ${slogan}_`);
     return lines.join('\n');
-  }, [precoEfetivo, origem, destino, clienteNome, observacao, totalValue, dynamicAdj, temBagagem, taxaBagagemValor, nomePlataforma, siglaPlataforma, slogan]);
+  }, [precoEfetivo, origem, destino, clienteNome, observacao, totalValue, dynamicAdj, temBagagem, taxaBagagemValor, carro6Lugares, taxaCarro6Tipo, taxaCarro6Valor, nomePlataforma, siglaPlataforma, slogan]);
 
   const handleCopy = async () => {
     if (!quoteMensagem) return;
@@ -176,6 +192,7 @@ const MotoristaViagens: React.FC = () => {
             regra_horario: dynamicAdj.regra.nome,
             cor_regra: (dynamicAdj.regra as any).cor || '#8b5cf6',
           } : {}),
+          ...(carro6Lugares ? { carro_6_lugares: true } : {}),
         },
       });
       if (error) throw error;
@@ -186,6 +203,7 @@ const MotoristaViagens: React.FC = () => {
       setDestino('');
       setObservacao('');
       setTemBagagem(false);
+      setCarro6Lugares(false);
       setClienteNome('');
       setClienteTelefone('');
       setShowRegistrar(false);
@@ -309,6 +327,17 @@ const MotoristaViagens: React.FC = () => {
               </label>
             </div>
 
+            {/* Carro 6 Lugares */}
+            {taxaCarro6Valor > 0 && (
+              <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
+                <input type="checkbox" id="carro6Viagem" checked={carro6Lugares} onChange={e => setCarro6Lugares(e.target.checked)} className="w-5 h-5 rounded border-border text-accent focus:ring-accent" />
+                <label htmlFor="carro6Viagem" className="text-sm cursor-pointer">
+                  <span className="font-medium">Carro 6 lugares?</span>
+                  <span className="text-muted-foreground"> (+{taxaCarro6Tipo === 'percentual' ? `${taxaCarro6Valor}%` : `R$ ${taxaCarro6Valor.toFixed(2).replace('.', ',')}`})</span>
+                </label>
+              </div>
+            )}
+
             {/* Price preview */}
             <AnimatePresence>
               {precoEfetivo && (
@@ -362,6 +391,17 @@ const MotoristaViagens: React.FC = () => {
                           <span className="text-xs text-muted-foreground">Taxa Feira/Bagagem</span>
                         </div>
                         <span className="text-sm font-bold text-orange-400">R$ {taxaBagagemValor.toFixed(2).replace('.', ',')}</span>
+                      </div>
+                    )}
+                    {carro6Lugares && taxaCarro6Valor > 0 && (
+                      <div className="flex items-center justify-between bg-cyan-500/10 border border-cyan-500/20 rounded-lg px-3 py-2">
+                        <div className="flex items-center gap-2">
+                          <Users className="w-3.5 h-3.5 text-cyan-400" />
+                          <span className="text-xs text-muted-foreground">Carro 6 lugares</span>
+                        </div>
+                        <span className="text-sm font-bold text-cyan-400">
+                          +R$ {(taxaCarro6Tipo === 'percentual' ? precoEfetivo.valor * (taxaCarro6Valor / 100) : taxaCarro6Valor).toFixed(2).replace('.', ',')}
+                        </span>
                       </div>
                     )}
                     {isTarifaMinima && (
