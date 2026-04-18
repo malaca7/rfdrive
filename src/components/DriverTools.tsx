@@ -331,15 +331,15 @@ export const TripCalculator: React.FC<{
                 className={`${precoEfetivo.mesmo_bairro ? 'bg-blue-500/10 border-blue-500/20' : precoEfetivo.estimado ? 'bg-amber-500/10 border-amber-500/20' : 'bg-green-500/10 border-green-500/20'} border rounded-xl p-[4%]`}
               >
                 <div className="space-y-2">
-                  {/* Preço estimado - valor base sem adicionais */}
+                  {/* Preço base - valor da viagem sem adicionais */}
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <TableProperties className={`w-4 h-4 ${precoEfetivo.mesmo_bairro ? 'text-blue-400' : precoEfetivo.estimado ? 'text-amber-400' : 'text-green-400'}`} />
+                      <TableProperties className={`w-3.5 h-3.5 ${precoEfetivo.mesmo_bairro ? 'text-blue-400' : precoEfetivo.estimado ? 'text-amber-400' : 'text-green-400'}`} />
                       <div>
                         <p className="text-[10px] text-muted-foreground">
                           {precoEfetivo.mesmo_bairro ? 'Mesmo bairro' : precoEfetivo.estimado ? 'Preço estimado' : 'Preço tabelado'}
                         </p>
-                        <p className={`text-base font-semibold ${precoEfetivo.mesmo_bairro ? 'text-blue-400' : precoEfetivo.estimado ? 'text-amber-400' : 'text-green-400'}`}>
+                        <p className={`text-sm font-medium ${precoEfetivo.mesmo_bairro ? 'text-blue-400/80' : precoEfetivo.estimado ? 'text-amber-400/80' : 'text-green-400/80'}`}>
                           R$ {precoEfetivo.valor.toFixed(2).replace('.', ',')}
                         </p>
                       </div>
@@ -396,7 +396,7 @@ export const TripCalculator: React.FC<{
                         {isTarifaMinima && (
                           <span className="text-xs text-muted-foreground line-through">R$ {rawTotalValue.toFixed(2).replace('.', ',')}</span>
                         )}
-                        <span className={`text-xl font-extrabold ${isTarifaMinima ? 'text-yellow-400' : precoEfetivo.mesmo_bairro ? 'text-blue-400' : precoEfetivo.estimado ? 'text-amber-400' : 'text-green-400'}`}>
+                        <span className={`text-2xl font-extrabold ${isTarifaMinima ? 'text-yellow-400' : precoEfetivo.mesmo_bairro ? 'text-blue-400' : precoEfetivo.estimado ? 'text-amber-400' : 'text-green-400'}`}>
                           R$ {totalValue.toFixed(2).replace('.', ',')}
                         </span>
                       </div>

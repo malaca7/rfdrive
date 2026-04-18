@@ -852,10 +852,10 @@ const AdminCorridas: React.FC = () => {
                 {/* Preço base */}
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <TableProperties className={`w-4 h-4 ${precoTabelaCreate.mesmo_bairro ? 'text-blue-400' : precoTabelaCreate.estimado ? 'text-amber-400' : 'text-green-400'}`} />
+                    <TableProperties className={`w-3.5 h-3.5 ${precoTabelaCreate.mesmo_bairro ? 'text-blue-400' : precoTabelaCreate.estimado ? 'text-amber-400' : 'text-green-400'}`} />
                     <div>
                       <p className="text-[10px] text-muted-foreground">{precoTabelaCreate.mesmo_bairro ? 'Mesmo bairro' : precoTabelaCreate.estimado ? 'Preço estimado' : 'Preço tabelado'}</p>
-                      <p className={`text-base font-semibold ${precoTabelaCreate.mesmo_bairro ? 'text-blue-400' : precoTabelaCreate.estimado ? 'text-amber-400' : 'text-green-400'}`}>R$ {precoTabelaCreate.valor.toFixed(2).replace('.', ',')}</p>
+                      <p className={`text-sm font-medium ${precoTabelaCreate.mesmo_bairro ? 'text-blue-400/80' : precoTabelaCreate.estimado ? 'text-amber-400/80' : 'text-green-400/80'}`}>R$ {precoTabelaCreate.valor.toFixed(2).replace('.', ',')}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -915,7 +915,7 @@ const AdminCorridas: React.FC = () => {
                       {isTarifaMinimaCreate && (
                         <span className="text-xs text-muted-foreground line-through">R$ {rawTotalCreateValue.toFixed(2).replace('.', ',')}</span>
                       )}
-                      <span className={`text-xl font-extrabold ${isTarifaMinimaCreate ? 'text-yellow-400' : precoTabelaCreate.mesmo_bairro ? 'text-blue-400' : precoTabelaCreate.estimado ? 'text-amber-400' : 'text-green-400'}`}>
+                      <span className={`text-2xl font-extrabold ${isTarifaMinimaCreate ? 'text-yellow-400' : precoTabelaCreate.mesmo_bairro ? 'text-blue-400' : precoTabelaCreate.estimado ? 'text-amber-400' : 'text-green-400'}`}>
                         R$ {(totalCreateValue ?? precoTabelaCreate.valor).toFixed(2).replace('.', ',')}
                       </span>
                     </div>

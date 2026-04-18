@@ -313,13 +313,12 @@ const MotoristaViagens: React.FC = () => {
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <TableProperties className={`w-4 h-4 ${preco.estimado ? 'text-amber-400' : 'text-green-400'}`} />
+                        <TableProperties className={`w-3.5 h-3.5 ${preco.estimado ? 'text-amber-400' : 'text-green-400'}`} />
                         <div>
                           <p className="text-[10px] text-muted-foreground">{preco.estimado ? 'Preço estimado' : 'Preço tabelado'}</p>
-                          <p className={`text-[clamp(1.1rem,3.5vw,1.35rem)] font-bold ${isTarifaMinima ? 'text-yellow-400' : preco.estimado ? 'text-amber-400' : 'text-green-400'}`}>
-                            R$ {totalValue.toFixed(2).replace('.', ',')}
+                          <p className={`text-sm font-medium ${preco.estimado ? 'text-amber-400/80' : 'text-green-400/80'}`}>
+                            R$ {preco.valor.toFixed(2).replace('.', ',')}
                           </p>
-                          {isTarifaMinima && <p className="text-xs text-muted-foreground line-through">R$ {rawTotalValue.toFixed(2).replace('.', ',')}</p>}
                         </div>
                       </div>
                       <div className="text-right">
@@ -359,6 +358,20 @@ const MotoristaViagens: React.FC = () => {
                         <span className="text-xs text-yellow-400">Tarifa mínima aplicada</span>
                       </div>
                     )}
+                    {/* Valor total em destaque */}
+                    <div className="border-t border-border pt-3 mt-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-semibold">Valor Total</span>
+                        <div className="flex items-center gap-2">
+                          {isTarifaMinima && (
+                            <span className="text-xs text-muted-foreground line-through">R$ {rawTotalValue.toFixed(2).replace('.', ',')}</span>
+                          )}
+                          <span className={`text-2xl font-extrabold ${isTarifaMinima ? 'text-yellow-400' : preco.estimado ? 'text-amber-400' : 'text-green-400'}`}>
+                            R$ {totalValue.toFixed(2).replace('.', ',')}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </motion.div>
               )}
