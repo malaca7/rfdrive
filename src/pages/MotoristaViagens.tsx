@@ -124,7 +124,7 @@ const MotoristaViagens: React.FC = () => {
     }
     if (observacao.trim()) lines.push(``, `📝 *Obs:* ${observacao.trim()}`);
     if (clienteNome.trim()) lines.push(``);
-    lines.push(``, `─────────────────────`, `_${nomePlataforma} • Transporte com confiança_`);
+    lines.push(``, `─────────────────────`, `_${nomePlataforma} • Mobilidade com Excelência!_`);
     return lines.join('\n');
   }, [preco, origem, destino, clienteNome, observacao, totalValue, dynamicAdj, temBagagem, taxaBagagemValor]);
 

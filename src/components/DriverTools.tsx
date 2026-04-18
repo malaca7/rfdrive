@@ -187,7 +187,7 @@ export const TripCalculator: React.FC<{
       lines.push(`✅ *Valor: R$ ${totalValue.toFixed(2).replace('.', ',')}*${precoEfetivo.mesmo_bairro ? ' _(mesmo bairro)_' : precoEfetivo.estimado ? ' _(estimado)_' : ''}`);
     }
     if (observacao.trim()) lines.push(``, `📝 *Obs:* ${observacao.trim()}`);
-    lines.push(``, `─────────────────────`, `_${nomePlataforma} • Transporte com confiança_`);
+    lines.push(``, `─────────────────────`, `_${nomePlataforma} • Mobilidade com Excelência!_`);
     return lines.join('\n');
   }, [precoEfetivo, origem, destino, clienteNome, observacao, totalValue, dynamicAdj, temBagagem, taxaBagagemValor, nomePlataforma]);
 
