@@ -31,10 +31,10 @@ const ClientDashboard: React.FC = () => {
 
         <Tabs defaultValue="nova" className="w-full">
           <TabsList className="w-full mb-[4%] h-12 p-1 bg-muted/30 rounded-2xl border border-border">
-            <TabsTrigger value="nova" className="flex-1 gap-2 rounded-xl h-full text-sm font-semibold data-[state=active]:bg-[hsl(45_100%_50%)] data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-[hsl(45_100%_50%/0.3)]">
+            <TabsTrigger value="nova" className="flex-1 gap-2 rounded-xl h-full text-sm font-semibold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg data-[state=active]:shadow-primary/30">
               <Plus className="w-4 h-4" /> Nova Corrida
             </TabsTrigger>
-            <TabsTrigger value="historico" className="flex-1 gap-2 rounded-xl h-full text-sm font-semibold data-[state=active]:bg-[hsl(45_100%_50%)] data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-[hsl(45_100%_50%/0.3)]">
+            <TabsTrigger value="historico" className="flex-1 gap-2 rounded-xl h-full text-sm font-semibold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg data-[state=active]:shadow-primary/30">
               <History className="w-4 h-4" /> Histórico
             </TabsTrigger>
           </TabsList>

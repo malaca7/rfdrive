@@ -557,7 +557,7 @@ const CalculadoraDigitalRF: React.FC = () => {
         <div className="text-center py-4 space-y-2">
           <button
             onClick={() => { window.location.hash = '/'; }}
-            className="text-[11px] text-white/30 hover:text-[hsl(45_100%_50%)] transition-colors flex items-center gap-1.5 mx-auto"
+            className="text-[11px] text-white/30 hover:text-accent transition-colors flex items-center gap-1.5 mx-auto"
           >
             🔑 Acessar Painel
           </button>
