@@ -349,16 +349,28 @@ const AdminConfig: React.FC = () => {
                   <div>
                     <p className="text-sm font-semibold text-accent flex items-center gap-1.5"><Image className="w-4 h-4" />Logo da Plataforma</p>
                     <p className="text-[11px] text-muted-foreground mt-0.5">Imagem exibida no cabeçalho e tela de login.</p>
-                    {form.logo_url && (
-                      <div className="mt-2 w-12 h-12 rounded-xl overflow-hidden border border-accent/30">
-                        <img src={form.logo_url} alt="Logo" className="w-full h-full object-cover" />
+                  </div>
+                  <div className="flex items-center gap-3">
+                    {form.logo_url ? (
+                      <div className="relative group">
+                        <div className="w-14 h-14 rounded-xl overflow-hidden border border-accent/30">
+                          <img src={form.logo_url} alt="Logo" className="w-full h-full object-cover" />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => updateField('logo_url', '')}
+                          className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-destructive text-destructive-foreground text-[10px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-md"
+                          title="Remover logo"
+                        >✕</button>
+                      </div>
+                    ) : (
+                      <div className="w-14 h-14 rounded-xl border-2 border-dashed border-white/10 flex items-center justify-center">
+                        <Image className="w-5 h-5 text-white/20" />
                       </div>
                     )}
-                  </div>
-                  <div className="flex flex-col gap-1.5 items-start sm:items-end">
-                    <Input value={form.logo_url} onChange={e => updateField('logo_url', e.target.value)} placeholder="https://..." className="w-full sm:w-52 text-xs" />
-                    <label className="flex items-center gap-1 text-[11px] text-accent cursor-pointer hover:underline">
-                      <Upload className="w-3 h-3" />Upload
+                    <label className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-accent/20 text-accent text-xs font-medium cursor-pointer hover:bg-accent/30 transition-colors">
+                      <Upload className="w-3.5 h-3.5" />
+                      {form.logo_url ? 'Trocar' : 'Enviar imagem'}
                       <input type="file" accept="image/*" className="hidden" onChange={async (e) => {
                         const file = e.target.files?.[0];
                         if (!file) return;
@@ -368,6 +380,7 @@ const AdminConfig: React.FC = () => {
                         if (error) { toast({ title: 'Erro no upload', description: error.message, variant: 'destructive' }); return; }
                         const { data: urlData } = supabase.storage.from('uploads').getPublicUrl(path);
                         updateField('logo_url', urlData.publicUrl);
+                        toast({ title: 'Logo atualizada!', description: 'A nova logo será aplicada em todo o site.' });
                       }} />
                     </label>
                   </div>
