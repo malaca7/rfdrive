@@ -27,29 +27,29 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return (
     <div className="h-[100dvh] w-full flex flex-col bg-background overflow-hidden">
       {/* ── Top Bar — original style with motorista switch ── */}
-      <header className="shrink-0 z-50 bg-card/98 backdrop-blur-2xl border-b border-white/[0.08] safe-top shadow-lg shadow-black/20">
-        <div className="w-full px-[4%] h-14 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-2xl gradient-accent flex items-center justify-center shadow-lg shadow-accent/30 glow-accent overflow-hidden">
-              {logoUrl ? <img src={logoUrl} alt="" className="w-full h-full object-cover" /> : <Navigation className="w-[18px] h-[18px] text-white" />}
+      <header className="shrink-0 z-50 bg-card/98 backdrop-blur-2xl border-b border-white/[0.1] safe-top shadow-lg shadow-black/30">
+        <div className="w-full px-[4%] h-16 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl gradient-accent flex items-center justify-center shadow-lg shadow-accent/30 glow-accent overflow-hidden">
+              {logoUrl ? <img src={logoUrl} alt="" className="w-full h-full object-cover" /> : <Navigation className="w-5 h-5 text-white" />}
             </div>
-            <span className="font-extrabold text-lg tracking-tight text-white">{nomePlataforma}</span>
+            <span className="font-extrabold text-xl tracking-tight text-white">{nomePlataforma}</span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2.5">
             <div className="text-right mr-1">
-              <p className="text-sm font-semibold truncate max-w-[120px] text-white">{(profile?.nome || '').split(' ')[0]}</p>
-              <p className="text-[10px] text-accent font-medium">Admin</p>
+              <p className="text-[15px] font-semibold truncate max-w-[140px] text-white">{(profile?.nome || '').split(' ')[0]}</p>
+              <p className="text-[11px] text-accent font-medium">Admin</p>
             </div>
             {profile?.avatar_url ? (
-              <img src={profile.avatar_url} alt="" className="w-9 h-9 rounded-2xl object-cover border-2 border-white/15 shadow-md" />
+              <img src={profile.avatar_url} alt="" className="w-10 h-10 rounded-2xl object-cover border-2 border-white/20 shadow-md ring-1 ring-white/10" />
             ) : (
-              <img src={getAnimalAvatarUrl(profile?.id || profile?.nome || '?')} alt="" className="w-9 h-9 rounded-2xl object-cover border-2 border-white/15 shadow-md" />
+              <img src={getAnimalAvatarUrl(profile?.id || profile?.nome || '?')} alt="" className="w-10 h-10 rounded-2xl object-cover border-2 border-white/20 shadow-md ring-1 ring-white/10" />
             )}
             <button
               onClick={() => { signOut(); navigate('/'); }}
-              className="w-9 h-9 rounded-2xl flex items-center justify-center text-white/50 hover:text-red-400 hover:bg-red-500/10 transition-all"
+              className="w-10 h-10 rounded-2xl flex items-center justify-center text-white/60 hover:text-red-400 hover:bg-red-500/10 transition-all"
             >
-              <LogOut className="w-[18px] h-[18px]" />
+              <LogOut className="w-5 h-5" />
             </button>
           </div>
         </div>
@@ -66,8 +66,8 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
       {/* ── Mobile floating dock (visible only on mobile, no sidebar) ── */}
       <nav className="shrink-0 z-40 safe-bottom">
-        <div className="mx-3 mb-2 bg-card/95 backdrop-blur-2xl rounded-2xl border border-white/[0.1] shadow-2xl shadow-black/40">
-          <div className="flex items-stretch justify-around h-[60px] px-1">
+        <div className="mx-3 mb-2 bg-card/95 backdrop-blur-2xl rounded-2xl border border-white/[0.12] shadow-2xl shadow-black/50">
+          <div className="flex items-stretch justify-around h-[66px] px-1">
             {ADMIN_NAV.map(item => {
               const isActive = location.pathname.startsWith(item.path);
               const Icon = item.icon;
@@ -81,28 +81,28 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                   <motion.div
                     animate={{ scale: isActive ? 1.15 : 1, y: isActive ? -2 : 0 }}
                     transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-                    className={`w-9 h-9 rounded-xl flex items-center justify-center transition-colors ${
-                      isActive ? `bg-gradient-to-br ${item.color} shadow-lg shadow-white/10` : 'text-white/45'
+                    className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${
+                      isActive ? `bg-gradient-to-br ${item.color} shadow-lg shadow-white/15` : 'text-white/55'
                     }`}
                   >
-                    <Icon className={`w-[18px] h-[18px] ${isActive ? 'text-white' : ''}`} />
+                    <Icon className={`w-5 h-5 ${isActive ? 'text-white' : ''}`} />
                   </motion.div>
-                  <span className={`text-[9px] font-bold tracking-wide ${isActive ? 'text-white' : 'text-white/40'}`}>
+                  <span className={`text-[10px] font-bold tracking-wide ${isActive ? 'text-white' : 'text-white/50'}`}>
                     {item.label}
                   </span>
                 </button>
               );
             })}
-            <div className="w-px self-stretch my-2.5 bg-white/12 mx-0.5" />
+            <div className="w-px self-stretch my-2.5 bg-white/15 mx-0.5" />
             <button
               onClick={() => { setActiveScreen('motorista'); navigate('/motorista/dashboard'); }}
               className="relative flex flex-col items-center justify-center gap-1 flex-1 tap-highlight"
               title="Motorista"
             >
-              <div className="w-9 h-9 rounded-xl flex items-center justify-center bg-white/[0.08] border border-white/15 text-white/60 hover:text-white/90 hover:border-accent/30 transition-all">
-                <Truck className="w-[18px] h-[18px]" />
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-white/[0.08] border border-white/20 text-white/65 hover:text-white hover:border-accent/40 transition-all">
+                <Truck className="w-5 h-5" />
               </div>
-              <span className="text-[9px] font-bold tracking-wide text-white/50">Motorista</span>
+              <span className="text-[10px] font-bold tracking-wide text-white/55">Motorista</span>
             </button>
           </div>
         </div>
