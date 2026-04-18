@@ -739,18 +739,37 @@ const AdminCorridas: React.FC = () => {
 
             {/* Preço tabelado */}
             {precoTabelaCreate && (
-              <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-3">
+              <div className={`${precoTabelaCreate.estimado ? 'bg-amber-500/10 border-amber-500/20' : 'bg-green-500/10 border-green-500/20'} border rounded-lg p-3 space-y-2`}>
+                {/* Preço estimado - base sem adicionais */}
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <TableProperties className={`w-4 h-4 ${precoTabelaCreate.estimado ? 'text-amber-400' : 'text-green-400'}`} />
                     <div>
                       <p className="text-[10px] text-muted-foreground">{precoTabelaCreate.estimado ? 'Preço estimado' : 'Preço tabelado'}</p>
-                      <p className={`text-lg font-bold ${precoTabelaCreate.estimado ? 'text-amber-400' : 'text-green-400'}`}>R$ {precoTabelaCreate.valor.toFixed(2)}</p>
+                      <p className={`text-base font-semibold ${precoTabelaCreate.estimado ? 'text-amber-400' : 'text-green-400'}`}>R$ {precoTabelaCreate.valor.toFixed(2)}</p>
                     </div>
                   </div>
                   <Button type="button" variant="ghost" size="sm" className="text-xs text-green-400 hover:text-green-300 h-6"
                     onClick={() => setCreateRideForm(f => ({ ...f, valor: precoTabelaCreate.valor.toFixed(2) }))}>Aplicar</Button>
                 </div>
+                {/* Adicionais */}
+                {createRideForm.temBagagem && (
+                  <div className="flex items-center justify-between bg-orange-500/10 border border-orange-500/20 rounded-lg px-3 py-1.5">
+                    <span className="text-xs text-muted-foreground flex items-center gap-1.5"><span className="text-orange-400">📦</span> Feira/Bagagem</span>
+                    <span className="text-sm font-bold text-orange-400">+R$ {taxaBagagemValor.toFixed(2)}</span>
+                  </div>
+                )}
+                {/* Valor total em destaque */}
+                {createRideForm.temBagagem && (
+                  <div className="border-t border-border pt-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-semibold">Valor Total</span>
+                      <span className={`text-lg font-extrabold ${precoTabelaCreate.estimado ? 'text-amber-400' : 'text-green-400'}`}>
+                        R$ {(precoTabelaCreate.valor + taxaBagagemValor).toFixed(2)}
+                      </span>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
@@ -759,9 +778,9 @@ const AdminCorridas: React.FC = () => {
               <Label className="text-xs">Valor (R$)</Label>
               <Input type="number" step="0.01" min="0" value={createRideForm.valor}
                 onChange={e => setCreateRideForm(f => ({ ...f, valor: e.target.value }))}
-                placeholder={precoTabelaCreate ? `Tabelado: ${precoTabelaCreate.valor.toFixed(2)}` : 'Ex: 25.00'} />
+                placeholder={precoTabelaCreate ? `Tabelado: R$ ${precoTabelaCreate.valor.toFixed(2)}` : 'Ex: 25.00'} />
               {createRideForm.temBagagem && (
-                <p className="text-[11px] text-amber-400 mt-1">+ R$ {taxaBagagemValor.toFixed(2)} de bagagem/feira será adicionado</p>
+                <p className="text-[11px] text-amber-400 mt-1">+ R$ {taxaBagagemValor.toFixed(2)} de bagagem/feira será adicionado ao valor final</p>
               )}
             </div>
 
@@ -771,7 +790,7 @@ const AdminCorridas: React.FC = () => {
                 className={`w-9 h-5 rounded-full transition-colors relative ${createRideForm.temBagagem ? 'bg-accent' : 'bg-muted'}`}>
                 <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform ${createRideForm.temBagagem ? 'translate-x-4' : 'translate-x-0.5'}`} />
               </button>
-              <Label className="text-xs cursor-pointer" onClick={() => setCreateRideForm(f => ({ ...f, temBagagem: !f.temBagagem }))}>📦 Com bagagem</Label>
+              <Label className="text-xs cursor-pointer" onClick={() => setCreateRideForm(f => ({ ...f, temBagagem: !f.temBagagem }))}>📦 Com bagagem/feira (+R$ {taxaBagagemValor.toFixed(2)})</Label>
             </div>
 
             {/* Cliente info */}
@@ -782,7 +801,7 @@ const AdminCorridas: React.FC = () => {
               </div>
               <div>
                 <Label className="text-xs flex items-center gap-1.5"><Phone className="w-3 h-3" /> Telefone</Label>
-                <Input value={createRideForm.clienteTelefone} onChange={e => setCreateRideForm(f => ({ ...f, clienteTelefone: e.target.value }))} placeholder="(81) 9xxxx-xxxx" />
+                <Input value={createRideForm.clienteTelefone} onChange={e => setCreateRideForm(f => ({ ...f, clienteTelefone: e.target.value }))} placeholder="(00) 00000-0000" />
               </div>
             </div>
 
@@ -824,7 +843,7 @@ const AdminCorridas: React.FC = () => {
             <div>
               <Label className="text-xs">Observações</Label>
               <Textarea value={createRideForm.observacoes} onChange={e => setCreateRideForm(f => ({ ...f, observacoes: e.target.value }))}
-                placeholder="Observações sobre a viagem..." rows={2} className="resize-none" />
+                placeholder="Observações sobre a viagem..." rows={3} className="resize-none min-h-[80px]" />
             </div>
           </div>
           <DialogFooter>

@@ -299,9 +299,9 @@ export const TripCalculator: React.FC<{
             <Textarea
               value={observacao}
               onChange={e => setObservacao(e.target.value)}
-              placeholder="Horário, ponto de referência..."
-              className="resize-none text-sm min-h-[60px]"
-              rows={2}
+              placeholder="Horário, referência..."
+              className="resize-none text-sm min-h-[80px]"
+              rows={3}
             />
           </div>
 
@@ -330,6 +330,7 @@ export const TripCalculator: React.FC<{
                 className={`${preco.estimado ? 'bg-amber-500/10 border-amber-500/20' : 'bg-green-500/10 border-green-500/20'} border rounded-xl p-[4%]`}
               >
                 <div className="space-y-2">
+                  {/* Preço estimado - valor base sem adicionais */}
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <TableProperties className={`w-4 h-4 ${preco.estimado ? 'text-amber-400' : 'text-green-400'}`} />
@@ -337,12 +338,9 @@ export const TripCalculator: React.FC<{
                         <p className="text-[10px] text-muted-foreground">
                           {preco.estimado ? 'Preço estimado' : 'Preço tabelado'}
                         </p>
-                        <p className={`text-[clamp(1.1rem,3.5vw,1.35rem)] font-bold ${isTarifaMinima ? 'text-yellow-400' : preco.estimado ? 'text-amber-400' : 'text-green-400'}`}>
-                          R$ {totalValue.toFixed(2)}
+                        <p className={`text-base font-semibold ${preco.estimado ? 'text-amber-400' : 'text-green-400'}`}>
+                          R$ {preco.valor.toFixed(2)}
                         </p>
-                        {isTarifaMinima && (
-                          <p className="text-xs text-muted-foreground line-through">R$ {rawTotalValue.toFixed(2)}</p>
-                        )}
                       </div>
                     </div>
                     <div className="text-right">
@@ -354,6 +352,7 @@ export const TripCalculator: React.FC<{
                       </p>
                     </div>
                   </div>
+                  {/* Adicionais */}
                   {dynamicAdj && (
                     <div className="flex items-center justify-between bg-purple-500/10 border border-purple-500/20 rounded-lg px-3 py-2">
                       <div className="flex items-center gap-2">
@@ -361,36 +360,17 @@ export const TripCalculator: React.FC<{
                         <span className="text-xs text-muted-foreground">{dynamicAdj.regra.nome}</span>
                       </div>
                       <span className="text-sm font-bold text-purple-400">
-                        +{dynamicAdj.regra.valor_ajuste}%
+                        +R$ {(dynamicAdj.aplicar(preco.valor) - preco.valor).toFixed(2)}
                       </span>
-                    </div>
-                  )}
-                  {dynamicAdj && (
-                    <div className="flex items-center justify-between text-xs text-muted-foreground">
-                      <span>Tarifa base</span>
-                      <span className="line-through">R$ {preco.valor.toFixed(2)}</span>
                     </div>
                   )}
                   {temBagagem && (
                     <div className="flex items-center justify-between bg-orange-500/10 border border-orange-500/20 rounded-lg px-3 py-2">
                       <div className="flex items-center gap-2">
                         <span className="text-orange-400 text-xs">📦</span>
-                        <span className="text-xs text-muted-foreground">Taxa Feira/Bagagem</span>
+                        <span className="text-xs text-muted-foreground">Feira/Bagagem</span>
                       </div>
-                      <span className="text-sm font-bold text-orange-400">R$ {taxaBagagemValor.toFixed(2)}</span>
-                    </div>
-                  )}
-                  {(dynamicAdj || temBagagem || isTarifaMinima) && (
-                    <div className="flex items-center justify-between border-t border-border pt-2">
-                      <span className="text-sm font-medium">Total</span>
-                      <div className="flex items-center gap-2">
-                        {isTarifaMinima && (
-                          <span className="text-xs text-muted-foreground line-through">R$ {rawTotalValue.toFixed(2)}</span>
-                        )}
-                        <span className={`text-lg font-bold ${isTarifaMinima ? 'text-yellow-400' : preco.estimado ? 'text-amber-400' : 'text-green-400'}`}>
-                          R$ {totalValue.toFixed(2)}
-                        </span>
-                      </div>
+                      <span className="text-sm font-bold text-orange-400">+R$ {taxaBagagemValor.toFixed(2)}</span>
                     </div>
                   )}
                   {isTarifaMinima && (
@@ -399,6 +379,20 @@ export const TripCalculator: React.FC<{
                       <span className="text-xs text-yellow-400">Tarifa mínima aplicada</span>
                     </div>
                   )}
+                  {/* Valor total em destaque */}
+                  <div className="border-t border-border pt-3 mt-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-semibold">Valor Total</span>
+                      <div className="flex items-center gap-2">
+                        {isTarifaMinima && (
+                          <span className="text-xs text-muted-foreground line-through">R$ {rawTotalValue.toFixed(2)}</span>
+                        )}
+                        <span className={`text-xl font-extrabold ${isTarifaMinima ? 'text-yellow-400' : preco.estimado ? 'text-amber-400' : 'text-green-400'}`}>
+                          R$ {totalValue.toFixed(2)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </motion.div>
             )}
@@ -433,7 +427,7 @@ export const TripCalculator: React.FC<{
                   <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-blue-500/10 mx-auto">
                     <Send className="w-5 h-5 text-blue-400" />
                   </div>
-                  <h3 className="text-sm font-bold">Enviar Orçamento</h3>
+                  <h3 className="text-sm font-bold">Orçamento</h3>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
@@ -457,79 +451,27 @@ export const TripCalculator: React.FC<{
                     <Input
                       value={clienteTelefone}
                       onChange={e => setClienteTelefone(e.target.value)}
-                      placeholder="(81) 9xxxx-xxxx"
+                      placeholder="(00) 00000-0000"
                       className="h-10"
                     />
                   </div>
                 </div>
 
-                {/* Detalhamento visual */}
-                <div className="bg-muted/30 rounded-xl p-4 space-y-2">
-                  <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide">Detalhamento</p>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Tarifa base{preco.estimado ? ' (estimado)' : ''}</span>
-                    <span className="font-medium">R$ {preco.valor.toFixed(2)}</span>
-                  </div>
-                  {dynamicAdj && (
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-purple-400 flex items-center gap-1.5">
-                        <Clock className="w-3 h-3" />
-                        {dynamicAdj.regra.nome}
-                        <span className="text-[10px] text-muted-foreground">({dynamicAdj.regra.tipo_ajuste === 'percentual' ? `${dynamicAdj.regra.valor_ajuste}%` : 'fixo'})</span>
-                      </span>
-                      <span className="font-medium text-purple-400">+R$ {(dynamicAdj.aplicar(preco.valor) - preco.valor).toFixed(2)}</span>
-                    </div>
-                  )}
-                  {temBagagem && (
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-orange-400 flex items-center gap-1.5">
-                        <span>📦</span> Feira/Bagagem
-                      </span>
-                      <span className="font-medium text-orange-400">+R$ {taxaBagagemValor.toFixed(2)}</span>
-                    </div>
-                  )}
-                  <Separator className="my-1" />
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-semibold">Total</span>
-                    <div className="flex items-center gap-2">
-                      {isTarifaMinima && (
-                        <span className="text-xs text-muted-foreground line-through">R$ {rawTotalValue.toFixed(2)}</span>
-                      )}
-                      <span className={`text-lg font-bold ${isTarifaMinima ? 'text-yellow-400' : 'text-green-400'}`}>R$ {totalValue.toFixed(2)}</span>
-                    </div>
-                  </div>
-                  {isTarifaMinima && (
-                    <div className="flex items-center gap-2 mt-1">
-                      <AlertTriangle className="w-3 h-3 text-yellow-400 shrink-0" />
-                      <span className="text-[10px] text-yellow-400">Tarifa mínima aplicada</span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Preview WhatsApp */}
-                <details className="group">
-                  <summary className="text-[10px] text-muted-foreground cursor-pointer hover:text-foreground transition-colors">Ver mensagem do WhatsApp</summary>
-                  <div className="mt-2 bg-muted/20 rounded-lg p-3 text-xs whitespace-pre-wrap font-mono leading-relaxed max-h-40 overflow-y-auto">
+                {/* Mensagem do orçamento */}
+                <div className="bg-muted/20 rounded-xl p-3">
+                  <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide mb-2">Mensagem</p>
+                  <div className="text-xs whitespace-pre-wrap leading-relaxed max-h-[200px] overflow-y-auto">
                     {quoteMensagem}
                   </div>
-                </details>
-
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline" className="flex-1 gap-1.5 h-11 rounded-xl font-semibold"
-                    onClick={handleCopy}
-                  >
-                    {copied ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
-                    {copied ? 'Copiado!' : 'Copiar'}
-                  </Button>
-                  <Button
-                    className="flex-1 gap-1.5 h-11 rounded-xl font-semibold bg-green-600 hover:bg-green-700 text-white shadow-lg shadow-green-600/20"
-                    onClick={handleWhatsApp}
-                  >
-                    <MessageSquare className="w-4 h-4" />
-                    WhatsApp
-                  </Button>
                 </div>
+
+                <Button
+                  className="w-full gap-2 h-12 rounded-xl font-bold text-base"
+                  onClick={handleCopy}
+                >
+                  {copied ? <Check className="w-5 h-5 text-green-400" /> : <Copy className="w-5 h-5" />}
+                  {copied ? 'Copiado!' : 'Copiar Orçamento'}
+                </Button>
               </CardContent>
             </Card>
           </motion.div>
