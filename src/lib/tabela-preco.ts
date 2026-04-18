@@ -21,6 +21,7 @@ export interface LookupResult {
   regiao: string;
   match_exato: boolean;
   estimado?: boolean;
+  mesmo_bairro?: boolean;
 }
 
 // ── Normalize text for matching ──
@@ -313,6 +314,18 @@ function getBaseToCentro(local: string): number | null {
 
 export function buscarPrecoTabela(origem: string, destino: string): LookupResult | null {
   if (!origem.trim() || !destino.trim()) return null;
+
+  // ── 0. Mesmo bairro: origem === destino → R$ 10,00 ──
+  if (normalize(origem.trim()) === normalize(destino.trim())) {
+    return {
+      valor: 10,
+      origem_tabela: origem.trim(),
+      destino_tabela: destino.trim(),
+      regiao: 'Cabo',
+      match_exato: true,
+      mesmo_bairro: true,
+    };
+  }
 
   // ── 1. Busca direta na tabela ──
   const direct = lookupDirect(origem, destino);

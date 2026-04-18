@@ -327,31 +327,39 @@ export const TripCalculator: React.FC<{
                 initial={{ opacity: 0, y: -8 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -8 }}
-                className={`${preco.estimado ? 'bg-amber-500/10 border-amber-500/20' : 'bg-green-500/10 border-green-500/20'} border rounded-xl p-[4%]`}
+                className={`${preco.mesmo_bairro ? 'bg-blue-500/10 border-blue-500/20' : preco.estimado ? 'bg-amber-500/10 border-amber-500/20' : 'bg-green-500/10 border-green-500/20'} border rounded-xl p-[4%]`}
               >
                 <div className="space-y-2">
                   {/* Preço estimado - valor base sem adicionais */}
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <TableProperties className={`w-4 h-4 ${preco.estimado ? 'text-amber-400' : 'text-green-400'}`} />
+                      <TableProperties className={`w-4 h-4 ${preco.mesmo_bairro ? 'text-blue-400' : preco.estimado ? 'text-amber-400' : 'text-green-400'}`} />
                       <div>
                         <p className="text-[10px] text-muted-foreground">
-                          {preco.estimado ? 'Preço estimado' : 'Preço tabelado'}
+                          {preco.mesmo_bairro ? 'Mesmo bairro' : preco.estimado ? 'Preço estimado' : 'Preço tabelado'}
                         </p>
-                        <p className={`text-base font-semibold ${preco.estimado ? 'text-amber-400' : 'text-green-400'}`}>
+                        <p className={`text-base font-semibold ${preco.mesmo_bairro ? 'text-blue-400' : preco.estimado ? 'text-amber-400' : 'text-green-400'}`}>
                           R$ {preco.valor.toFixed(2)}
                         </p>
                       </div>
                     </div>
                     <div className="text-right">
                       <p className="text-[10px] text-muted-foreground">
-                        {preco.estimado ? 'Média via Centro do Cabo' : preco.match_exato ? 'Correspondência exata' : 'Melhor correspondência'}
+                        {preco.mesmo_bairro ? 'Viagem pro mesmo bairro' : preco.estimado ? 'Média via Centro do Cabo' : preco.match_exato ? 'Correspondência exata' : 'Melhor correspondência'}
                       </p>
-                      <p className="text-[10px] text-muted-foreground truncate max-w-[160px]">
-                        {preco.origem_tabela} → {preco.destino_tabela}
-                      </p>
+                      {!preco.mesmo_bairro && (
+                        <p className="text-[10px] text-muted-foreground truncate max-w-[160px]">
+                          {preco.origem_tabela} → {preco.destino_tabela}
+                        </p>
+                      )}
                     </div>
                   </div>
+                  {preco.mesmo_bairro && (
+                    <div className="flex items-center gap-2 bg-blue-500/10 border border-blue-500/20 rounded-lg px-3 py-2">
+                      <MapPin className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+                      <span className="text-xs text-blue-400">Viagem pro mesmo bairro — tarifa fixa R$ 10,00</span>
+                    </div>
+                  )}
                   {/* Adicionais */}
                   {dynamicAdj && (
                     <div className="flex items-center justify-between bg-purple-500/10 border border-purple-500/20 rounded-lg px-3 py-2">
@@ -387,7 +395,7 @@ export const TripCalculator: React.FC<{
                         {isTarifaMinima && (
                           <span className="text-xs text-muted-foreground line-through">R$ {rawTotalValue.toFixed(2)}</span>
                         )}
-                        <span className={`text-xl font-extrabold ${isTarifaMinima ? 'text-yellow-400' : preco.estimado ? 'text-amber-400' : 'text-green-400'}`}>
+                        <span className={`text-xl font-extrabold ${isTarifaMinima ? 'text-yellow-400' : preco.mesmo_bairro ? 'text-blue-400' : preco.estimado ? 'text-amber-400' : 'text-green-400'}`}>
                           R$ {totalValue.toFixed(2)}
                         </span>
                       </div>

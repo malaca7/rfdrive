@@ -335,7 +335,7 @@ const AdminCorridas: React.FC = () => {
         concluida_at: concluidaAt,
         observacoes: obsParts.length > 0 ? obsParts.join(' | ') : null,
         tem_bagagem: createRideForm.temBagagem,
-        preco_regra_aplicada: precoTabelaCreate ? (precoTabelaCreate.estimado ? 'estimado' : 'tabela') : 'manual',
+        preco_regra_aplicada: precoTabelaCreate ? (precoTabelaCreate.mesmo_bairro ? 'mesmo_bairro' : precoTabelaCreate.estimado ? 'estimado' : 'tabela') : 'manual',
       });
       if (error) throw error;
     },
@@ -828,19 +828,26 @@ const AdminCorridas: React.FC = () => {
 
             {/* Preço tabelado */}
             {precoTabelaCreate && (
-              <div className={`${precoTabelaCreate.estimado ? 'bg-amber-500/10 border-amber-500/20' : 'bg-green-500/10 border-green-500/20'} border rounded-lg p-3 space-y-2`}>
+              <div className={`${precoTabelaCreate.mesmo_bairro ? 'bg-blue-500/10 border-blue-500/20' : precoTabelaCreate.estimado ? 'bg-amber-500/10 border-amber-500/20' : 'bg-green-500/10 border-green-500/20'} border rounded-lg p-3 space-y-2`}>
                 {/* Preço base */}
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <TableProperties className={`w-4 h-4 ${precoTabelaCreate.estimado ? 'text-amber-400' : 'text-green-400'}`} />
+                    <TableProperties className={`w-4 h-4 ${precoTabelaCreate.mesmo_bairro ? 'text-blue-400' : precoTabelaCreate.estimado ? 'text-amber-400' : 'text-green-400'}`} />
                     <div>
-                      <p className="text-[10px] text-muted-foreground">{precoTabelaCreate.estimado ? 'Preço estimado' : 'Preço tabelado'}</p>
-                      <p className={`text-base font-semibold ${precoTabelaCreate.estimado ? 'text-amber-400' : 'text-green-400'}`}>R$ {precoTabelaCreate.valor.toFixed(2)}</p>
+                      <p className="text-[10px] text-muted-foreground">{precoTabelaCreate.mesmo_bairro ? 'Mesmo bairro' : precoTabelaCreate.estimado ? 'Preço estimado' : 'Preço tabelado'}</p>
+                      <p className={`text-base font-semibold ${precoTabelaCreate.mesmo_bairro ? 'text-blue-400' : precoTabelaCreate.estimado ? 'text-amber-400' : 'text-green-400'}`}>R$ {precoTabelaCreate.valor.toFixed(2)}</p>
                     </div>
                   </div>
                   <Button type="button" variant="ghost" size="sm" className="text-xs text-green-400 hover:text-green-300 h-6"
                     onClick={() => setCreateRideForm(f => ({ ...f, valor: (totalCreateValue ?? precoTabelaCreate.valor).toFixed(2) }))}>Aplicar Total</Button>
                 </div>
+                {/* Mesmo bairro */}
+                {precoTabelaCreate.mesmo_bairro && (
+                  <div className="flex items-center gap-2 bg-blue-500/10 border border-blue-500/20 rounded-lg px-3 py-1.5">
+                    <MapPin className="w-3 h-3 text-blue-400 shrink-0" />
+                    <span className="text-xs text-blue-400">Viagem pro mesmo bairro — tarifa fixa R$ 10,00</span>
+                  </div>
+                )}
                 {/* Adicionais */}
                 {dynamicAdjCreate && (
                   <div className="flex items-center justify-between bg-purple-500/10 border border-purple-500/20 rounded-lg px-3 py-1.5">
@@ -861,7 +868,7 @@ const AdminCorridas: React.FC = () => {
                   <div className="border-t border-border pt-2">
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-semibold">Valor Total</span>
-                      <span className={`text-lg font-extrabold ${precoTabelaCreate.estimado ? 'text-amber-400' : 'text-green-400'}`}>
+                      <span className={`text-lg font-extrabold ${precoTabelaCreate.mesmo_bairro ? 'text-blue-400' : precoTabelaCreate.estimado ? 'text-amber-400' : 'text-green-400'}`}>
                         R$ {totalCreateValue.toFixed(2)}
                       </span>
                     </div>
