@@ -358,7 +358,14 @@ const AdminConfig: React.FC = () => {
                         </div>
                         <button
                           type="button"
-                          onClick={() => updateField('logo_url', '')}
+                          onClick={async () => {
+                            updateField('logo_url', '');
+                            if (config?.id) {
+                              await supabase.from('config_plataforma').update({ logo_url: '' }).eq('id', config.id);
+                              qc.invalidateQueries({ queryKey: ['config-plataforma'] });
+                            }
+                            toast({ title: 'Logo removida' });
+                          }}
                           className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-destructive text-destructive-foreground text-[10px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-md"
                           title="Remover logo"
                         >✕</button>
@@ -379,7 +386,14 @@ const AdminConfig: React.FC = () => {
                         const { error } = await supabase.storage.from('uploads').upload(path, file, { upsert: true });
                         if (error) { toast({ title: 'Erro no upload', description: error.message, variant: 'destructive' }); return; }
                         const { data: urlData } = supabase.storage.from('uploads').getPublicUrl(path);
-                        updateField('logo_url', urlData.publicUrl);
+                        const newUrl = urlData.publicUrl;
+                        updateField('logo_url', newUrl);
+                        // Persist immediately to DB
+                        if (config?.id) {
+                          const { error: dbErr } = await supabase.from('config_plataforma').update({ logo_url: newUrl }).eq('id', config.id);
+                          if (dbErr) { toast({ title: 'Erro ao salvar logo', description: dbErr.message, variant: 'destructive' }); return; }
+                          qc.invalidateQueries({ queryKey: ['config-plataforma'] });
+                        }
                         toast({ title: 'Logo atualizada!', description: 'A nova logo será aplicada em todo o site.' });
                       }} />
                     </label>
