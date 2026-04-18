@@ -564,3 +564,5 @@ const MotoristaDashboard: React.FC = () => {
   );
 };
 
+export default MotoristaDashboard;
+
