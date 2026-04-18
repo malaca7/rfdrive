@@ -4,7 +4,7 @@ import { usePlatformConfig } from '@/hooks/usePlatformConfig';
 /** Convert hex (#RRGGBB) → "H S% L%" string for CSS variables */
 function hexToHSL(hex: string): string {
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-  if (!result) return '206 92% 38%';
+  if (!result) return '207 92% 38%';
   let r = parseInt(result[1], 16) / 255;
   let g = parseInt(result[2], 16) / 255;
   let b = parseInt(result[3], 16) / 255;

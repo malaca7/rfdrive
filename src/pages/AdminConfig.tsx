@@ -26,7 +26,7 @@ const DEFAULT_CONFIG: Omit<ConfigPlataforma, 'id' | 'updated_at'> = {
   nome_plataforma: 'RF Drive',
   logo_url: '',
   slogan: 'Seu transporte inteligente',
-  cor_primaria: '#FFD000',
+  cor_primaria: '#086AB8',
 };
 
 const AdminConfig: React.FC = () => {
