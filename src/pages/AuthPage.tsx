@@ -106,7 +106,7 @@ const AuthPage: React.FC = () => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.25 }}
-          className="text-white/35 text-sm mt-1"
+          className="text-white/50 text-sm mt-1"
         >
           {slogan}
         </motion.p>
@@ -117,7 +117,7 @@ const AuthPage: React.FC = () => {
         initial={{ y: 60, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ type: 'spring', stiffness: 120, delay: 0.2 }}
-        className="bg-card/80 backdrop-blur-2xl border-t border-white/[0.06] rounded-t-[2rem] px-6 pt-7 pb-safe-bottom"
+        className="bg-card/90 backdrop-blur-2xl border-t border-white/[0.1] rounded-t-[2rem] px-6 pt-7 pb-safe-bottom shadow-[0_-8px_30px_rgba(0,0,0,0.4)]"
         style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 24px)' }}
       >
         <form onSubmit={handleSubmit} className="space-y-4 max-w-md mx-auto">
@@ -129,21 +129,21 @@ const AuthPage: React.FC = () => {
                 onChange={(e) => setNome(e.target.value)}
                 placeholder="Seu nome completo"
                 required={!isLogin}
-                className="h-13 rounded-2xl text-sm bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/25 focus:border-accent focus:ring-accent/20 pl-4"
+                className="h-13 rounded-2xl text-sm bg-white/[0.06] border-white/[0.12] text-white placeholder:text-white/35 focus:border-accent focus:ring-accent/20 pl-4"
               />
             </div>
           )}
 
           {/* Phone */}
           <div className="relative">
-            <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-white/25" />
+            <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-white/40" />
             <Input
               id="telefone"
               type="tel"
               value={telefone}
               onChange={handlePhoneChange}
               placeholder="(00) 00000-0000"
-              className="h-13 rounded-2xl text-sm bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/25 focus:border-accent focus:ring-accent/20 pl-11"
+              className="h-13 rounded-2xl text-sm bg-white/[0.06] border-white/[0.12] text-white placeholder:text-white/35 focus:border-accent focus:ring-accent/20 pl-11"
               required
               maxLength={16}
             />
@@ -151,7 +151,7 @@ const AuthPage: React.FC = () => {
 
           {/* Password */}
           <div className="relative">
-            <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-white/25" />
+            <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-white/40" />
             <Input
               id="password"
               type={showPassword ? 'text' : 'password'}
@@ -160,12 +160,12 @@ const AuthPage: React.FC = () => {
               placeholder="Sua senha"
               required
               minLength={6}
-              className="h-13 rounded-2xl text-sm bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/25 focus:border-accent focus:ring-accent/20 pl-11 pr-11"
+              className="h-13 rounded-2xl text-sm bg-white/[0.06] border-white/[0.12] text-white placeholder:text-white/35 focus:border-accent focus:ring-accent/20 pl-11 pr-11"
             />
             <button
               type="button"
               onClick={() => setShowPassword(v => !v)}
-              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-white/25 hover:text-white/50 transition-colors"
+              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/60 transition-colors"
               tabIndex={-1}
             >
               {showPassword ? <EyeOff className="w-4.5 h-4.5" /> : <Eye className="w-4.5 h-4.5" />}
@@ -189,7 +189,7 @@ const AuthPage: React.FC = () => {
                 </svg>
               )}
             </button>
-            <span className={`text-xs transition-colors ${rememberMe ? 'text-white/70' : 'text-white/40 group-hover:text-white/50'}`}>
+            <span className={`text-xs transition-colors ${rememberMe ? 'text-white/80' : 'text-white/50 group-hover:text-white/60'}`}>
               Lembrar meu login
             </span>
           </label>
@@ -210,7 +210,7 @@ const AuthPage: React.FC = () => {
           <button
             type="button"
             onClick={() => { window.location.hash = '/calculadora'; }}
-            className="text-xs text-white/30 hover:text-accent transition-colors flex items-center gap-1.5"
+            className="text-xs text-white/45 hover:text-accent transition-colors flex items-center gap-1.5"
           >
             📱 Calculadora Digital
           </button>

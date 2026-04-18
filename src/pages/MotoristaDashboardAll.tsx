@@ -290,40 +290,40 @@ const MotoristaDashboardAll: React.FC = () => {
             {/* ── KPI Cards ── */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-[3%] mb-[4%]">
               <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }}>
-                <Card className="border-accent/20">
+                <Card className="border-l-[3px] border-l-accent border-t-0 border-r-0 border-b-0 bg-accent/[0.04]">
                   <CardContent className="py-[10%] text-center">
                     <Car className="w-5 h-5 text-accent mx-auto mb-1" />
                     <p className="text-[clamp(1.1rem,3.5vw,1.5rem)] font-extrabold text-accent">{platformStats.total}</p>
-                    <p className="text-[clamp(0.55rem,1.8vw,0.65rem)] text-muted-foreground font-medium">Total Corridas</p>
+                    <p className="text-[clamp(0.6rem,1.8vw,0.7rem)] text-muted-foreground font-medium">Total Corridas</p>
                   </CardContent>
                 </Card>
               </motion.div>
               <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }}>
-                <Card className="border-blue-500/20">
+                <Card className="border-l-[3px] border-l-blue-500 border-t-0 border-r-0 border-b-0 bg-blue-500/[0.04]">
                   <CardContent className="py-[10%] text-center">
                     <Activity className="w-5 h-5 text-blue-400 mx-auto mb-1" />
                     <p className="text-[clamp(1.1rem,3.5vw,1.5rem)] font-extrabold text-blue-400">{platformStats.today}</p>
-                    <p className="text-[clamp(0.55rem,1.8vw,0.65rem)] text-muted-foreground font-medium">Corridas Hoje</p>
+                    <p className="text-[clamp(0.6rem,1.8vw,0.7rem)] text-muted-foreground font-medium">Corridas Hoje</p>
                   </CardContent>
                 </Card>
               </motion.div>
               <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.16 }}>
-                <Card className="border-green-500/20">
+                <Card className="border-l-[3px] border-l-green-500 border-t-0 border-r-0 border-b-0 bg-green-500/[0.04]">
                   <CardContent className="py-[10%] text-center">
                     <TrendingUp className="w-5 h-5 text-green-400 mx-auto mb-1" />
                     <p className="text-[clamp(1.1rem,3.5vw,1.5rem)] font-extrabold text-green-400">{platformStats.week}</p>
-                    <p className="text-[clamp(0.55rem,1.8vw,0.65rem)] text-muted-foreground font-medium">Últimos 7 Dias</p>
+                    <p className="text-[clamp(0.6rem,1.8vw,0.7rem)] text-muted-foreground font-medium">Últimos 7 Dias</p>
                   </CardContent>
                 </Card>
               </motion.div>
               <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-                <Card className="border-yellow-500/20">
+                <Card className="border-l-[3px] border-l-yellow-500 border-t-0 border-r-0 border-b-0 bg-yellow-500/[0.04]">
                   <CardContent className="py-[10%] text-center">
                     <Star className="w-5 h-5 text-yellow-400 mx-auto mb-1" />
                     <p className="text-[clamp(1.1rem,3.5vw,1.5rem)] font-extrabold text-yellow-400">
                       {platformStats.avgRating ? platformStats.avgRating.toFixed(1) : '—'}
                     </p>
-                    <p className="text-[clamp(0.55rem,1.8vw,0.65rem)] text-muted-foreground font-medium">
+                    <p className="text-[clamp(0.6rem,1.8vw,0.7rem)] text-muted-foreground font-medium">
                       Nota Média {platformStats.totalRatings > 0 && `(${platformStats.totalRatings})`}
                     </p>
                   </CardContent>

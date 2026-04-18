@@ -292,46 +292,46 @@ const MotoristaDashboard: React.FC = () => {
             {/* KPI Cards */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-[3%] mb-[4%]">
               <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
-                <Card className="border-accent/20">
+                <Card className="border-l-[3px] border-l-accent border-t-0 border-r-0 border-b-0 bg-accent/[0.04]">
                   <CardContent className="py-[10%] text-center">
-                    <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-accent/10 mx-auto mb-2">
+                    <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-accent/15 mx-auto mb-2">
                       <CheckCircle className="w-5 h-5 text-accent" />
                     </div>
                     <p className="text-[clamp(1.25rem,4vw,1.75rem)] font-extrabold text-accent">{viagensAprovadas}</p>
-                    <p className="text-[clamp(0.6rem,2vw,0.7rem)] text-muted-foreground font-medium">Aprovadas</p>
+                    <p className="text-[clamp(0.65rem,2vw,0.75rem)] text-muted-foreground font-medium">Aprovadas</p>
                   </CardContent>
                 </Card>
               </motion.div>
               <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
-                <Card className="border-green-500/20">
+                <Card className="border-l-[3px] border-l-green-500 border-t-0 border-r-0 border-b-0 bg-green-500/[0.04]">
                   <CardContent className="py-[10%] text-center">
-                    <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-green-500/10 mx-auto mb-2">
+                    <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-green-500/15 mx-auto mb-2">
                       <DollarSign className="w-5 h-5 text-green-400" />
                     </div>
                     <p className="text-[clamp(1.25rem,4vw,1.75rem)] font-extrabold text-green-400">R$ {receitaTotal.toFixed(0)}</p>
-                    <p className="text-[clamp(0.6rem,2vw,0.7rem)] text-muted-foreground font-medium">Receita</p>
+                    <p className="text-[clamp(0.65rem,2vw,0.75rem)] text-muted-foreground font-medium">Receita</p>
                   </CardContent>
                 </Card>
               </motion.div>
               <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
-                <Card className="border-yellow-500/20">
+                <Card className="border-l-[3px] border-l-yellow-500 border-t-0 border-r-0 border-b-0 bg-yellow-500/[0.04]">
                   <CardContent className="py-[10%] text-center">
-                    <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-yellow-500/10 mx-auto mb-2">
+                    <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-yellow-500/15 mx-auto mb-2">
                       <Star className="w-5 h-5 fill-yellow-400 text-yellow-400" />
                     </div>
                     <p className="text-[clamp(1.25rem,4vw,1.75rem)] font-extrabold text-yellow-400">{avgRating?.avg || '-'}</p>
-                    <p className="text-[clamp(0.6rem,2vw,0.7rem)] text-muted-foreground font-medium">Média {avgRating?.count ? `(${avgRating.count})` : ''}</p>
+                    <p className="text-[clamp(0.65rem,2vw,0.75rem)] text-muted-foreground font-medium">Média {avgRating?.count ? `(${avgRating.count})` : ''}</p>
                   </CardContent>
                 </Card>
               </motion.div>
               <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-                <Card className="border-blue-500/20">
+                <Card className="border-l-[3px] border-l-blue-500 border-t-0 border-r-0 border-b-0 bg-blue-500/[0.04]">
                   <CardContent className="py-[10%] text-center">
-                    <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-blue-500/10 mx-auto mb-2">
+                    <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-blue-500/15 mx-auto mb-2">
                       <Car className="w-5 h-5 text-blue-400" />
                     </div>
                     <p className="text-[clamp(1.25rem,4vw,1.75rem)] font-extrabold text-blue-400">{viagensHoje}</p>
-                    <p className="text-[clamp(0.6rem,2vw,0.7rem)] text-muted-foreground font-medium">Hoje</p>
+                    <p className="text-[clamp(0.65rem,2vw,0.75rem)] text-muted-foreground font-medium">Hoje</p>
                   </CardContent>
                 </Card>
               </motion.div>

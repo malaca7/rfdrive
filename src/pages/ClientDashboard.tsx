@@ -30,7 +30,7 @@ const ClientDashboard: React.FC = () => {
         </motion.div>
 
         <Tabs defaultValue="nova" className="w-full">
-          <TabsList className="w-full mb-[4%] h-12 p-1 bg-white/[0.04] rounded-2xl border border-white/[0.06]">
+          <TabsList className="w-full mb-[4%] h-12 p-1 bg-white/[0.06] rounded-2xl border border-white/[0.1]">
             <TabsTrigger value="nova" className="flex-1 gap-2 rounded-xl h-full text-sm font-semibold data-[state=active]:bg-[hsl(45_100%_50%)] data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-[hsl(45_100%_50%/0.3)]">
               <Plus className="w-4 h-4" /> Nova Corrida
             </TabsTrigger>

@@ -285,43 +285,43 @@ const AdminDashboardPage: React.FC = () => {
 
           {/* ═══ KPI CARDS ═══ */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            <Card className="border-green-500/20">
+            <Card className="border-l-[3px] border-l-green-500 border-t-0 border-r-0 border-b-0 bg-green-500/[0.04]">
               <CardContent className="py-3 px-4">
                 <div className="flex items-center justify-between mb-1">
                   <DollarSign className="w-4 h-4 text-green-400" />
                   <ChangeIndicator value={stats.receitaChange} />
                 </div>
                 <p className="text-xl font-extrabold text-green-400">R$ {stats.receitaTotal.toFixed(0)}</p>
-                <p className="text-[10px] text-muted-foreground">Faturamento</p>
+                <p className="text-[11px] text-muted-foreground">Faturamento</p>
               </CardContent>
             </Card>
-            <Card className="border-accent/20">
+            <Card className="border-l-[3px] border-l-accent border-t-0 border-r-0 border-b-0 bg-accent/[0.04]">
               <CardContent className="py-3 px-4">
                 <div className="flex items-center justify-between mb-1">
                   <CheckCircle className="w-4 h-4 text-accent" />
                   <ChangeIndicator value={stats.viagensChange} />
                 </div>
                 <p className="text-xl font-extrabold text-accent">{stats.aprovadas}</p>
-                <p className="text-[10px] text-muted-foreground">Viagens Aprovadas</p>
+                <p className="text-[11px] text-muted-foreground">Viagens Aprovadas</p>
               </CardContent>
             </Card>
-            <Card className="border-blue-500/20">
+            <Card className="border-l-[3px] border-l-blue-500 border-t-0 border-r-0 border-b-0 bg-blue-500/[0.04]">
               <CardContent className="py-3 px-4">
                 <div className="flex items-center justify-between mb-1">
                   <Target className="w-4 h-4 text-blue-400" />
                   <ChangeIndicator value={stats.ticketChange} />
                 </div>
                 <p className="text-xl font-extrabold text-blue-400">R$ {stats.ticketMedio.toFixed(0)}</p>
-                <p className="text-[10px] text-muted-foreground">Ticket Médio</p>
+                <p className="text-[11px] text-muted-foreground">Ticket Médio</p>
               </CardContent>
             </Card>
-            <Card className="border-yellow-500/20">
+            <Card className="border-l-[3px] border-l-yellow-500 border-t-0 border-r-0 border-b-0 bg-yellow-500/[0.04]">
               <CardContent className="py-3 px-4">
                 <div className="flex items-center justify-between mb-1">
                   <Activity className="w-4 h-4 text-yellow-400" />
                 </div>
                 <p className="text-xl font-extrabold text-yellow-400">{stats.emAnalise}</p>
-                <p className="text-[10px] text-muted-foreground">Em Análise</p>
+                <p className="text-[11px] text-muted-foreground">Em Análise</p>
               </CardContent>
             </Card>
           </div>
