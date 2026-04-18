@@ -330,7 +330,7 @@ const AdminAvaliacaoLinks: React.FC = () => {
               <CardContent className="py-3 px-4">
                 <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider mb-2">Cliente</p>
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-white/[0.06] flex items-center justify-center shrink-0">
+                  <div className="w-10 h-10 rounded-full bg-muted/50 flex items-center justify-center shrink-0">
                     <User className="w-5 h-5 text-muted-foreground" />
                   </div>
                   <div className="flex-1 min-w-0">
@@ -396,7 +396,7 @@ const AdminAvaliacaoLinks: React.FC = () => {
                     {[1, 2, 3, 4, 5].map(s => (
                       <Star
                         key={s}
-                        className={`w-6 h-6 ${s <= detailLink.nota! ? 'fill-yellow-400 text-yellow-400' : 'text-white/20'}`}
+                        className={`w-6 h-6 ${s <= detailLink.nota! ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground/30'}`}
                       />
                     ))}
                   </div>
@@ -408,9 +408,9 @@ const AdminAvaliacaoLinks: React.FC = () => {
                   </p>
                 )}
                 {detailLink.comentario && (
-                  <div className="bg-white/[0.03] rounded-lg p-3 mt-2">
+                  <div className="bg-muted/30 rounded-lg p-3 mt-2">
                     <p className="text-[10px] text-muted-foreground font-medium mb-1">COMENTÁRIO</p>
-                    <p className="text-sm italic text-white/80">"{detailLink.comentario}"</p>
+                    <p className="text-sm italic text-foreground/80">"{detailLink.comentario}"</p>
                   </div>
                 )}
               </CardContent>
@@ -424,7 +424,7 @@ const AdminAvaliacaoLinks: React.FC = () => {
                 <Card>
                   <CardContent className="py-3 px-4">
                     <p className="text-[10px] text-muted-foreground font-medium mb-2">LINK DA AVALIAÇÃO</p>
-                    <code className="text-[10px] text-muted-foreground bg-white/5 rounded px-2 py-1.5 block truncate mb-3">
+                    <code className="text-[10px] text-muted-foreground bg-muted/40 rounded px-2 py-1.5 block truncate mb-3">
                       {url}
                     </code>
                     <div className="flex gap-2">
@@ -501,8 +501,8 @@ const AdminAvaliacaoLinks: React.FC = () => {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
         <Card>
           <CardContent className="py-3 px-4 flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-white/[0.06] flex items-center justify-center">
-              <Star className="w-4 h-4 text-white/60" />
+            <div className="w-9 h-9 rounded-xl bg-muted/50 flex items-center justify-center">
+              <Star className="w-4 h-4 text-muted-foreground" />
             </div>
             <div>
               <p className="text-lg font-bold leading-none">{stats.total}</p>
@@ -626,7 +626,7 @@ const AdminAvaliacaoLinks: React.FC = () => {
                               <span className="ml-1">{isExpiredNow ? 'Expirada' : effectiveStatus.label}</span>
                             </Badge>
                             {link.permite_comentario && (
-                              <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 bg-white/5 border-white/10">
+                              <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 bg-muted/40 border-border">
                                 <MessageSquare className="w-2.5 h-2.5 mr-0.5" /> Comentário
                               </Badge>
                             )}
@@ -662,7 +662,7 @@ const AdminAvaliacaoLinks: React.FC = () => {
                                 {[1, 2, 3, 4, 5].map(s => (
                                   <Star
                                     key={s}
-                                    className={`w-3.5 h-3.5 ${s <= link.nota! ? 'fill-yellow-400 text-yellow-400' : 'text-white/20'}`}
+                                    className={`w-3.5 h-3.5 ${s <= link.nota! ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground/30'}`}
                                   />
                                 ))}
                               </div>
@@ -678,7 +678,7 @@ const AdminAvaliacaoLinks: React.FC = () => {
                           {/* Link URL + WhatsApp */}
                           {link.status === 'ativa' && !isExpiredNow && (
                             <div className="mt-2 flex items-center gap-1.5">
-                              <code className="text-[9px] text-muted-foreground bg-white/5 rounded px-2 py-0.5 truncate max-w-[200px]">
+                              <code className="text-[9px] text-muted-foreground bg-muted/40 rounded px-2 py-0.5 truncate max-w-[200px]">
                                 {url}
                               </code>
                               <Button
@@ -817,7 +817,7 @@ const AdminAvaliacaoLinks: React.FC = () => {
                 className={`flex items-center gap-2 h-10 px-3 rounded-md border cursor-pointer transition-colors ${createForm.permite_comentario ? 'bg-green-500/10 border-green-500/30' : 'bg-muted/30'}`}
                 onClick={() => setCreateForm(f => ({ ...f, permite_comentario: !f.permite_comentario }))}
               >
-                <div className={`w-9 h-5 rounded-full transition-colors relative ${createForm.permite_comentario ? 'bg-green-500' : 'bg-white/20'}`}>
+                <div className={`w-9 h-5 rounded-full transition-colors relative ${createForm.permite_comentario ? 'bg-green-500' : 'bg-border'}`}>
                   <div className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${createForm.permite_comentario ? 'translate-x-4' : ''}`} />
                 </div>
                 <span className="text-xs">{createForm.permite_comentario ? 'Habilitado' : 'Desabilitado'}</span>
@@ -847,7 +847,7 @@ const AdminAvaliacaoLinks: React.FC = () => {
             {createForm.motorista_id && (
               <>
                 <Separator />
-                <div className="bg-white/[0.03] rounded-xl p-3 space-y-1">
+                <div className="bg-muted/30 rounded-xl p-3 space-y-1">
                   <p className="text-[10px] text-muted-foreground font-medium">PREVIEW</p>
                   <p className="text-sm">
                     <span className="text-muted-foreground">Motorista:</span>{' '}

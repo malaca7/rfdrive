@@ -151,7 +151,7 @@ const AdminPerform: React.FC = () => {
                       <div className="flex items-center gap-2 mt-0.5">
                         <div className="flex items-center gap-0.5">
                           {[1, 2, 3, 4, 5].map(i => (
-                            <Star key={i} className={`w-3 h-3 ${i <= Math.round(stats?.soma ? stats.soma / stats.total : 0) ? 'fill-yellow-400 text-yellow-400' : 'text-white/15'}`} />
+                            <Star key={i} className={`w-3 h-3 ${i <= Math.round(stats?.soma ? stats.soma / stats.total : 0) ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground/30'}`} />
                           ))}
                         </div>
                         <span className="text-[10px] text-muted-foreground">
@@ -174,7 +174,7 @@ const AdminPerform: React.FC = () => {
                         transition={{ duration: 0.2 }}
                         className="overflow-hidden"
                       >
-                        <div className="px-3 pb-3 border-t border-white/[0.06]">
+                        <div className="px-3 pb-3 border-t border-border/50">
                           {!stats || stats.avaliacoes.length === 0 ? (
                             <p className="text-sm text-muted-foreground text-center py-4">Nenhuma avaliação recebida</p>
                           ) : (
@@ -185,7 +185,7 @@ const AdminPerform: React.FC = () => {
                                     <div className="flex items-center gap-1">
                                       <div className="flex items-center gap-0.5">
                                         {[1, 2, 3, 4, 5].map(i => (
-                                          <Star key={i} className={`w-3 h-3 ${i <= a.nota ? 'fill-yellow-400 text-yellow-400' : 'text-white/15'}`} />
+                                          <Star key={i} className={`w-3 h-3 ${i <= a.nota ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground/30'}`} />
                                         ))}
                                       </div>
                                       <Badge variant="outline" className="text-[8px] px-1 py-0 h-3.5 border-accent/30 text-accent">cliente</Badge>

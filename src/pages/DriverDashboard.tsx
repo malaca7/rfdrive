@@ -750,7 +750,7 @@ const DriverDashboard: React.FC = () => {
         )}
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="w-full mb-[4%] h-auto min-h-[48px] p-1 bg-white/[0.04] border border-white/[0.06] rounded-2xl flex flex-wrap gap-1">
+          <TabsList className="w-full mb-[4%] h-auto min-h-[48px] p-1 bg-muted/30 border border-border rounded-2xl flex flex-wrap gap-1">
             <TabsTrigger value="calcular" className="flex-1 min-w-[70px] gap-1 text-[11px] sm:text-xs rounded-xl h-10 font-semibold data-[state=active]:bg-[hsl(45_100%_50%)] data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-[hsl(45_100%_50%/0.2)]">
               <Calculator className="w-3.5 h-3.5 shrink-0" />
               <span className="truncate">Registrar</span>
@@ -903,9 +903,9 @@ const DriverDashboard: React.FC = () => {
                 />
               </div>
               {showEditOrigemSugg && filteredEditOrigens.length > 0 && (
-                <div className="absolute z-50 w-full mt-1 bg-[hsl(0_0%_10%)] border border-white/[0.08] rounded-2xl shadow-2xl max-h-40 overflow-y-auto">
+                <div className="absolute z-50 w-full mt-1 bg-popover border border-border rounded-2xl shadow-2xl max-h-40 overflow-y-auto">
                   {filteredEditOrigens.slice(0, 12).map(o => (
-                    <button key={o} type="button" className="w-full text-left px-3 py-2 text-sm hover:bg-white/[0.06] transition-colors first:rounded-t-2xl last:rounded-b-2xl"
+                    <button key={o} type="button" className="w-full text-left px-3 py-2 text-sm hover:bg-muted/50 transition-colors first:rounded-t-2xl last:rounded-b-2xl"
                       onMouseDown={e => e.preventDefault()} onClick={() => { setEditOrigem(o); setShowEditOrigemSugg(false); }}>
                       {o}
                     </button>
@@ -926,9 +926,9 @@ const DriverDashboard: React.FC = () => {
                 />
               </div>
               {showEditDestinoSugg && filteredEditDestinos.length > 0 && (
-                <div className="absolute z-50 w-full mt-1 bg-[hsl(0_0%_10%)] border border-white/[0.08] rounded-2xl shadow-2xl max-h-40 overflow-y-auto">
+                <div className="absolute z-50 w-full mt-1 bg-popover border border-border rounded-2xl shadow-2xl max-h-40 overflow-y-auto">
                   {filteredEditDestinos.slice(0, 12).map(d => (
-                    <button key={d} type="button" className="w-full text-left px-3 py-2 text-sm hover:bg-white/[0.06] transition-colors first:rounded-t-2xl last:rounded-b-2xl"
+                    <button key={d} type="button" className="w-full text-left px-3 py-2 text-sm hover:bg-muted/50 transition-colors first:rounded-t-2xl last:rounded-b-2xl"
                       onMouseDown={e => e.preventDefault()} onClick={() => { setEditDestino(d); setShowEditDestinoSugg(false); }}>
                       {d}
                     </button>

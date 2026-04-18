@@ -224,7 +224,7 @@ const AdminConfig: React.FC = () => {
                       </div>
                     ) : (
                       <div className="w-14 h-14 rounded-xl border-2 border-dashed border-white/10 flex items-center justify-center">
-                        <Image className="w-5 h-5 text-white/20" />
+                        <Image className="w-5 h-5 text-muted-foreground/40" />
                       </div>
                     )}
                     <label className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-accent/20 text-accent text-xs font-medium cursor-pointer hover:bg-accent/30 transition-colors">

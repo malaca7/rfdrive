@@ -93,7 +93,7 @@ const AppRoutes = () => {
         {/* Rotas públicas */}
         <Route path="/" element={
           user
-            ? <Navigate to={effectiveScreen === 'admin' ? '/admin/dashboard' : '/motorista/dashboard'} replace />
+            ? <Navigate to={effectiveScreen === 'admin' ? '/admin/dashboard' : '/motorista/viagens'} replace />
             : <AuthPage />
         } />
         <Route path="/calculadora" element={<CalculadoraDigitalRF />} />
@@ -124,9 +124,9 @@ const AppRoutes = () => {
         {user && <Route path="/motorista/historico" element={<MotoristaHistoricoViagens />} />}
 
         {/* Redirect /admin for motorista to /motorista/dashboard */}
-        {user && effectiveScreen === 'motorista' && <Route path="/admin" element={<Navigate to="/motorista/dashboard" replace />} />}
-        {user && effectiveScreen === 'cliente' && <Route path="/admin" element={<Navigate to="/motorista/dashboard" replace />} />}
-        {user && !effectiveScreen && <Route path="/admin" element={<Navigate to="/motorista/dashboard" replace />} />}
+        {user && effectiveScreen === 'motorista' && <Route path="/admin" element={<Navigate to="/motorista/viagens" replace />} />}
+        {user && effectiveScreen === 'cliente' && <Route path="/admin" element={<Navigate to="/motorista/viagens" replace />} />}
+        {user && !effectiveScreen && <Route path="/admin" element={<Navigate to="/motorista/viagens" replace />} />}
         {user && <Route path="/admin/login" element={<Navigate to="/admin" replace />} />}
         {user && <Route path="/admin/*" element={<Navigate to="/admin" replace />} />}
 

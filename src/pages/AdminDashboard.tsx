@@ -665,7 +665,7 @@ const AdminDashboard: React.FC = () => {
         </div>
 
         <Tabs defaultValue="dashboard">
-          <TabsList className="w-full mb-[3%] h-auto min-h-[48px] p-1 bg-white/[0.04] border border-white/[0.06] rounded-2xl flex flex-wrap gap-1">
+          <TabsList className="w-full mb-[3%] h-auto min-h-[48px] p-1 bg-muted/30 border border-border rounded-2xl flex flex-wrap gap-1">
             <TabsTrigger value="dashboard" className="flex-1 min-w-[80px] gap-1 rounded-xl h-10 text-[11px] sm:text-xs font-semibold data-[state=active]:bg-[hsl(45_100%_50%)] data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-[hsl(45_100%_50%/0.2)]">
               <Activity className="w-3.5 h-3.5 shrink-0" /> <span className="hidden xs:inline">Dashboard</span><span className="xs:hidden">Stats</span>
             </TabsTrigger>
@@ -949,8 +949,8 @@ const AdminDashboard: React.FC = () => {
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
               <Card>
                 <CardContent className="py-3 px-4 flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-white/[0.06] flex items-center justify-center">
-                    <Users className="w-4 h-4 text-white/60" />
+                  <div className="w-9 h-9 rounded-xl bg-muted/50 flex items-center justify-center">
+                    <Users className="w-4 h-4 text-muted-foreground" />
                   </div>
                   <div>
                     <p className="text-lg font-bold leading-none">{stats.totalUsers}</p>
@@ -1018,7 +1018,7 @@ const AdminDashboard: React.FC = () => {
                   const isAdmin = u.roles?.includes('admin') || u.tipo === 'admin';
                   return (
                     <motion.div key={u.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.015 }}>
-                      <Card className={`transition-colors hover:border-white/10 ${u.status === 'banido' ? 'border-red-500/30 bg-red-500/5 opacity-60' : ''}`}>
+                      <Card className={`transition-colors hover:border-border ${u.status === 'banido' ? 'border-red-500/30 bg-red-500/5 opacity-60' : ''}`}>
                         <CardContent className="py-3 px-4">
                           <div className="flex items-center gap-3">
                             {/* Avatar / Foto */}
@@ -1069,7 +1069,7 @@ const AdminDashboard: React.FC = () => {
                                 <Shield className="w-3.5 h-3.5" />
                               </Button>
                               <Button
-                                size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:text-white"
+                                size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:text-foreground"
                                 title="Editar"
                                 onClick={() => openEditUserDialog(u)}
                               >
@@ -1403,7 +1403,7 @@ const AdminDashboard: React.FC = () => {
                   className={`flex items-center gap-2 h-10 px-3 rounded-md border cursor-pointer transition-colors ${editUserForm.isAdmin ? 'bg-purple-500/10 border-purple-500/30' : 'bg-muted/30'}`}
                   onClick={() => setEditUserForm(f => ({ ...f, isAdmin: !f.isAdmin }))}
                 >
-                  <div className={`w-9 h-5 rounded-full transition-colors relative ${editUserForm.isAdmin ? 'bg-purple-500' : 'bg-white/20'}`}>
+                  <div className={`w-9 h-5 rounded-full transition-colors relative ${editUserForm.isAdmin ? 'bg-purple-500' : 'bg-border'}`}>
                     <div className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${editUserForm.isAdmin ? 'translate-x-4' : ''}`} />
                   </div>
                   <span className="text-xs">{editUserForm.isAdmin ? 'Ativado' : 'Desativado'}</span>
@@ -1530,7 +1530,7 @@ const AdminDashboard: React.FC = () => {
                   className={`flex items-center gap-2 h-10 px-3 rounded-md border cursor-pointer transition-colors ${createUserForm.isAdmin ? 'bg-purple-500/10 border-purple-500/30' : 'bg-muted/30'}`}
                   onClick={() => setCreateUserForm(f => ({ ...f, isAdmin: !f.isAdmin }))}
                 >
-                  <div className={`w-9 h-5 rounded-full transition-colors relative ${createUserForm.isAdmin ? 'bg-purple-500' : 'bg-white/20'}`}>
+                  <div className={`w-9 h-5 rounded-full transition-colors relative ${createUserForm.isAdmin ? 'bg-purple-500' : 'bg-border'}`}>
                     <div className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${createUserForm.isAdmin ? 'translate-x-4' : ''}`} />
                   </div>
                   <span className="text-xs">{createUserForm.isAdmin ? 'Ativado' : 'Desativado'}</span>

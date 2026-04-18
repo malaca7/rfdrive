@@ -287,6 +287,94 @@ const MotoristaDashboardAll: React.FC = () => {
           </div>
         ) : (
           <>
+            {/* My position */}
+            {myPosition > 0 && (
+              <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.06 }}>
+                <Card className="mb-[4%] border-accent/30 bg-accent/5">
+                  <CardContent className="py-3 px-[4%] flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full gradient-accent flex items-center justify-center text-white font-bold text-sm">
+                        #{myPosition}
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold">Sua Posição</p>
+                        <p className="text-xs text-muted-foreground">{periodLabel[period]}</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-bold text-accent">
+                        {ranking[myPosition - 1]?.viagens || 0} viagens
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )}
+
+            {/* ── Ranking ── */}
+            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }}>
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-sm font-bold flex items-center gap-2">
+                  <Trophy className="w-4 h-4 text-yellow-400" />
+                  Ranking de Motoristas
+                </h2>
+                <Badge variant="outline" className="text-xs">{periodLabel[period]}</Badge>
+              </div>
+
+              {ranking.length === 0 ? (
+                <Card className="mb-[4%]">
+                  <CardContent className="py-12 text-center">
+                    <Trophy className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
+                    <p className="text-muted-foreground">Nenhuma viagem neste período</p>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="space-y-2 mb-[4%]">
+                  {ranking.map((driver, i) => (
+                    <Card key={driver.id} className={`border-border/50 transition-colors ${driver.isMe ? 'border-accent/40 bg-accent/5' : ''}`}>
+                      <CardContent className="py-3 px-[4%]">
+                        <div className="flex items-center gap-3">
+                          <div className="flex items-center justify-center w-8 shrink-0">
+                            {i < 3 ? RANK_ICONS[i] : (
+                              <span className="text-sm font-bold text-muted-foreground">#{i + 1}</span>
+                            )}
+                          </div>
+                          <div className="w-9 h-9 rounded-full bg-muted overflow-hidden shrink-0">
+                            {driver.avatar_url ? (
+                              <img src={driver.avatar_url} alt="" className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-xs font-bold text-muted-foreground">
+                                {driver.nome.charAt(0).toUpperCase()}
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold truncate">
+                              {driver.nome}
+                              {driver.isMe && <span className="text-accent ml-1">(você)</span>}
+                            </p>
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                              <span>{driver.viagens} viagem{driver.viagens > 1 ? 'ns' : ''}</span>
+                              {driver.avgRating && (
+                                <span className="flex items-center gap-0.5">
+                                  <Star className="w-2.5 h-2.5 fill-yellow-400 text-yellow-400" />
+                                  {driver.avgRating.toFixed(1)}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="text-right shrink-0">
+                            <p className="text-sm font-bold text-accent">{driver.viagens}</p>
+                            <p className="text-[10px] text-muted-foreground">corrida{driver.viagens !== 1 ? 's' : ''}</p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </motion.div>
+
             {/* ── KPI Cards ── */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-[3%] mb-[4%]">
               <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }}>
@@ -469,94 +557,6 @@ const MotoristaDashboardAll: React.FC = () => {
                 </Card>
               </motion.div>
             </div>
-
-            {/* My position */}
-            {myPosition > 0 && (
-              <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.32 }}>
-                <Card className="mb-[4%] border-accent/30 bg-accent/5">
-                  <CardContent className="py-3 px-[4%] flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full gradient-accent flex items-center justify-center text-white font-bold text-sm">
-                        #{myPosition}
-                      </div>
-                      <div>
-                        <p className="text-sm font-bold">Sua Posição</p>
-                        <p className="text-xs text-muted-foreground">{periodLabel[period]}</p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm font-bold text-accent">
-                        {ranking[myPosition - 1]?.viagens || 0} viagens
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            )}
-
-            {/* ── Ranking ── */}
-            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}>
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="text-sm font-bold flex items-center gap-2">
-                  <Trophy className="w-4 h-4 text-yellow-400" />
-                  Ranking de Motoristas
-                </h2>
-                <Badge variant="outline" className="text-xs">{periodLabel[period]}</Badge>
-              </div>
-
-              {ranking.length === 0 ? (
-                <Card>
-                  <CardContent className="py-12 text-center">
-                    <Trophy className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
-                    <p className="text-muted-foreground">Nenhuma viagem neste período</p>
-                  </CardContent>
-                </Card>
-              ) : (
-                <div className="space-y-2">
-                  {ranking.map((driver, i) => (
-                    <Card key={driver.id} className={`border-border/50 transition-colors ${driver.isMe ? 'border-accent/40 bg-accent/5' : ''}`}>
-                      <CardContent className="py-3 px-[4%]">
-                        <div className="flex items-center gap-3">
-                          <div className="flex items-center justify-center w-8 shrink-0">
-                            {i < 3 ? RANK_ICONS[i] : (
-                              <span className="text-sm font-bold text-muted-foreground">#{i + 1}</span>
-                            )}
-                          </div>
-                          <div className="w-9 h-9 rounded-full bg-muted overflow-hidden shrink-0">
-                            {driver.avatar_url ? (
-                              <img src={driver.avatar_url} alt="" className="w-full h-full object-cover" />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center text-xs font-bold text-muted-foreground">
-                                {driver.nome.charAt(0).toUpperCase()}
-                              </div>
-                            )}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-semibold truncate">
-                              {driver.nome}
-                              {driver.isMe && <span className="text-accent ml-1">(você)</span>}
-                            </p>
-                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                              <span>{driver.viagens} viagem{driver.viagens > 1 ? 'ns' : ''}</span>
-                              {driver.avgRating && (
-                                <span className="flex items-center gap-0.5">
-                                  <Star className="w-2.5 h-2.5 fill-yellow-400 text-yellow-400" />
-                                  {driver.avgRating.toFixed(1)}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                          <div className="text-right shrink-0">
-                            <p className="text-sm font-bold text-accent">{driver.viagens}</p>
-                            <p className="text-[10px] text-muted-foreground">corrida{driver.viagens !== 1 ? 's' : ''}</p>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              )}
-            </motion.div>
           </>
         )}
       </div>

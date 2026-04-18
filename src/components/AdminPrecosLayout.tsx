@@ -26,7 +26,7 @@ const AdminPrecosLayout: React.FC<{ children: React.ReactNode }> = ({ children }
               key={item.path}
               onClick={() => navigate(item.path)}
               className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
-                isActive ? 'bg-white/[0.08] text-white border border-white/[0.1]' : 'text-white/40 hover:text-white/70'
+                isActive ? 'bg-muted/60 text-foreground border border-border' : 'text-muted-foreground hover:text-foreground'
               }`}
             >
               {item.icon}

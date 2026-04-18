@@ -300,7 +300,7 @@ const AdminUsuarios: React.FC = () => {
 
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
-        <Card><CardContent className="py-2.5 px-3 sm:py-3 sm:px-4 flex items-center gap-2 sm:gap-3"><div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-white/[0.06] flex items-center justify-center shrink-0"><Users className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white/60" /></div><div><p className="text-base sm:text-lg font-bold leading-none">{stats.total}</p><p className="text-[9px] sm:text-[10px] text-muted-foreground mt-0.5">Total</p></div></CardContent></Card>
+        <Card><CardContent className="py-2.5 px-3 sm:py-3 sm:px-4 flex items-center gap-2 sm:gap-3"><div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-muted/50 flex items-center justify-center shrink-0"><Users className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground" /></div><div><p className="text-base sm:text-lg font-bold leading-none">{stats.total}</p><p className="text-[9px] sm:text-[10px] text-muted-foreground mt-0.5">Total</p></div></CardContent></Card>
         <Card><CardContent className="py-2.5 px-3 sm:py-3 sm:px-4 flex items-center gap-2 sm:gap-3"><div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-green-500/10 flex items-center justify-center shrink-0"><CheckCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-green-400" /></div><div><p className="text-base sm:text-lg font-bold leading-none text-green-400">{stats.ativos}</p><p className="text-[9px] sm:text-[10px] text-muted-foreground mt-0.5">Ativos</p></div></CardContent></Card>
         <Card><CardContent className="py-2.5 px-3 sm:py-3 sm:px-4 flex items-center gap-2 sm:gap-3"><div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-purple-500/10 flex items-center justify-center shrink-0"><Shield className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-purple-400" /></div><div><p className="text-base sm:text-lg font-bold leading-none text-purple-400">{stats.admins}</p><p className="text-[9px] sm:text-[10px] text-muted-foreground mt-0.5">Admins</p></div></CardContent></Card>
         <Card><CardContent className="py-2.5 px-3 sm:py-3 sm:px-4 flex items-center gap-2 sm:gap-3"><div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-red-500/10 flex items-center justify-center shrink-0"><XCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-red-400" /></div><div><p className="text-base sm:text-lg font-bold leading-none text-red-400">{stats.inativos}</p><p className="text-[9px] sm:text-[10px] text-muted-foreground mt-0.5">Inativos</p></div></CardContent></Card>
@@ -351,10 +351,10 @@ const AdminUsuarios: React.FC = () => {
                           <Shield className="w-3.5 h-3.5" />
                         </Button>
                         <Button size="icon" variant="ghost" className="h-7 w-7 sm:h-8 sm:w-8 text-muted-foreground hover:text-accent hidden sm:flex" title="Crachá" onClick={() => { setBadgeUser(u); setShowBadgeDialog(true); }}><IdCard className="w-3.5 h-3.5" /></Button>
-                        <Button size="icon" variant="ghost" className="h-7 w-7 sm:h-8 sm:w-8 text-muted-foreground hover:text-white" title="Editar" onClick={() => openEditUserDialog(u)}><Pencil className="w-3.5 h-3.5" /></Button>
+                        <Button size="icon" variant="ghost" className="h-7 w-7 sm:h-8 sm:w-8 text-muted-foreground hover:text-foreground" title="Editar" onClick={() => openEditUserDialog(u)}><Pencil className="w-3.5 h-3.5" /></Button>
                         <button className="h-7 sm:h-8 flex items-center gap-1.5 px-0.5 sm:px-1" title={u.status === 'ativo' ? 'Desativar' : 'Ativar'}
                           onClick={() => updateUserMutation.mutate({ userId: u.id, updates: { status: u.status === 'ativo' ? 'banido' : 'ativo', ativo: u.status !== 'ativo' } })}>
-                          <div className={`w-8 sm:w-9 h-[18px] sm:h-5 rounded-full transition-colors relative ${u.status === 'ativo' ? 'bg-green-500' : 'bg-white/20'}`}>
+                          <div className={`w-8 sm:w-9 h-[18px] sm:h-5 rounded-full transition-colors relative ${u.status === 'ativo' ? 'bg-green-500' : 'bg-border'}`}>
                             <div className={`absolute top-[2px] sm:top-0.5 left-0.5 w-3.5 sm:w-4 h-3.5 sm:h-4 rounded-full bg-white transition-transform ${u.status === 'ativo' ? 'translate-x-3.5 sm:translate-x-4' : ''}`} />
                           </div>
                         </button>
@@ -379,7 +379,7 @@ const AdminUsuarios: React.FC = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div><Label className="text-xs">Permissão Admin</Label>
                 <div className={`flex items-center gap-2 h-10 px-3 rounded-md border cursor-pointer transition-colors ${editUserForm.isAdmin ? 'bg-purple-500/10 border-purple-500/30' : 'bg-muted/30'}`} onClick={() => setEditUserForm(f => ({ ...f, isAdmin: !f.isAdmin }))}>
-                  <div className={`w-9 h-5 rounded-full transition-colors relative ${editUserForm.isAdmin ? 'bg-purple-500' : 'bg-white/20'}`}><div className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${editUserForm.isAdmin ? 'translate-x-4' : ''}`} /></div>
+                  <div className={`w-9 h-5 rounded-full transition-colors relative ${editUserForm.isAdmin ? 'bg-purple-500' : 'bg-border'}`}><div className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${editUserForm.isAdmin ? 'translate-x-4' : ''}`} /></div>
                   <span className="text-xs">{editUserForm.isAdmin ? 'Ativado' : 'Desativado'}</span>
                 </div>
               </div>
@@ -434,7 +434,7 @@ const AdminUsuarios: React.FC = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div><Label className="text-xs">Permissão Admin</Label>
                 <div className={`flex items-center gap-2 h-10 px-3 rounded-md border cursor-pointer transition-colors ${createUserForm.isAdmin ? 'bg-purple-500/10 border-purple-500/30' : 'bg-muted/30'}`} onClick={() => setCreateUserForm(f => ({ ...f, isAdmin: !f.isAdmin }))}>
-                  <div className={`w-9 h-5 rounded-full transition-colors relative ${createUserForm.isAdmin ? 'bg-purple-500' : 'bg-white/20'}`}><div className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${createUserForm.isAdmin ? 'translate-x-4' : ''}`} /></div>
+                  <div className={`w-9 h-5 rounded-full transition-colors relative ${createUserForm.isAdmin ? 'bg-purple-500' : 'bg-border'}`}><div className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${createUserForm.isAdmin ? 'translate-x-4' : ''}`} /></div>
                   <span className="text-xs">{createUserForm.isAdmin ? 'Ativado' : 'Desativado'}</span>
                 </div>
               </div>

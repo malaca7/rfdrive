@@ -83,7 +83,7 @@ const AuthPage: React.FC = () => {
   };
 
   return (
-    <div className="h-[100dvh] w-full bg-background flex flex-col overflow-hidden">
+    <div className="h-[100dvh] w-full bg-background flex flex-col overflow-hidden dark">
       {/* Top section — branding */}
       <div className="flex-1 flex flex-col items-center justify-end pb-6 px-6">
         <motion.div

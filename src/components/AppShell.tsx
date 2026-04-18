@@ -151,7 +151,7 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             ) : (
               <>
                 <button
-                  onClick={() => { setActiveScreen('motorista'); navigate('/motorista/dashboard'); }}
+                  onClick={() => { setActiveScreen('motorista'); navigate('/motorista/viagens'); }}
                   className="relative flex flex-col items-center justify-center gap-1 flex-1 tap-highlight"
                   title="Motorista"
                 >

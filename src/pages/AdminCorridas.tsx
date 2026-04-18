@@ -448,7 +448,7 @@ const AdminCorridas: React.FC = () => {
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
         {[
-          { label: 'Total', value: stats.total, color: 'text-white', bg: 'bg-white/[0.06]' },
+          { label: 'Total', value: stats.total, color: 'text-foreground', bg: 'bg-muted/50' },
           { label: 'Em Análise', value: stats.emAnalise, color: 'text-orange-400', bg: 'bg-orange-500/10' },
           { label: 'Aprovadas', value: stats.aprovadas, color: 'text-green-400', bg: 'bg-green-500/10' },
           { label: 'Recusadas', value: stats.recusadas, color: 'text-red-400', bg: 'bg-red-500/10' },

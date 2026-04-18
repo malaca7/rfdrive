@@ -171,7 +171,7 @@ const CalculadoraDigitalRF: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen bg-background text-foreground dark">
       {/* Header */}
       <div className="sticky top-0 z-40 bg-background/95 backdrop-blur-sm border-b border-white/[0.06]">
         <div className="max-w-lg mx-auto px-4 py-3 flex items-center gap-3">

@@ -537,7 +537,7 @@ const AdminDashboardPage: React.FC = () => {
                     return (
                       <motion.div key={driver.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.04 }}>
                         <div className={`flex items-center gap-3 p-3 rounded-xl transition-colors ${i === 0 ? 'bg-yellow-500/10 border border-yellow-500/20' : i === 1 ? 'bg-gray-400/10 border border-gray-400/20' : i === 2 ? 'bg-orange-500/10 border border-orange-500/20' : 'bg-muted/30'}`}>
-                          <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-extrabold shrink-0 ${i === 0 ? 'bg-yellow-500/30 text-yellow-400' : i === 1 ? 'bg-gray-400/30 text-gray-300' : i === 2 ? 'bg-orange-500/30 text-orange-400' : 'bg-white/10 text-white/50'}`}>
+                          <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-extrabold shrink-0 ${i === 0 ? 'bg-yellow-500/30 text-yellow-400' : i === 1 ? 'bg-gray-400/30 text-gray-300' : i === 2 ? 'bg-orange-500/30 text-orange-400' : 'bg-muted text-muted-foreground'}`}>
                             {i + 1}
                           </div>
                           <div className="w-7 h-7 rounded-full overflow-hidden bg-accent/20 flex items-center justify-center shrink-0">
