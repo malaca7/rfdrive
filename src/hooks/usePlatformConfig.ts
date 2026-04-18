@@ -25,6 +25,7 @@ export type PlatformConfig = {
   logo_url: string;
   badge_bg_url: string;
   slogan: string;
+  sigla_plataforma: string;
 };
 
 const DEFAULTS: Omit<PlatformConfig, 'id'> = {
@@ -49,7 +50,8 @@ const DEFAULTS: Omit<PlatformConfig, 'id'> = {
   tema_botao_estilo: 'gradient',
   logo_url: '',
   badge_bg_url: '',
-  slogan: 'Seu transporte inteligente',
+  slogan: 'Mobilidade com Excelência!',
+  sigla_plataforma: 'RF',
 };
 
 export function usePlatformConfig() {
@@ -91,5 +93,6 @@ export function usePlatformConfig() {
     logoUrl: (data as any)?.logo_url || DEFAULTS.logo_url,
     badgeBgUrl: (data as any)?.badge_bg_url || DEFAULTS.badge_bg_url,
     slogan: (data as any)?.slogan || DEFAULTS.slogan,
+    siglaPlataforma: (data as any)?.sigla_plataforma || DEFAULTS.sigla_plataforma,
   };
 }

@@ -26,7 +26,7 @@ import { openExternal, copyToClipboard } from '@/lib/native-helpers';
 const MotoristaViagens: React.FC = () => {
   const { user } = useAuth();
   const { toast } = useToast();
-  const { nomePlataforma } = usePlatformConfig();
+  const { nomePlataforma, siglaPlataforma, slogan } = usePlatformConfig();
   const queryClient = useQueryClient();
   const allLocations = useAllLocations();
   const destinoRef = useRef<HTMLInputElement>(null);
@@ -132,9 +132,9 @@ const MotoristaViagens: React.FC = () => {
     }
     if (observacao.trim()) lines.push(``, `📝 *Obs:* ${observacao.trim()}`);
     if (clienteNome.trim()) lines.push(``);
-    lines.push(``, `─────────────────────`, `_${nomePlataforma} • Mobilidade com Excelência!_`);
+    lines.push(``, `─────────────────────`, `_${siglaPlataforma} • ${slogan}_`);
     return lines.join('\n');
-  }, [precoEfetivo, origem, destino, clienteNome, observacao, totalValue, dynamicAdj, temBagagem, taxaBagagemValor, nomePlataforma]);
+  }, [precoEfetivo, origem, destino, clienteNome, observacao, totalValue, dynamicAdj, temBagagem, taxaBagagemValor, nomePlataforma, siglaPlataforma, slogan]);
 
   const handleCopy = async () => {
     if (!quoteMensagem) return;

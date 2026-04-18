@@ -85,7 +85,7 @@ export const TripCalculator: React.FC<{
   onSendQuote?: (data: { origem: string; destino: string; valor: number; mensagem: string }) => void;
 }> = ({ onSendQuote }) => {
   const { toast } = useToast();
-  const { nomePlataforma } = usePlatformConfig();
+  const { nomePlataforma, siglaPlataforma, slogan } = usePlatformConfig();
   const allLocations = useAllLocations();
 
   const [origem, setOrigem] = useState('');
@@ -187,9 +187,9 @@ export const TripCalculator: React.FC<{
       lines.push(`✅ *Valor: R$ ${totalValue.toFixed(2).replace('.', ',')}*${precoEfetivo.mesmo_bairro ? ' _(mesmo bairro)_' : precoEfetivo.estimado ? ' _(estimado)_' : ''}`);
     }
     if (observacao.trim()) lines.push(``, `📝 *Obs:* ${observacao.trim()}`);
-    lines.push(``, `─────────────────────`, `_${nomePlataforma} • Mobilidade com Excelência!_`);
+    lines.push(``, `─────────────────────`, `_${siglaPlataforma} • ${slogan}_`);
     return lines.join('\n');
-  }, [precoEfetivo, origem, destino, clienteNome, observacao, totalValue, dynamicAdj, temBagagem, taxaBagagemValor, nomePlataforma]);
+  }, [precoEfetivo, origem, destino, clienteNome, observacao, totalValue, dynamicAdj, temBagagem, taxaBagagemValor, nomePlataforma, siglaPlataforma, slogan]);
 
   const handleCopy = async () => {
     if (!quoteMensagem) return;
