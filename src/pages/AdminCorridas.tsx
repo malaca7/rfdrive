@@ -24,7 +24,7 @@ import { useToast } from '@/hooks/use-toast';
 import { buscarPrecoTabela } from '@/lib/tabela-preco';
 import { useAllLocations } from '@/hooks/usePrecoTabela';
 import { normalizeText } from '@/lib/tabela-preco';
-import { getConfigTarifas, type ConfigTarifas } from '@/lib/pricing-engine';
+import { getConfigTarifas, type ConfigTarifas, findActiveTimeRules, applyTimeAdjustment, type RegraHorario } from '@/lib/pricing-engine';
 
 type Solicitacao = {
   id: string;
@@ -181,6 +181,15 @@ const AdminCorridas: React.FC = () => {
 
   const taxaBagagemValor = configTarifas?.taxa_bagagem ?? 5;
 
+  const { data: regrasHorario } = useQuery<RegraHorario[]>({
+    queryKey: ['regras-horario-admin'],
+    queryFn: async () => {
+      const { data } = await supabase.from('regras_horario').select('*').eq('ativo', true);
+      return (data || []) as RegraHorario[];
+    },
+    staleTime: 30_000,
+  });
+
   const precoTabelaCreate = useMemo(() => {
     if (!createRideForm.origem_texto.trim() || !createRideForm.destino_texto.trim()) return null;
     return buscarPrecoTabela(createRideForm.origem_texto, createRideForm.destino_texto);
@@ -190,6 +199,29 @@ const AdminCorridas: React.FC = () => {
     if (!editRideForm.origem_texto.trim() || !editRideForm.destino_texto.trim()) return null;
     return buscarPrecoTabela(editRideForm.origem_texto, editRideForm.destino_texto);
   }, [editRideForm.origem_texto, editRideForm.destino_texto]);
+
+  const dynamicAdjCreate = useMemo(() => {
+    if (!regrasHorario?.length) return null;
+    const hora = usarDataAtual
+      ? `${String(new Date().getHours()).padStart(2, '0')}:${String(new Date().getMinutes()).padStart(2, '0')}`
+      : (createRideForm.hora || null);
+    if (!hora) return null;
+    const regra = findActiveTimeRules(regrasHorario, hora);
+    if (!regra) return null;
+    return {
+      regra,
+      label: regra.tipo_ajuste === 'fixo' ? `+R$${regra.valor_ajuste.toFixed(2)} ${regra.nome}` : `+${regra.valor_ajuste}% ${regra.nome}`,
+      aplicar: (precoBase: number) => Math.round(applyTimeAdjustment(precoBase, regra) * 100) / 100,
+    };
+  }, [regrasHorario, usarDataAtual, createRideForm.hora]);
+
+  const totalCreateValue = useMemo(() => {
+    if (!precoTabelaCreate) return null;
+    let total = precoTabelaCreate.valor;
+    if (dynamicAdjCreate) total = dynamicAdjCreate.aplicar(total);
+    if (createRideForm.temBagagem) total += taxaBagagemValor;
+    return Math.round(total * 100) / 100;
+  }, [precoTabelaCreate, dynamicAdjCreate, createRideForm.temBagagem, taxaBagagemValor]);
 
   // ── Fetch rides ──
   const { data: rides, isLoading: loadingRides } = useQuery({
@@ -279,8 +311,13 @@ const AdminCorridas: React.FC = () => {
         : (createRideForm.data
           ? new Date(`${createRideForm.data}T${createRideForm.hora || '12:00'}`).toISOString()
           : new Date().toISOString());
-      let valor = createRideForm.valor ? parseFloat(createRideForm.valor) : (precoTabelaCreate?.valor ?? null);
-      if (valor != null && createRideForm.temBagagem) valor += taxaBagagemValor;
+      let valor = createRideForm.valor ? parseFloat(createRideForm.valor) : null;
+      if (valor == null && precoTabelaCreate) {
+        valor = precoTabelaCreate.valor;
+        if (dynamicAdjCreate) valor = dynamicAdjCreate.aplicar(valor);
+        if (createRideForm.temBagagem) valor += taxaBagagemValor;
+        valor = Math.round(valor * 100) / 100;
+      }
       // Append client info to observacoes (columns don't exist in corridas)
       const obsParts: string[] = [];
       if (createRideForm.observacoes.trim()) obsParts.push(createRideForm.observacoes.trim());
@@ -737,74 +774,6 @@ const AdminCorridas: React.FC = () => {
               )}
             </div>
 
-            {/* Preço tabelado */}
-            {precoTabelaCreate && (
-              <div className={`${precoTabelaCreate.estimado ? 'bg-amber-500/10 border-amber-500/20' : 'bg-green-500/10 border-green-500/20'} border rounded-lg p-3 space-y-2`}>
-                {/* Preço estimado - base sem adicionais */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <TableProperties className={`w-4 h-4 ${precoTabelaCreate.estimado ? 'text-amber-400' : 'text-green-400'}`} />
-                    <div>
-                      <p className="text-[10px] text-muted-foreground">{precoTabelaCreate.estimado ? 'Preço estimado' : 'Preço tabelado'}</p>
-                      <p className={`text-base font-semibold ${precoTabelaCreate.estimado ? 'text-amber-400' : 'text-green-400'}`}>R$ {precoTabelaCreate.valor.toFixed(2)}</p>
-                    </div>
-                  </div>
-                  <Button type="button" variant="ghost" size="sm" className="text-xs text-green-400 hover:text-green-300 h-6"
-                    onClick={() => setCreateRideForm(f => ({ ...f, valor: precoTabelaCreate.valor.toFixed(2) }))}>Aplicar</Button>
-                </div>
-                {/* Adicionais */}
-                {createRideForm.temBagagem && (
-                  <div className="flex items-center justify-between bg-orange-500/10 border border-orange-500/20 rounded-lg px-3 py-1.5">
-                    <span className="text-xs text-muted-foreground flex items-center gap-1.5"><span className="text-orange-400">📦</span> Feira/Bagagem</span>
-                    <span className="text-sm font-bold text-orange-400">+R$ {taxaBagagemValor.toFixed(2)}</span>
-                  </div>
-                )}
-                {/* Valor total em destaque */}
-                {createRideForm.temBagagem && (
-                  <div className="border-t border-border pt-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-semibold">Valor Total</span>
-                      <span className={`text-lg font-extrabold ${precoTabelaCreate.estimado ? 'text-amber-400' : 'text-green-400'}`}>
-                        R$ {(precoTabelaCreate.valor + taxaBagagemValor).toFixed(2)}
-                      </span>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Valor manual */}
-            <div>
-              <Label className="text-xs">Valor (R$)</Label>
-              <Input type="number" step="0.01" min="0" value={createRideForm.valor}
-                onChange={e => setCreateRideForm(f => ({ ...f, valor: e.target.value }))}
-                placeholder={precoTabelaCreate ? `Tabelado: R$ ${precoTabelaCreate.valor.toFixed(2)}` : 'Ex: 25.00'} />
-              {createRideForm.temBagagem && (
-                <p className="text-[11px] text-amber-400 mt-1">+ R$ {taxaBagagemValor.toFixed(2)} de bagagem/feira será adicionado ao valor final</p>
-              )}
-            </div>
-
-            {/* Bagagem */}
-            <div className="flex items-center gap-2">
-              <button type="button" onClick={() => setCreateRideForm(f => ({ ...f, temBagagem: !f.temBagagem }))}
-                className={`w-9 h-5 rounded-full transition-colors relative ${createRideForm.temBagagem ? 'bg-accent' : 'bg-muted'}`}>
-                <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform ${createRideForm.temBagagem ? 'translate-x-4' : 'translate-x-0.5'}`} />
-              </button>
-              <Label className="text-xs cursor-pointer" onClick={() => setCreateRideForm(f => ({ ...f, temBagagem: !f.temBagagem }))}>📦 Com bagagem/feira (+R$ {taxaBagagemValor.toFixed(2)})</Label>
-            </div>
-
-            {/* Cliente info */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <Label className="text-xs flex items-center gap-1.5"><User className="w-3 h-3" /> Nome do Cliente</Label>
-                <Input value={createRideForm.clienteNome} onChange={e => setCreateRideForm(f => ({ ...f, clienteNome: e.target.value }))} placeholder="Nome (opcional)" />
-              </div>
-              <div>
-                <Label className="text-xs flex items-center gap-1.5"><Phone className="w-3 h-3" /> Telefone</Label>
-                <Input value={createRideForm.clienteTelefone} onChange={e => setCreateRideForm(f => ({ ...f, clienteTelefone: e.target.value }))} placeholder="(00) 00000-0000" />
-              </div>
-            </div>
-
             {/* Data e Hora toggle */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
@@ -837,6 +806,88 @@ const AdminCorridas: React.FC = () => {
                   A viagem será registrada com a data e hora atuais.
                 </div>
               )}
+              {dynamicAdjCreate && (
+                <div className="bg-purple-500/10 border border-purple-500/20 rounded-lg p-2.5 text-xs flex items-center justify-between">
+                  <span className="text-purple-400 flex items-center gap-1.5">
+                    <Clock className="w-3 h-3" />
+                    {dynamicAdjCreate.regra.nome}
+                  </span>
+                  <span className="font-bold text-purple-400">{dynamicAdjCreate.label}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Bagagem */}
+            <div className="flex items-center gap-2">
+              <button type="button" onClick={() => setCreateRideForm(f => ({ ...f, temBagagem: !f.temBagagem }))}
+                className={`w-9 h-5 rounded-full transition-colors relative ${createRideForm.temBagagem ? 'bg-accent' : 'bg-muted'}`}>
+                <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform ${createRideForm.temBagagem ? 'translate-x-4' : 'translate-x-0.5'}`} />
+              </button>
+              <Label className="text-xs cursor-pointer" onClick={() => setCreateRideForm(f => ({ ...f, temBagagem: !f.temBagagem }))}>📦 Com bagagem/feira (+R$ {taxaBagagemValor.toFixed(2)})</Label>
+            </div>
+
+            {/* Preço tabelado */}
+            {precoTabelaCreate && (
+              <div className={`${precoTabelaCreate.estimado ? 'bg-amber-500/10 border-amber-500/20' : 'bg-green-500/10 border-green-500/20'} border rounded-lg p-3 space-y-2`}>
+                {/* Preço base */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <TableProperties className={`w-4 h-4 ${precoTabelaCreate.estimado ? 'text-amber-400' : 'text-green-400'}`} />
+                    <div>
+                      <p className="text-[10px] text-muted-foreground">{precoTabelaCreate.estimado ? 'Preço estimado' : 'Preço tabelado'}</p>
+                      <p className={`text-base font-semibold ${precoTabelaCreate.estimado ? 'text-amber-400' : 'text-green-400'}`}>R$ {precoTabelaCreate.valor.toFixed(2)}</p>
+                    </div>
+                  </div>
+                  <Button type="button" variant="ghost" size="sm" className="text-xs text-green-400 hover:text-green-300 h-6"
+                    onClick={() => setCreateRideForm(f => ({ ...f, valor: (totalCreateValue ?? precoTabelaCreate.valor).toFixed(2) }))}>Aplicar Total</Button>
+                </div>
+                {/* Adicionais */}
+                {dynamicAdjCreate && (
+                  <div className="flex items-center justify-between bg-purple-500/10 border border-purple-500/20 rounded-lg px-3 py-1.5">
+                    <span className="text-xs text-purple-400 flex items-center gap-1.5"><Clock className="w-3 h-3" /> {dynamicAdjCreate.regra.nome}</span>
+                    <span className="text-sm font-bold text-purple-400">
+                      +R$ {(dynamicAdjCreate.aplicar(precoTabelaCreate.valor) - precoTabelaCreate.valor).toFixed(2)}
+                    </span>
+                  </div>
+                )}
+                {createRideForm.temBagagem && (
+                  <div className="flex items-center justify-between bg-orange-500/10 border border-orange-500/20 rounded-lg px-3 py-1.5">
+                    <span className="text-xs text-muted-foreground flex items-center gap-1.5"><span className="text-orange-400">📦</span> Feira/Bagagem</span>
+                    <span className="text-sm font-bold text-orange-400">+R$ {taxaBagagemValor.toFixed(2)}</span>
+                  </div>
+                )}
+                {/* Valor total em destaque */}
+                {(dynamicAdjCreate || createRideForm.temBagagem) && totalCreateValue != null && (
+                  <div className="border-t border-border pt-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-semibold">Valor Total</span>
+                      <span className={`text-lg font-extrabold ${precoTabelaCreate.estimado ? 'text-amber-400' : 'text-green-400'}`}>
+                        R$ {totalCreateValue.toFixed(2)}
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Valor manual */}
+            <div>
+              <Label className="text-xs">Valor (R$)</Label>
+              <Input type="number" step="0.01" min="0" value={createRideForm.valor}
+                onChange={e => setCreateRideForm(f => ({ ...f, valor: e.target.value }))}
+                placeholder={totalCreateValue ? `Total: R$ ${totalCreateValue.toFixed(2)}` : (precoTabelaCreate ? `Base: R$ ${precoTabelaCreate.valor.toFixed(2)}` : 'Ex: 25.00')} />
+            </div>
+
+            {/* Cliente info */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs flex items-center gap-1.5"><User className="w-3 h-3" /> Nome do Cliente</Label>
+                <Input value={createRideForm.clienteNome} onChange={e => setCreateRideForm(f => ({ ...f, clienteNome: e.target.value }))} placeholder="Nome (opcional)" />
+              </div>
+              <div>
+                <Label className="text-xs flex items-center gap-1.5"><Phone className="w-3 h-3" /> Telefone</Label>
+                <Input value={createRideForm.clienteTelefone} onChange={e => setCreateRideForm(f => ({ ...f, clienteTelefone: e.target.value }))} placeholder="(00) 00000-0000" />
+              </div>
             </div>
 
             {/* Observações */}
