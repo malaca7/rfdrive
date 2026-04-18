@@ -2,10 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { motion } from 'framer-motion';
-import { Navigation, Loader2, Phone, Eye, EyeOff } from 'lucide-react';
+import { Navigation, Loader2, Phone, Eye, EyeOff, Lock } from 'lucide-react';
 import { usePlatformConfig } from '@/hooks/usePlatformConfig';
 import { useToast } from '@/hooks/use-toast';
 
@@ -85,124 +83,134 @@ const AuthPage: React.FC = () => {
   };
 
   return (
-    <div className="h-[100dvh] w-full bg-background flex flex-col items-center justify-center px-[6%]">
+    <div className="h-[100dvh] w-full bg-background flex flex-col overflow-hidden">
+      {/* Top section — branding */}
+      <div className="flex-1 flex flex-col items-center justify-end pb-6 px-6">
+        <motion.div
+          initial={{ scale: 0, rotate: -20 }}
+          animate={{ scale: 1, rotate: 0 }}
+          transition={{ type: 'spring', stiffness: 180, delay: 0.05 }}
+          className="w-20 h-20 rounded-3xl gradient-accent flex items-center justify-center shadow-xl shadow-accent/30 glow-accent overflow-hidden mb-4"
+        >
+          {logoUrl ? <img src={logoUrl} alt="" className="w-full h-full object-cover" /> : <Navigation className="w-9 h-9 text-white" />}
+        </motion.div>
+        <motion.h1
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15 }}
+          className="text-3xl font-extrabold text-white tracking-tight"
+        >
+          {nomePlataforma}
+        </motion.h1>
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.25 }}
+          className="text-white/35 text-sm mt-1"
+        >
+          {slogan}
+        </motion.p>
+      </div>
+
+      {/* Bottom section — form panel */}
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="w-full max-w-[min(100%,420px)]"
+        initial={{ y: 60, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ type: 'spring', stiffness: 120, delay: 0.2 }}
+        className="bg-card/80 backdrop-blur-2xl border-t border-white/[0.06] rounded-t-[2rem] px-6 pt-7 pb-safe-bottom"
+        style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 24px)' }}
       >
-        <div className="text-center mb-[8%]">
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ type: 'spring', stiffness: 200, delay: 0.1 }}
-            className="inline-flex items-center justify-center w-[18%] max-w-[72px] aspect-square rounded-2xl gradient-accent mb-[3%] shadow-lg shadow-[hsl(45_100%_50%/0.3)] glow-accent overflow-hidden"
-          >
-            {logoUrl ? <img src={logoUrl} alt="" className="w-full h-full object-cover" /> : <Navigation className="w-[45%] h-[45%] text-white" />}
-          </motion.div>
-          <h1 className="text-[clamp(1.75rem,6vw,2.5rem)] font-extrabold text-white tracking-tight">{nomePlataforma}</h1>
-          <p className="text-white/40 text-[clamp(0.8rem,2.5vw,0.95rem)] mt-1">{slogan}</p>
-        </div>
+        <form onSubmit={handleSubmit} className="space-y-4 max-w-md mx-auto">
+          {!isLogin && (
+            <div className="relative">
+              <Input
+                id="nome"
+                value={nome}
+                onChange={(e) => setNome(e.target.value)}
+                placeholder="Seu nome completo"
+                required={!isLogin}
+                className="h-13 rounded-2xl text-sm bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/25 focus:border-accent focus:ring-accent/20 pl-4"
+              />
+            </div>
+          )}
 
-        <Card className="bg-card/90 backdrop-blur-2xl border border-white/[0.06] rounded-3xl overflow-hidden">
-          <CardHeader className="text-center pb-2">
-            <CardTitle className="text-[clamp(1.1rem,3.5vw,1.3rem)] text-white">{isLogin ? 'Entrar' : 'Criar Conta'}</CardTitle>
-            <CardDescription className="text-[clamp(0.7rem,2.2vw,0.8rem)] text-white/40">
-              {isLogin ? 'Acesse sua conta para solicitar corridas' : 'Cadastre-se para começar'}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="px-[6%] pb-[6%]">
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {!isLogin && (
-                <div className="space-y-1.5">
-                  <Label htmlFor="nome" className="text-xs font-semibold text-white/60">Nome</Label>
-                  <Input
-                    id="nome"
-                    value={nome}
-                    onChange={(e) => setNome(e.target.value)}
-                    placeholder="Seu nome completo"
-                    required={!isLogin}
-                    className="h-12 rounded-2xl text-sm bg-white/[0.05] border-white/[0.08] text-white placeholder:text-white/25 focus:border-[hsl(45_100%_50%)] focus:ring-[hsl(45_100%_50%/0.2)]"
-                  />
-                </div>
+          {/* Phone */}
+          <div className="relative">
+            <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-white/25" />
+            <Input
+              id="telefone"
+              type="tel"
+              value={telefone}
+              onChange={handlePhoneChange}
+              placeholder="(00) 00000-0000"
+              className="h-13 rounded-2xl text-sm bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/25 focus:border-accent focus:ring-accent/20 pl-11"
+              required
+              maxLength={16}
+            />
+          </div>
+
+          {/* Password */}
+          <div className="relative">
+            <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-white/25" />
+            <Input
+              id="password"
+              type={showPassword ? 'text' : 'password'}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Sua senha"
+              required
+              minLength={6}
+              className="h-13 rounded-2xl text-sm bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/25 focus:border-accent focus:ring-accent/20 pl-11 pr-11"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(v => !v)}
+              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-white/25 hover:text-white/50 transition-colors"
+              tabIndex={-1}
+            >
+              {showPassword ? <EyeOff className="w-4.5 h-4.5" /> : <Eye className="w-4.5 h-4.5" />}
+            </button>
+          </div>
+
+          {/* Remember me */}
+          <label className="flex items-center gap-2.5 cursor-pointer select-none group">
+            <button
+              type="button"
+              onClick={() => setRememberMe(v => !v)}
+              className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all duration-200 shrink-0 ${
+                rememberMe
+                  ? 'bg-accent border-accent shadow-[0_0_8px_hsl(var(--accent)/0.4)]'
+                  : 'border-white/20 bg-white/[0.05] group-hover:border-white/30'
+              }`}
+            >
+              {rememberMe && (
+                <svg className="w-3 h-3 text-accent-foreground" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M2.5 6L5 8.5L9.5 3.5" />
+                </svg>
               )}
-              <div className="space-y-1.5">
-                <Label htmlFor="telefone" className="text-xs font-semibold text-white/60">Telefone</Label>
-                <div className="relative">
-                  <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
-                  <Input
-                    id="telefone"
-                    type="tel"
-                    value={telefone}
-                    onChange={handlePhoneChange}
-                    placeholder="(11) 99999-9999"
-                    className="pl-10 h-12 rounded-2xl text-sm bg-white/[0.05] border-white/[0.08] text-white placeholder:text-white/25 focus:border-[hsl(45_100%_50%)] focus:ring-[hsl(45_100%_50%/0.2)]"
-                    required
-                    maxLength={16}
-                  />
-                </div>
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="password" className="text-xs font-semibold text-white/60">Senha</Label>
-                <div className="relative">
-                  <Input
-                    id="password"
-                    type={showPassword ? 'text' : 'password'}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    required
-                    minLength={6}
-                    className="pr-10 h-12 rounded-2xl text-sm bg-white/[0.05] border-white/[0.08] text-white placeholder:text-white/25 focus:border-[hsl(45_100%_50%)] focus:ring-[hsl(45_100%_50%/0.2)]"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(v => !v)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors"
-                    tabIndex={-1}
-                  >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-              </div>
-              <label className="flex items-center gap-2.5 cursor-pointer select-none group">
-                <button
-                  type="button"
-                  onClick={() => setRememberMe(v => !v)}
-                  className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all duration-200 shrink-0 ${
-                    rememberMe
-                      ? 'bg-accent border-accent shadow-[0_0_8px_hsl(var(--accent)/0.4)]'
-                      : 'border-white/20 bg-white/[0.05] group-hover:border-white/30'
-                  }`}
-                >
-                  {rememberMe && (
-                    <svg className="w-3 h-3 text-accent-foreground" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M2.5 6L5 8.5L9.5 3.5" />
-                    </svg>
-                  )}
-                </button>
-                <span className={`text-xs transition-colors ${rememberMe ? 'text-white/70' : 'text-white/40 group-hover:text-white/50'}`}>
-                  Lembrar meu login
-                </span>
-              </label>
-              <Button
-                type="submit"
-                className="w-full h-12 rounded-2xl btn-themed font-bold text-sm"
-                disabled={loading}
-              >
-                {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                {isLogin ? 'Entrar' : 'Criar Conta'}
-              </Button>
-            </form>
+            </button>
+            <span className={`text-xs transition-colors ${rememberMe ? 'text-white/70' : 'text-white/40 group-hover:text-white/50'}`}>
+              Lembrar meu login
+            </span>
+          </label>
 
-          </CardContent>
-        </Card>
-        <div className="mt-5 flex flex-col items-center gap-2">
+          {/* Submit */}
+          <Button
+            type="submit"
+            className="w-full h-13 rounded-2xl btn-themed font-bold text-base shadow-lg shadow-accent/20"
+            disabled={loading}
+          >
+            {loading ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : null}
+            {isLogin ? 'Entrar' : 'Criar Conta'}
+          </Button>
+        </form>
+
+        {/* Calculadora link */}
+        <div className="mt-5 mb-2 flex justify-center">
           <button
             type="button"
             onClick={() => { window.location.hash = '/calculadora'; }}
-            className="text-[clamp(0.75rem,2.2vw,0.85rem)] text-white/40 hover:text-[hsl(45_100%_50%)] transition-colors flex items-center gap-1.5"
+            className="text-xs text-white/30 hover:text-accent transition-colors flex items-center gap-1.5"
           >
             📱 Calculadora Digital
           </button>
