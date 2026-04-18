@@ -4,6 +4,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { Navigation, LogOut, User, Shield, Truck, BarChart3, Calculator, IdCard, UserCog, ClipboardList, Trophy } from 'lucide-react';
 import { usePlatformConfig } from '@/hooks/usePlatformConfig';
 import { motion } from 'framer-motion';
+import { getAnimalAvatarUrl } from '@/lib/animal-avatars';
 
 const SCREEN_CONFIG: Record<string, { label: string; icon: React.ReactNode; activeClass: string; dotColor: string }> = {
   motorista: {
@@ -31,7 +32,7 @@ const MOTORISTA_NAV = [
 
 const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { profile, signOut, availableScreens, activeScreen, setActiveScreen, roles, user } = useAuth();
-  const { nomePlataforma } = usePlatformConfig();
+  const { nomePlataforma, logoUrl } = usePlatformConfig();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -55,8 +56,8 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       <header className="shrink-0 z-50 bg-card/95 backdrop-blur-2xl border-b border-white/[0.06] safe-top">
         <div className="w-full px-[4%] h-14 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-2xl gradient-accent flex items-center justify-center shadow-lg shadow-accent/30 glow-accent">
-              <Navigation className="w-[18px] h-[18px] text-white" />
+            <div className="w-9 h-9 rounded-2xl gradient-accent flex items-center justify-center shadow-lg shadow-accent/30 glow-accent overflow-hidden">
+              {logoUrl ? <img src={logoUrl} alt="" className="w-full h-full object-cover" /> : <Navigation className="w-[18px] h-[18px] text-white" />}
             </div>
             <div>
               <span className="font-extrabold text-lg tracking-tight text-white">{nomePlataforma}</span>
@@ -72,9 +73,7 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             {profile?.avatar_url ? (
               <img src={profile.avatar_url} alt="" className="w-9 h-9 rounded-2xl object-cover border border-white/10" />
             ) : (
-              <div className="w-9 h-9 rounded-2xl bg-accent/20 flex items-center justify-center text-accent font-bold text-sm">
-                {(profile?.nome || '?')[0].toUpperCase()}
-              </div>
+              <img src={getAnimalAvatarUrl(profile?.id || profile?.nome || '?')} alt="" className="w-9 h-9 rounded-2xl object-cover border border-white/10" />
             )}
             <button
               onClick={() => { signOut(); navigate('/'); }}

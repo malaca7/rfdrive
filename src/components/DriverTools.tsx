@@ -23,6 +23,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePrecoTabela, useAllLocations } from '@/hooks/usePrecoTabela';
 import { useDynamicAdjustment } from '@/hooks/useDynamicAdjustment';
+import { getAnimalAvatarUrl } from '@/lib/animal-avatars';
 import { normalizeText } from '@/lib/tabela-preco';
 import { getConfigTarifas, type ConfigTarifas } from '@/lib/pricing-engine';
 import { useToast } from '@/hooks/use-toast';
@@ -763,6 +764,17 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
           let dw = size, dh = size;
           if (ar > 1) dw = size * ar; else dh = size / ar;
           ctx.drawImage(avImg, avCX - dw / 2, avCY - dh / 2, dw, dh);
+          avatarLoaded = true;
+        }
+      } catch { /* fallback */ }
+    }
+    if (!avatarLoaded) {
+      try {
+        const animalUrl = getAnimalAvatarUrl(profile.id || profile.nome || 'driver');
+        const animalImg = await loadImageAny(animalUrl);
+        if (animalImg) {
+          const size = diamHalf * 2;
+          ctx.drawImage(animalImg, avCX - size / 2, avCY - size / 2, size, size);
           avatarLoaded = true;
         }
       } catch { /* fallback */ }

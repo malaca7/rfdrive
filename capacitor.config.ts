@@ -6,6 +6,8 @@ const config: CapacitorConfig = {
   webDir: 'dist',
   server: {
     androidScheme: 'https',
+    url: 'https://malaca7.github.io/rfdrive/',
+    cleartext: false,
   },
 };
 

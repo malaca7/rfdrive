@@ -118,23 +118,23 @@ const AdminTracking: React.FC = () => {
   return (
     <div className="space-y-4">
       {/* Overview Cards */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-3 gap-2">
         <Card className="border-green-500/20">
-          <CardContent className="py-4 text-center">
-            <p className="text-2xl font-extrabold text-green-400">{ativos.length}</p>
-            <p className="text-[11px] text-muted-foreground font-medium">Online</p>
+          <CardContent className="py-3 sm:py-4 text-center">
+            <p className="text-xl sm:text-2xl font-extrabold text-green-400">{ativos.length}</p>
+            <p className="text-[10px] sm:text-[11px] text-muted-foreground font-medium">Online</p>
           </CardContent>
         </Card>
         <Card className="border-blue-500/20">
-          <CardContent className="py-4 text-center">
-            <p className="text-2xl font-extrabold text-blue-400">{emCorrida.length}</p>
-            <p className="text-[11px] text-muted-foreground font-medium">Em corrida</p>
+          <CardContent className="py-3 sm:py-4 text-center">
+            <p className="text-xl sm:text-2xl font-extrabold text-blue-400">{emCorrida.length}</p>
+            <p className="text-[10px] sm:text-[11px] text-muted-foreground font-medium">Em corrida</p>
           </CardContent>
         </Card>
         <Card className="border-border/50">
-          <CardContent className="py-4 text-center">
-            <p className="text-2xl font-extrabold text-muted-foreground">{inativos.length}</p>
-            <p className="text-[11px] text-muted-foreground font-medium">Offline</p>
+          <CardContent className="py-3 sm:py-4 text-center">
+            <p className="text-xl sm:text-2xl font-extrabold text-muted-foreground">{inativos.length}</p>
+            <p className="text-[10px] sm:text-[11px] text-muted-foreground font-medium">Offline</p>
           </CardContent>
         </Card>
       </div>

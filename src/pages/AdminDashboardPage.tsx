@@ -13,6 +13,7 @@ import {
   TrendingUp, TrendingDown, Calendar, Activity, Shield, Trophy,
   BarChart3, Loader2, Target, Zap, Clock, MapPin, ArrowUpRight, ArrowDownRight,
 } from 'lucide-react';
+import { getAnimalAvatarUrl } from '@/lib/animal-avatars';
 
 type Ride = {
   id: string; status: string; valor: number | null; valor_estimado: number | null;
@@ -540,7 +541,7 @@ const AdminDashboardPage: React.FC = () => {
                             {i + 1}
                           </div>
                           <div className="w-7 h-7 rounded-full overflow-hidden bg-accent/20 flex items-center justify-center shrink-0">
-                            {driver.avatar_url ? <img src={driver.avatar_url} alt="" className="w-full h-full object-cover" /> : <Car className="w-3.5 h-3.5 text-accent" />}
+                            {driver.avatar_url ? <img src={driver.avatar_url} alt="" className="w-full h-full object-cover" /> : <img src={getAnimalAvatarUrl(driver.id)} alt="" className="w-full h-full object-cover" />}
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-1.5">

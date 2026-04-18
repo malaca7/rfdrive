@@ -1,17 +1,18 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
-  BarChart3, Car, Users, DollarSign, Settings, Star, Truck,
+  BarChart3, Car, Users, DollarSign, Settings, Star, Truck, Route,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePlatformConfig } from '@/hooks/usePlatformConfig';
 import { Navigation, LogOut } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { getAnimalAvatarUrl } from '@/lib/animal-avatars';
 
 const ADMIN_NAV = [
-  { path: '/admin/dashboard', label: 'Home', icon: BarChart3, color: 'from-blue-500 to-cyan-400' },
-  { path: '/admin/corridas', label: 'Corridas', icon: Car, color: 'from-violet-500 to-purple-400' },
-  { path: '/admin/usuarios', label: 'Usuários', icon: Users, color: 'from-emerald-500 to-green-400' },
+  { path: '/admin/dashboard', label: 'Dashboard', icon: BarChart3, color: 'from-blue-500 to-cyan-400' },
+  { path: '/admin/corridas', label: 'Viagens', icon: Route, color: 'from-violet-500 to-purple-400' },
+  { path: '/admin/usuarios', label: 'Motoristas', icon: Users, color: 'from-emerald-500 to-green-400' },
   { path: '/admin/precos', label: 'Preços', icon: DollarSign, color: 'from-amber-500 to-yellow-400' },
   { path: '/admin/avaliacoes-links', label: 'Avaliações', icon: Star, color: 'from-pink-500 to-rose-400' },
   { path: '/admin/config', label: 'Config', icon: Settings, color: 'from-slate-400 to-zinc-300' },
@@ -21,7 +22,7 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { profile, signOut, setActiveScreen } = useAuth();
-  const { nomePlataforma } = usePlatformConfig();
+  const { nomePlataforma, logoUrl } = usePlatformConfig();
 
   return (
     <div className="h-[100dvh] w-full flex flex-col bg-background overflow-hidden">
@@ -29,8 +30,8 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       <header className="shrink-0 z-50 bg-card/95 backdrop-blur-2xl border-b border-white/[0.06] safe-top">
         <div className="w-full px-[4%] h-14 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-2xl gradient-accent flex items-center justify-center shadow-lg shadow-accent/30 glow-accent">
-              <Navigation className="w-[18px] h-[18px] text-white" />
+            <div className="w-9 h-9 rounded-2xl gradient-accent flex items-center justify-center shadow-lg shadow-accent/30 glow-accent overflow-hidden">
+              {logoUrl ? <img src={logoUrl} alt="" className="w-full h-full object-cover" /> : <Navigation className="w-[18px] h-[18px] text-white" />}
             </div>
             <span className="font-extrabold text-lg tracking-tight text-white">{nomePlataforma}</span>
           </div>
@@ -42,9 +43,7 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             {profile?.avatar_url ? (
               <img src={profile.avatar_url} alt="" className="w-9 h-9 rounded-2xl object-cover border border-white/10" />
             ) : (
-              <div className="w-9 h-9 rounded-2xl bg-accent/20 flex items-center justify-center text-accent font-bold text-sm">
-                {(profile?.nome || '?')[0].toUpperCase()}
-              </div>
+              <img src={getAnimalAvatarUrl(profile?.id || profile?.nome || '?')} alt="" className="w-9 h-9 rounded-2xl object-cover border border-white/10" />
             )}
             <button
               onClick={() => { signOut(); navigate('/'); }}

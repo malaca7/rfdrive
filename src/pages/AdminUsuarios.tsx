@@ -15,9 +15,11 @@ import AdminLayout from '@/components/AdminLayout';
 import { motion } from 'framer-motion';
 import {
   CheckCircle, XCircle, Car, Shield, Loader2, Phone, Search, Filter,
-  Users, UserPlus, Pencil, Trash2, Save, Camera,
+  Users, UserPlus, Pencil, Trash2, Save, Camera, IdCard, Download,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { DriverBadge } from '@/components/DriverTools';
+import { getAnimalAvatarUrl } from '@/lib/animal-avatars';
 
 type UserRecord = {
   id: string;
@@ -113,6 +115,8 @@ const AdminUsuarios: React.FC = () => {
   const [uploadingVeiculoFoto, setUploadingVeiculoFoto] = useState(false);
   const veiculoFotoRef = useRef<HTMLInputElement>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; label: string } | null>(null);
+  const [showBadgeDialog, setShowBadgeDialog] = useState(false);
+  const [badgeUser, setBadgeUser] = useState<UserRecord | null>(null);
   const [showCreateUserDialog, setShowCreateUserDialog] = useState(false);
   const [createUserForm, setCreateUserForm] = useState({
     nome: '', telefone: '', senha: '', isAdmin: false,
@@ -284,22 +288,22 @@ const AdminUsuarios: React.FC = () => {
 
   return (
     <AdminLayout>
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h1 className="text-xl font-extrabold flex items-center gap-2"><Users className="w-5 h-5 text-accent" /> Usuários</h1>
-          <p className="text-xs text-muted-foreground mt-1">Gerenciar motoristas e administradores</p>
+      <div className="flex items-center justify-between mb-4 gap-2">
+        <div className="min-w-0">
+          <h1 className="text-lg sm:text-xl font-extrabold flex items-center gap-2"><Users className="w-5 h-5 text-accent shrink-0" /> Motoristas</h1>
+          <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5">Gerenciar motoristas e administradores</p>
         </div>
-        <Button className="gap-1.5" onClick={() => { setCreateUserForm({ nome: '', telefone: '', senha: '', isAdmin: false, veiculo_marca: '', veiculo_modelo: '', veiculo_cor: '', veiculo_placa: '' }); setShowCreateUserDialog(true); }}>
-          <UserPlus className="w-4 h-4" /> Novo Motorista
+        <Button className="gap-1.5 shrink-0 text-xs sm:text-sm" onClick={() => { setCreateUserForm({ nome: '', telefone: '', senha: '', isAdmin: false, veiculo_marca: '', veiculo_modelo: '', veiculo_cor: '', veiculo_placa: '' }); setShowCreateUserDialog(true); }}>
+          <UserPlus className="w-4 h-4" /> <span className="hidden sm:inline">Novo</span> Motorista
         </Button>
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
-        <Card><CardContent className="py-3 px-4 flex items-center gap-3"><div className="w-9 h-9 rounded-xl bg-white/[0.06] flex items-center justify-center"><Users className="w-4 h-4 text-white/60" /></div><div><p className="text-lg font-bold leading-none">{stats.total}</p><p className="text-[10px] text-muted-foreground mt-0.5">Total</p></div></CardContent></Card>
-        <Card><CardContent className="py-3 px-4 flex items-center gap-3"><div className="w-9 h-9 rounded-xl bg-green-500/10 flex items-center justify-center"><CheckCircle className="w-4 h-4 text-green-400" /></div><div><p className="text-lg font-bold leading-none text-green-400">{stats.ativos}</p><p className="text-[10px] text-muted-foreground mt-0.5">Ativos</p></div></CardContent></Card>
-        <Card><CardContent className="py-3 px-4 flex items-center gap-3"><div className="w-9 h-9 rounded-xl bg-purple-500/10 flex items-center justify-center"><Shield className="w-4 h-4 text-purple-400" /></div><div><p className="text-lg font-bold leading-none text-purple-400">{stats.admins}</p><p className="text-[10px] text-muted-foreground mt-0.5">Admins</p></div></CardContent></Card>
-        <Card><CardContent className="py-3 px-4 flex items-center gap-3"><div className="w-9 h-9 rounded-xl bg-red-500/10 flex items-center justify-center"><XCircle className="w-4 h-4 text-red-400" /></div><div><p className="text-lg font-bold leading-none text-red-400">{stats.inativos}</p><p className="text-[10px] text-muted-foreground mt-0.5">Inativos</p></div></CardContent></Card>
+        <Card><CardContent className="py-2.5 px-3 sm:py-3 sm:px-4 flex items-center gap-2 sm:gap-3"><div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-white/[0.06] flex items-center justify-center shrink-0"><Users className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white/60" /></div><div><p className="text-base sm:text-lg font-bold leading-none">{stats.total}</p><p className="text-[9px] sm:text-[10px] text-muted-foreground mt-0.5">Total</p></div></CardContent></Card>
+        <Card><CardContent className="py-2.5 px-3 sm:py-3 sm:px-4 flex items-center gap-2 sm:gap-3"><div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-green-500/10 flex items-center justify-center shrink-0"><CheckCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-green-400" /></div><div><p className="text-base sm:text-lg font-bold leading-none text-green-400">{stats.ativos}</p><p className="text-[9px] sm:text-[10px] text-muted-foreground mt-0.5">Ativos</p></div></CardContent></Card>
+        <Card><CardContent className="py-2.5 px-3 sm:py-3 sm:px-4 flex items-center gap-2 sm:gap-3"><div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-purple-500/10 flex items-center justify-center shrink-0"><Shield className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-purple-400" /></div><div><p className="text-base sm:text-lg font-bold leading-none text-purple-400">{stats.admins}</p><p className="text-[9px] sm:text-[10px] text-muted-foreground mt-0.5">Admins</p></div></CardContent></Card>
+        <Card><CardContent className="py-2.5 px-3 sm:py-3 sm:px-4 flex items-center gap-2 sm:gap-3"><div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-red-500/10 flex items-center justify-center shrink-0"><XCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-red-400" /></div><div><p className="text-base sm:text-lg font-bold leading-none text-red-400">{stats.inativos}</p><p className="text-[9px] sm:text-[10px] text-muted-foreground mt-0.5">Inativos</p></div></CardContent></Card>
       </div>
 
       {/* Filters */}
@@ -326,32 +330,35 @@ const AdminUsuarios: React.FC = () => {
             return (
               <motion.div key={u.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.015 }}>
                 <Card className={`transition-colors hover:border-white/10 ${u.status === 'banido' ? 'border-red-500/30 bg-red-500/5 opacity-60' : ''}`}>
-                  <CardContent className="py-3 px-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full shrink-0 overflow-hidden bg-accent/20 flex items-center justify-center">
-                        {u.avatar_url ? <img src={u.avatar_url} alt={u.nome} className="w-full h-full object-cover" /> : <Car className="w-5 h-5 text-accent" />}
+                  <CardContent className="py-2.5 px-3 sm:py-3 sm:px-4">
+                    <div className="flex items-center gap-2 sm:gap-3">
+                      <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full shrink-0 overflow-hidden bg-accent/20 flex items-center justify-center">
+                        {u.avatar_url ? <img src={u.avatar_url} alt={u.nome} className="w-full h-full object-cover" /> : <img src={getAnimalAvatarUrl(u.id)} alt={u.nome} className="w-full h-full object-cover" />}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1.5">
                           <p className="font-medium truncate text-sm">{u.nome || 'Sem nome'}</p>
-                          {isAdmin && <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 bg-purple-500/20 text-purple-400 border-purple-500/30">Admin</Badge>}
+                          {isAdmin && <Badge variant="outline" className="text-[8px] sm:text-[9px] px-1 sm:px-1.5 py-0 h-4 bg-purple-500/20 text-purple-400 border-purple-500/30 shrink-0">Admin</Badge>}
                         </div>
-                        <div className="flex items-center gap-3 mt-0.5">
-                          <span className="text-xs text-muted-foreground flex items-center gap-1"><Phone className="w-3 h-3" /> {u.telefone}</span>
-                          <span className="text-[10px] text-muted-foreground">{rideCount} corrida{rideCount !== 1 ? 's' : ''}</span>
+                        <div className="flex items-center gap-2 sm:gap-3 mt-0.5">
+                          <span className="text-[10px] sm:text-xs text-muted-foreground flex items-center gap-1"><Phone className="w-3 h-3 shrink-0" /> <span className="truncate">{u.telefone}</span></span>
+                          <span className="text-[10px] text-muted-foreground shrink-0">{rideCount} corrida{rideCount !== 1 ? 's' : ''}</span>
                         </div>
                       </div>
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        <Button size="icon" variant="ghost" className={`h-8 w-8 ${isAdmin ? 'text-purple-400' : 'text-muted-foreground hover:text-purple-400'}`} title={isAdmin ? 'Remover admin' : 'Tornar admin'}
+                      <div className="flex items-center gap-0.5 sm:gap-1.5 shrink-0">
+                        <Button size="icon" variant="ghost" className={`h-7 w-7 sm:h-8 sm:w-8 ${isAdmin ? 'text-purple-400' : 'text-muted-foreground hover:text-purple-400'}`} title={isAdmin ? 'Remover admin' : 'Tornar admin'}
                           onClick={() => { const nR = isAdmin ? ['motorista'] : ['motorista', 'admin']; const nT = isAdmin ? 'motorista' : 'admin'; updateUserMutation.mutate({ userId: u.id, updates: { roles: nR, tipo: nT } }); }}>
                           <Shield className="w-3.5 h-3.5" />
                         </Button>
-                        <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:text-white" title="Editar" onClick={() => openEditUserDialog(u)}><Pencil className="w-3.5 h-3.5" /></Button>
-                        <Button size="icon" variant="ghost" className={`h-8 w-8 ${u.status === 'ativo' ? 'text-green-400 hover:text-red-400' : 'text-red-400 hover:text-green-400'}`} title={u.status === 'ativo' ? 'Desativar' : 'Ativar'}
+                        <Button size="icon" variant="ghost" className="h-7 w-7 sm:h-8 sm:w-8 text-muted-foreground hover:text-accent hidden sm:flex" title="Crachá" onClick={() => { setBadgeUser(u); setShowBadgeDialog(true); }}><IdCard className="w-3.5 h-3.5" /></Button>
+                        <Button size="icon" variant="ghost" className="h-7 w-7 sm:h-8 sm:w-8 text-muted-foreground hover:text-white" title="Editar" onClick={() => openEditUserDialog(u)}><Pencil className="w-3.5 h-3.5" /></Button>
+                        <button className="h-7 sm:h-8 flex items-center gap-1.5 px-0.5 sm:px-1" title={u.status === 'ativo' ? 'Desativar' : 'Ativar'}
                           onClick={() => updateUserMutation.mutate({ userId: u.id, updates: { status: u.status === 'ativo' ? 'banido' : 'ativo', ativo: u.status !== 'ativo' } })}>
-                          {u.status === 'ativo' ? <CheckCircle className="w-3.5 h-3.5" /> : <XCircle className="w-3.5 h-3.5" />}
-                        </Button>
-                        <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:text-red-400" title="Excluir" onClick={() => { setDeleteTarget({ id: u.id, label: u.nome }); setShowDeleteConfirm(true); }}><Trash2 className="w-3.5 h-3.5" /></Button>
+                          <div className={`w-8 sm:w-9 h-[18px] sm:h-5 rounded-full transition-colors relative ${u.status === 'ativo' ? 'bg-green-500' : 'bg-white/20'}`}>
+                            <div className={`absolute top-[2px] sm:top-0.5 left-0.5 w-3.5 sm:w-4 h-3.5 sm:h-4 rounded-full bg-white transition-transform ${u.status === 'ativo' ? 'translate-x-3.5 sm:translate-x-4' : ''}`} />
+                          </div>
+                        </button>
+                        <Button size="icon" variant="ghost" className="h-7 w-7 sm:h-8 sm:w-8 text-muted-foreground hover:text-red-400" title="Excluir" onClick={() => { setDeleteTarget({ id: u.id, label: u.nome }); setShowDeleteConfirm(true); }}><Trash2 className="w-3.5 h-3.5" /></Button>
                       </div>
                     </div>
                   </CardContent>
@@ -369,7 +376,7 @@ const AdminUsuarios: React.FC = () => {
           <div className="space-y-4 py-2">
             <div><Label className="text-xs">Nome</Label><Input value={editUserForm.nome} onChange={(e) => setEditUserForm(f => ({ ...f, nome: e.target.value }))} /></div>
             <div><Label className="text-xs">Telefone</Label><Input value={editUserForm.telefone} onChange={(e) => setEditUserForm(f => ({ ...f, telefone: formatPhone(e.target.value) }))} placeholder="(81) 9 9613.8924" /></div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div><Label className="text-xs">Permissão Admin</Label>
                 <div className={`flex items-center gap-2 h-10 px-3 rounded-md border cursor-pointer transition-colors ${editUserForm.isAdmin ? 'bg-purple-500/10 border-purple-500/30' : 'bg-muted/30'}`} onClick={() => setEditUserForm(f => ({ ...f, isAdmin: !f.isAdmin }))}>
                   <div className={`w-9 h-5 rounded-full transition-colors relative ${editUserForm.isAdmin ? 'bg-purple-500' : 'bg-white/20'}`}><div className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${editUserForm.isAdmin ? 'translate-x-4' : ''}`} /></div>
@@ -382,7 +389,7 @@ const AdminUsuarios: React.FC = () => {
             </div>
             <div><Label className="text-xs">Senha</Label><Input type="text" value={editUserForm.senha} onChange={(e) => setEditUserForm(f => ({ ...f, senha: e.target.value }))} placeholder="Senha do motorista" autoComplete="off" /></div>
             <Separator /><p className="text-xs text-muted-foreground font-medium">DADOS DO VEÍCULO</p>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div><Label className="text-xs">Marca</Label><Select value={editUserForm.veiculo_marca} onValueChange={(v) => setEditUserForm(f => ({ ...f, veiculo_marca: v, veiculo_modelo: '' }))}><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger><SelectContent>{VEHICLE_BRANDS.map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}</SelectContent></Select></div>
               <div><Label className="text-xs">Modelo</Label><Select value={editUserForm.veiculo_modelo} onValueChange={(v) => setEditUserForm(f => ({ ...f, veiculo_modelo: v }))}><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger><SelectContent>{(VEHICLE_MODELS[editUserForm.veiculo_marca] || ['Outro']).map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent></Select></div>
               <div><Label className="text-xs">Cor</Label><Select value={editUserForm.veiculo_cor} onValueChange={(v) => setEditUserForm(f => ({ ...f, veiculo_cor: v }))}><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger><SelectContent>{VEHICLE_COLORS.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select></div>
@@ -424,7 +431,7 @@ const AdminUsuarios: React.FC = () => {
           <div className="space-y-4 py-2">
             <div><Label className="text-xs">Nome *</Label><Input value={createUserForm.nome} onChange={(e) => setCreateUserForm(f => ({ ...f, nome: e.target.value }))} placeholder="Nome completo" /></div>
             <div><Label className="text-xs">Telefone *</Label><Input value={createUserForm.telefone} onChange={(e) => setCreateUserForm(f => ({ ...f, telefone: formatPhone(e.target.value) }))} placeholder="(81) 9 9613.8924" /></div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div><Label className="text-xs">Permissão Admin</Label>
                 <div className={`flex items-center gap-2 h-10 px-3 rounded-md border cursor-pointer transition-colors ${createUserForm.isAdmin ? 'bg-purple-500/10 border-purple-500/30' : 'bg-muted/30'}`} onClick={() => setCreateUserForm(f => ({ ...f, isAdmin: !f.isAdmin }))}>
                   <div className={`w-9 h-5 rounded-full transition-colors relative ${createUserForm.isAdmin ? 'bg-purple-500' : 'bg-white/20'}`}><div className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${createUserForm.isAdmin ? 'translate-x-4' : ''}`} /></div>
@@ -434,7 +441,7 @@ const AdminUsuarios: React.FC = () => {
               <div><Label className="text-xs">Senha *</Label><Input type="text" value={createUserForm.senha} onChange={(e) => setCreateUserForm(f => ({ ...f, senha: e.target.value }))} placeholder="Senha de acesso" autoComplete="off" /></div>
             </div>
             <Separator /><p className="text-xs text-muted-foreground font-medium">DADOS DO VEÍCULO (opcional)</p>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div><Label className="text-xs">Marca</Label><Select value={createUserForm.veiculo_marca} onValueChange={(v) => setCreateUserForm(f => ({ ...f, veiculo_marca: v, veiculo_modelo: '' }))}><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger><SelectContent>{VEHICLE_BRANDS.map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}</SelectContent></Select></div>
               <div><Label className="text-xs">Modelo</Label><Select value={createUserForm.veiculo_modelo} onValueChange={(v) => setCreateUserForm(f => ({ ...f, veiculo_modelo: v }))}><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger><SelectContent>{(VEHICLE_MODELS[createUserForm.veiculo_marca] || ['Outro']).map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent></Select></div>
               <div><Label className="text-xs">Cor</Label><Select value={createUserForm.veiculo_cor} onValueChange={(v) => setCreateUserForm(f => ({ ...f, veiculo_cor: v }))}><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger><SelectContent>{VEHICLE_COLORS.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select></div>
@@ -463,7 +470,60 @@ const AdminUsuarios: React.FC = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* ═══ BADGE DIALOG ═══ */}
+      <Dialog open={showBadgeDialog} onOpenChange={setShowBadgeDialog}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto p-4">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><IdCard className="w-5 h-5 text-accent" />Crachá — {badgeUser?.nome}</DialogTitle>
+          </DialogHeader>
+          {badgeUser && (
+            <BadgePreview user={badgeUser} />
+          )}
+        </DialogContent>
+      </Dialog>
     </AdminLayout>
+  );
+};
+
+/* ═══ BADGE PREVIEW SUBCOMPONENT ═══ */
+const BadgePreview: React.FC<{ user: UserRecord }> = ({ user }) => {
+  const { data: avgRating } = useQuery({
+    queryKey: ['admin-badge-rating', user.id],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('avaliacoes').select('nota').eq('motorista_id', user.id);
+      if (error) throw error;
+      if (!data || data.length === 0) return null;
+      const avg = data.reduce((sum, r) => sum + r.nota, 0) / data.length;
+      return { avg: Math.round(avg * 10) / 10, count: data.length };
+    },
+  });
+  const { data: completedCount } = useQuery({
+    queryKey: ['admin-badge-count', user.id],
+    queryFn: async () => {
+      const { count, error } = await supabase.from('corridas').select('id', { count: 'exact', head: true }).eq('motorista_id', user.id).in('status', ['aprovada', 'finalizada']);
+      if (error) throw error;
+      return count || 0;
+    },
+  });
+  return (
+    <DriverBadge
+      profile={{
+        id: user.id,
+        nome: user.nome,
+        telefone: user.telefone,
+        tipo: user.tipo,
+        status: user.status,
+        veiculo_marca: user.veiculo_marca || undefined,
+        veiculo_modelo: user.veiculo_modelo || undefined,
+        veiculo_cor: user.veiculo_cor || undefined,
+        veiculo_placa: user.veiculo_placa || undefined,
+        avatar_url: user.avatar_url || undefined,
+        veiculo_foto: user.veiculo_foto || undefined,
+      }}
+      avgRating={avgRating || null}
+      completedCount={completedCount || 0}
+    />
   );
 };
 

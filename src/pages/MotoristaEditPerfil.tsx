@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { VEHICLE_BRANDS, VEHICLE_MODELS, VEHICLE_COLORS } from '@/lib/vehicle-data';
+import { getAnimalAvatarUrl } from '@/lib/animal-avatars';
 
 // ── Crop helper ──
 async function getCroppedBlob(imageSrc: string, crop: Area, outputSize = 400): Promise<Blob> {
@@ -227,9 +228,7 @@ const MotoristaEditPerfil: React.FC = () => {
                 {avatarUrl ? (
                   <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
                 ) : (
-                  <div className="w-full h-full bg-muted flex items-center justify-center">
-                    <User className="w-10 h-10 text-muted-foreground" />
-                  </div>
+                  <img src={getAnimalAvatarUrl(user?.id || '')} alt="" className="w-full h-full object-cover" />
                 )}
                 <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                   <Camera className="w-6 h-6 text-white" />

@@ -108,7 +108,10 @@ const MotoristaViagens: React.FC = () => {
     ];
     if (dynamicAdj) {
       const ajusteValor = dynamicAdj.aplicar(preco.valor) - preco.valor;
-      lines.push(`   ⏰ ${dynamicAdj.regra.nome}: +R$ ${ajusteValor.toFixed(2)} (${dynamicAdj.regra.valor_ajuste}%)`);
+      const ajusteLabel = dynamicAdj.regra.tipo_ajuste === 'fixo'
+        ? `+R$ ${dynamicAdj.regra.valor_ajuste.toFixed(2)}`
+        : `+${dynamicAdj.regra.valor_ajuste}%`;
+      lines.push(`   ⏰ ${dynamicAdj.regra.nome}: ${ajusteLabel} (R$ ${ajusteValor.toFixed(2)})`);
     }
     if (temBagagem) lines.push(`   📦 Feira/Bagagem: +R$ ${taxaBagagemValor.toFixed(2)}`);
     lines.push(`   ─────────────────`);
@@ -164,6 +167,11 @@ const MotoristaViagens: React.FC = () => {
           valor_base: preco.valor,
           cliente_nome: clienteNome.trim() || null,
           cliente_telefone: clienteTelefone.trim() || null,
+          ...(dynamicAdj ? {
+            ajuste_horario: dynamicAdj.label,
+            regra_horario: dynamicAdj.regra.nome,
+            cor_regra: (dynamicAdj.regra as any).cor || '#8b5cf6',
+          } : {}),
         },
       });
       if (error) throw error;
@@ -329,7 +337,11 @@ const MotoristaViagens: React.FC = () => {
                           <Clock className="w-3.5 h-3.5 text-purple-400" />
                           <span className="text-xs text-muted-foreground">{dynamicAdj.regra.nome}</span>
                         </div>
-                        <span className="text-sm font-bold text-purple-400">+{dynamicAdj.regra.valor_ajuste}%</span>
+                        <span className="text-sm font-bold text-purple-400">
+                          {dynamicAdj.regra.tipo_ajuste === 'fixo'
+                            ? `+R$ ${dynamicAdj.regra.valor_ajuste.toFixed(2)}`
+                            : `+${dynamicAdj.regra.valor_ajuste}%`}
+                        </span>
                       </div>
                     )}
                     {temBagagem && (
@@ -391,7 +403,7 @@ const MotoristaViagens: React.FC = () => {
                   <AnimatePresence>
                     {showClienteInfo && (
                       <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           <div className="space-y-1.5">
                             <label className="text-sm font-medium flex items-center gap-2">
                               <User className="w-3.5 h-3.5 text-muted-foreground" /> Cliente

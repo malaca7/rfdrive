@@ -514,7 +514,7 @@ const LocalidadesTab: React.FC<{
               <Label className="text-xs">Nome</Label>
               <Input value={form.nome} onChange={e => setForm(f => ({ ...f, nome: e.target.value }))} placeholder="Ex: Centro, Shopping Costa Dourada" />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div>
                 <Label className="text-xs">Tipo</Label>
                 <Select value={form.tipo} onValueChange={v => setForm(f => ({ ...f, tipo: v }))}>
@@ -539,7 +539,7 @@ const LocalidadesTab: React.FC<{
                 </Select>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div>
                 <Label className="text-xs">Latitude (opcional)</Label>
                 <Input type="number" step="0.0000001" value={form.latitude} onChange={e => setForm(f => ({ ...f, latitude: e.target.value }))} placeholder="-8.2889" />
@@ -722,17 +722,17 @@ const PrecosTab: React.FC<{
             return (
               <motion.div key={p.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.02 }}>
                 <Card className={!p.ativo ? 'opacity-50' : ''}>
-                  <CardContent className="py-3">
-                    <div className="flex items-center gap-3">
+                  <CardContent className="py-2.5 sm:py-3">
+                    <div className="flex items-start sm:items-center gap-2 sm:gap-3">
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <Badge variant="outline" className={`text-[10px] ${TIPO_COLORS[o?.tipo || '']}`}>{o?.tipo}</Badge>
-                          <span className="text-sm font-medium truncate">{o?.nome || '?'}</span>
-                          <ArrowRight className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                          <Badge variant="outline" className={`text-[10px] ${TIPO_COLORS[d?.tipo || '']}`}>{d?.tipo}</Badge>
-                          <span className="text-sm font-medium truncate">{d?.nome || '?'}</span>
+                        <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                          <Badge variant="outline" className={`text-[9px] sm:text-[10px] ${TIPO_COLORS[o?.tipo || '']}`}>{o?.tipo}</Badge>
+                          <span className="text-xs sm:text-sm font-medium truncate">{o?.nome || '?'}</span>
+                          <ArrowRight className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-muted-foreground shrink-0" />
+                          <Badge variant="outline" className={`text-[9px] sm:text-[10px] ${TIPO_COLORS[d?.tipo || '']}`}>{d?.tipo}</Badge>
+                          <span className="text-xs sm:text-sm font-medium truncate">{d?.nome || '?'}</span>
                         </div>
-                        <div className="flex items-center gap-3 mt-1.5 text-xs text-muted-foreground">
+                        <div className="flex items-center gap-2 sm:gap-3 mt-1 sm:mt-1.5 text-[10px] sm:text-xs text-muted-foreground flex-wrap">
                           {p.preco_fixo != null && (
                             <span className="text-green-400 font-semibold">Fixo: R$ {Number(p.preco_fixo).toFixed(2)}</span>
                           )}
@@ -777,7 +777,7 @@ const PrecosTab: React.FC<{
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div>
                 <Label className="text-xs">Origem</Label>
                 <Select value={form.origem_id || '_'} onValueChange={v => setForm(f => ({ ...f, origem_id: v === '_' ? '' : v }))}>
@@ -803,7 +803,7 @@ const PrecosTab: React.FC<{
                 </Select>
               </div>
             </div>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
               <div>
                 <Label className="text-xs">Preço Fixo (R$)</Label>
                 <Input type="number" step="0.01" min="0" value={form.preco_fixo} onChange={e => setForm(f => ({ ...f, preco_fixo: e.target.value }))} placeholder="0.00" />
@@ -1057,14 +1057,14 @@ const HorariosTab: React.FC<{
             return (
               <motion.div key={r.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.02 }}>
                 <Card className={!r.ativo ? 'opacity-50' : ''} style={{ borderLeft: `3px solid ${color}` }}>
-                  <CardContent className="py-3">
-                    <div className="flex items-center justify-between">
-                      <div>
+                  <CardContent className="py-2.5 sm:py-3">
+                    <div className="flex items-start sm:items-center justify-between gap-2">
+                      <div className="min-w-0">
                         <div className="flex items-center gap-2">
-                          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: color }} />
-                          <span className="font-medium text-sm">{r.nome}</span>
+                          <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: color }} />
+                          <span className="font-medium text-sm truncate">{r.nome}</span>
                         </div>
-                        <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
+                        <div className="flex items-center gap-2 sm:gap-3 mt-1 text-[10px] sm:text-xs text-muted-foreground flex-wrap">
                           <span>{r.hora_inicio.substring(0, 5)} – {r.hora_fim.substring(0, 5)}</span>
                           <Badge variant="outline" className="text-[10px]" style={{ color, borderColor: `${color}50` }}>
                             {isFix ? `+R$${r.valor_ajuste.toFixed(2)}` : `+${r.valor_ajuste}%`}

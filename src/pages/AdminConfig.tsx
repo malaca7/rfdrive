@@ -10,7 +10,7 @@ import { Slider } from '@/components/ui/slider';
 import AdminLayout from '@/components/AdminLayout';
 import {
   Settings, DollarSign, Save, Loader2, Palette,
-  Type, Radius, Layers, Paintbrush, Sparkles,
+  Type, Radius, Layers, Paintbrush, Sparkles, Image, Upload,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
@@ -35,12 +35,14 @@ type ConfigPlataforma = {
   tema_muted_offset: number;
   tema_gradiente_direcao: string;
   tema_botao_estilo: string;
+  logo_url: string;
   updated_at: string;
 };
 
 const DEFAULT_CONFIG: Omit<ConfigPlataforma, 'id' | 'updated_at'> = {
   taxa_semanal_motorista: 0,
   nome_plataforma: 'RF Drive',
+  logo_url: '',
   cor_primaria: '#FFD000',
   cor_secundaria: '#0a0a0a',
   cor_terciaria: '#ffffff',
@@ -103,6 +105,7 @@ const AdminConfig: React.FC = () => {
         tema_muted_offset: (config as any).tema_muted_offset ?? 46,
         tema_gradiente_direcao: (config as any).tema_gradiente_direcao ?? '135deg',
         tema_botao_estilo: (config as any).tema_botao_estilo ?? 'gradient',
+        logo_url: (config as any).logo_url ?? '',
       });
       setHasChanges(false);
     }
@@ -300,7 +303,7 @@ const AdminConfig: React.FC = () => {
           </h3>
           <Card className="border bg-green-500/10 border-green-500/20">
             <CardContent className="py-4">
-              <div className="flex items-center justify-between gap-4 flex-wrap">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
                 <div>
                   <p className="text-sm font-semibold text-green-400">Taxa Semanal do Motorista</p>
                   <p className="text-[11px] text-muted-foreground mt-0.5">Valor cobrado semanalmente de cada motorista ativo.</p>
@@ -312,7 +315,7 @@ const AdminConfig: React.FC = () => {
                     value={form.taxa_semanal_motorista}
                     onChange={e => updateField('taxa_semanal_motorista', e.target.value)}
                     placeholder="0.00"
-                    className="w-32 text-right font-semibold"
+                    className="w-28 sm:w-32 text-right font-semibold"
                   />
                 </div>
               </div>
@@ -328,12 +331,43 @@ const AdminConfig: React.FC = () => {
           <div className="space-y-3">
             <Card className="border bg-accent/10 border-accent/20">
               <CardContent className="py-4">
-                <div className="flex items-center justify-between gap-4 flex-wrap">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
                   <div>
                     <p className="text-sm font-semibold text-accent">Nome da Plataforma</p>
                     <p className="text-[11px] text-muted-foreground mt-0.5">Nome exibido ao público e nos relatórios.</p>
                   </div>
-                  <Input value={form.nome_plataforma} onChange={e => updateField('nome_plataforma', e.target.value)} placeholder="RF Drive" className="w-40 font-semibold" />
+                  <Input value={form.nome_plataforma} onChange={e => updateField('nome_plataforma', e.target.value)} placeholder="RF Drive" className="w-full sm:w-40 font-semibold" />
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="border bg-accent/10 border-accent/20">
+              <CardContent className="py-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+                  <div>
+                    <p className="text-sm font-semibold text-accent flex items-center gap-1.5"><Image className="w-4 h-4" />Logo da Plataforma</p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">Imagem exibida no cabeçalho e tela de login.</p>
+                    {form.logo_url && (
+                      <div className="mt-2 w-12 h-12 rounded-xl overflow-hidden border border-accent/30">
+                        <img src={form.logo_url} alt="Logo" className="w-full h-full object-cover" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex flex-col gap-1.5 items-start sm:items-end">
+                    <Input value={form.logo_url} onChange={e => updateField('logo_url', e.target.value)} placeholder="https://..." className="w-full sm:w-52 text-xs" />
+                    <label className="flex items-center gap-1 text-[11px] text-accent cursor-pointer hover:underline">
+                      <Upload className="w-3 h-3" />Upload
+                      <input type="file" accept="image/*" className="hidden" onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        const ext = file.name.split('.').pop();
+                        const path = `logos/plataforma_${Date.now()}.${ext}`;
+                        const { error } = await supabase.storage.from('uploads').upload(path, file, { upsert: true });
+                        if (error) { toast({ title: 'Erro no upload', description: error.message, variant: 'destructive' }); return; }
+                        const { data: urlData } = supabase.storage.from('uploads').getPublicUrl(path);
+                        updateField('logo_url', urlData.publicUrl);
+                      }} />
+                    </label>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -356,25 +390,25 @@ const AdminConfig: React.FC = () => {
               { key: 'cor_info', label: 'Cor de Informação', desc: 'Dicas, informações, notificações neutras.', color: 'text-sky-400', bg: 'bg-sky-500/10 border-sky-500/20', ph: '#3b82f6' },
             ].map(c => (
               <Card key={c.key} className={`border ${c.bg}`}>
-                <CardContent className="py-4">
-                  <div className="flex items-center justify-between gap-4 flex-wrap">
+                <CardContent className="py-3 sm:py-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-4">
                     <div>
                       <p className={`text-sm font-semibold ${c.color}`}>{c.label}</p>
-                      <p className="text-[11px] text-muted-foreground mt-0.5">{c.desc}</p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5 hidden sm:block">{c.desc}</p>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                       <input
                         type="color"
                         value={(form as any)[c.key] || c.ph}
                         onChange={e => updateField(c.key, e.target.value)}
-                        className="w-10 h-10 rounded-lg border border-border cursor-pointer bg-transparent"
+                        className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg border border-border cursor-pointer bg-transparent"
                       />
                       <Input
                         type="text"
                         value={(form as any)[c.key]}
                         onChange={e => updateField(c.key, e.target.value)}
                         placeholder={c.ph}
-                        className="w-28 font-mono text-sm font-semibold"
+                        className="w-24 sm:w-28 font-mono text-sm font-semibold"
                       />
                     </div>
                   </div>
@@ -393,13 +427,13 @@ const AdminConfig: React.FC = () => {
             {/* Fonte */}
             <Card className="border bg-cyan-500/10 border-cyan-500/20">
               <CardContent className="py-4">
-                <div className="flex items-center justify-between gap-4 flex-wrap">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
                   <div>
                     <p className="text-sm font-semibold text-cyan-400 flex items-center gap-1.5"><Type className="w-3.5 h-3.5" /> Fonte</p>
                     <p className="text-[11px] text-muted-foreground mt-0.5">Família tipográfica usada em todo o app.</p>
                   </div>
                   <Select value={form.tema_fonte} onValueChange={v => updateField('tema_fonte', v)}>
-                    <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="w-full sm:w-48"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       {FONT_OPTIONS.map(f => (
                         <SelectItem key={f} value={f}><span style={{ fontFamily: `"${f}", sans-serif` }}>{f}</span></SelectItem>
@@ -484,13 +518,13 @@ const AdminConfig: React.FC = () => {
             {/* Gradient Direction */}
             <Card className="border bg-orange-500/10 border-orange-500/20">
               <CardContent className="py-4">
-                <div className="flex items-center justify-between gap-4 flex-wrap">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
                   <div>
                     <p className="text-sm font-semibold text-orange-400 flex items-center gap-1.5"><Sparkles className="w-3.5 h-3.5" /> Direção do Gradiente</p>
                     <p className="text-[11px] text-muted-foreground mt-0.5">Sentido dos gradientes aplicados.</p>
                   </div>
                   <Select value={form.tema_gradiente_direcao} onValueChange={v => updateField('tema_gradiente_direcao', v)}>
-                    <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="w-full sm:w-44"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       {GRADIENT_OPTIONS.map(g => (
                         <SelectItem key={g.value} value={g.value}>{g.label}</SelectItem>
@@ -504,13 +538,13 @@ const AdminConfig: React.FC = () => {
             {/* Button Style */}
             <Card className="border bg-rose-500/10 border-rose-500/20">
               <CardContent className="py-4">
-                <div className="flex items-center justify-between gap-4 flex-wrap">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
                   <div>
                     <p className="text-sm font-semibold text-rose-400 flex items-center gap-1.5"><Paintbrush className="w-3.5 h-3.5" /> Estilo dos Botões</p>
                     <p className="text-[11px] text-muted-foreground mt-0.5">Aparência dos botões de ação.</p>
                   </div>
                   <Select value={form.tema_botao_estilo} onValueChange={v => updateField('tema_botao_estilo', v)}>
-                    <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="w-full sm:w-40"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       {BUTTON_STYLES.map(b => (
                         <SelectItem key={b.value} value={b.value}>{b.label}</SelectItem>
@@ -524,14 +558,14 @@ const AdminConfig: React.FC = () => {
             {/* Button Text Color */}
             <Card className="border bg-fuchsia-500/10 border-fuchsia-500/20">
               <CardContent className="py-4">
-                <div className="flex items-center justify-between gap-4 flex-wrap">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-4">
                   <div>
                     <p className="text-sm font-semibold text-fuchsia-400 flex items-center gap-1.5"><Type className="w-3.5 h-3.5" /> Cor do Texto do Botão</p>
                     <p className="text-[11px] text-muted-foreground mt-0.5">Cor do texto dentro dos botões de ação.</p>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
-                    <input type="color" value={form.cor_botao_texto} onChange={e => updateField('cor_botao_texto', e.target.value)} className="w-10 h-10 rounded-lg border border-border cursor-pointer bg-transparent" />
-                    <Input type="text" value={form.cor_botao_texto} onChange={e => updateField('cor_botao_texto', e.target.value)} placeholder="#0a0a0a" className="w-28 font-mono text-sm font-semibold" />
+                    <input type="color" value={form.cor_botao_texto} onChange={e => updateField('cor_botao_texto', e.target.value)} className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg border border-border cursor-pointer bg-transparent" />
+                    <Input type="text" value={form.cor_botao_texto} onChange={e => updateField('cor_botao_texto', e.target.value)} placeholder="#0a0a0a" className="w-24 sm:w-28 font-mono text-sm font-semibold" />
                   </div>
                 </div>
               </CardContent>
@@ -540,14 +574,14 @@ const AdminConfig: React.FC = () => {
             {/* Button Background Color */}
             <Card className="border bg-amber-500/10 border-amber-500/20">
               <CardContent className="py-4">
-                <div className="flex items-center justify-between gap-4 flex-wrap">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-4">
                   <div>
                     <p className="text-sm font-semibold text-amber-400 flex items-center gap-1.5"><Layers className="w-3.5 h-3.5" /> Cor de Fundo do Botão</p>
                     <p className="text-[11px] text-muted-foreground mt-0.5">Cor de fundo / base dos botões de ação.</p>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
-                    <input type="color" value={form.cor_botao_fundo} onChange={e => updateField('cor_botao_fundo', e.target.value)} className="w-10 h-10 rounded-lg border border-border cursor-pointer bg-transparent" />
-                    <Input type="text" value={form.cor_botao_fundo} onChange={e => updateField('cor_botao_fundo', e.target.value)} placeholder="#FFD000" className="w-28 font-mono text-sm font-semibold" />
+                    <input type="color" value={form.cor_botao_fundo} onChange={e => updateField('cor_botao_fundo', e.target.value)} className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg border border-border cursor-pointer bg-transparent" />
+                    <Input type="text" value={form.cor_botao_fundo} onChange={e => updateField('cor_botao_fundo', e.target.value)} placeholder="#FFD000" className="w-24 sm:w-28 font-mono text-sm font-semibold" />
                   </div>
                 </div>
               </CardContent>
@@ -556,14 +590,14 @@ const AdminConfig: React.FC = () => {
             {/* Button Glow/Shadow Border */}
             <Card className="border bg-indigo-500/10 border-indigo-500/20">
               <CardContent className="py-4 space-y-3">
-                <div className="flex items-center justify-between gap-4 flex-wrap">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-4">
                   <div>
                     <p className="text-sm font-semibold text-indigo-400 flex items-center gap-1.5"><Sparkles className="w-3.5 h-3.5" /> Borda Esfumaçada do Botão</p>
                     <p className="text-[11px] text-muted-foreground mt-0.5">Cor do brilho/sombra ao redor dos botões.</p>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
-                    <input type="color" value={form.cor_botao_borda} onChange={e => updateField('cor_botao_borda', e.target.value)} className="w-10 h-10 rounded-lg border border-border cursor-pointer bg-transparent" />
-                    <Input type="text" value={form.cor_botao_borda} onChange={e => updateField('cor_botao_borda', e.target.value)} placeholder="#FFD000" className="w-28 font-mono text-sm font-semibold" />
+                    <input type="color" value={form.cor_botao_borda} onChange={e => updateField('cor_botao_borda', e.target.value)} className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg border border-border cursor-pointer bg-transparent" />
+                    <Input type="text" value={form.cor_botao_borda} onChange={e => updateField('cor_botao_borda', e.target.value)} placeholder="#FFD000" className="w-24 sm:w-28 font-mono text-sm font-semibold" />
                   </div>
                 </div>
                 <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">

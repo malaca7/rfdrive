@@ -392,13 +392,13 @@ const AdminTabelaPrecos: React.FC = () => {
   return (
     <div className="space-y-3">
       {/* ── Compact summary ── */}
-      <div className="flex items-center justify-between bg-muted/30 rounded-xl px-4 py-2.5">
-        <div className="flex items-center gap-4 text-xs">
-          <span className="flex items-center gap-1.5 font-medium">
+      <div className="flex items-center justify-between bg-muted/30 rounded-xl px-3 sm:px-4 py-2.5">
+        <div className="flex items-center gap-2 sm:gap-4 text-[10px] sm:text-xs">
+          <span className="flex items-center gap-1 sm:gap-1.5 font-medium">
             <Route className="w-3.5 h-3.5 text-accent" />
             {stats.totalRotas.toLocaleString('pt-BR')} rotas
           </span>
-          <span className="text-muted-foreground">{stats.totalOrigens} origens</span>
+          <span className="text-muted-foreground hidden sm:inline">{stats.totalOrigens} origens</span>
           <span className="text-muted-foreground">R$ {stats.precoMin.toFixed(0)}–{stats.precoMax.toFixed(0)}</span>
         </div>
         <Button variant="ghost" size="sm" className="h-7 px-2 text-xs gap-1" onClick={() => setShowStatsDialog(true)}>
@@ -408,7 +408,7 @@ const AdminTabelaPrecos: React.FC = () => {
 
       {/* ── Toolbar ── */}
       <div className="flex flex-col gap-2">
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-col sm:flex-row">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
@@ -423,8 +423,9 @@ const AdminTabelaPrecos: React.FC = () => {
               </button>
             )}
           </div>
+          <div className="flex gap-2">
           <Select value={filterOrigem} onValueChange={(v) => { setFilterOrigem(v); setFilterDestino('_all'); setPage(0); }}>
-            <SelectTrigger className="w-[160px] h-9">
+            <SelectTrigger className="w-full sm:w-[160px] h-9">
               <SelectValue placeholder="Origem" />
             </SelectTrigger>
             <SelectContent className="max-h-60">
@@ -435,7 +436,7 @@ const AdminTabelaPrecos: React.FC = () => {
             </SelectContent>
           </Select>
           <Select value={filterDestino} onValueChange={(v) => { setFilterDestino(v); setPage(0); }}>
-            <SelectTrigger className="w-[160px] h-9">
+            <SelectTrigger className="w-full sm:w-[160px] h-9">
               <SelectValue placeholder="Destino" />
             </SelectTrigger>
             <SelectContent className="max-h-60">
@@ -445,6 +446,7 @@ const AdminTabelaPrecos: React.FC = () => {
               ))}
             </SelectContent>
           </Select>
+          </div>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           {(filterOrigem !== '_all' || filterDestino !== '_all' || filterRegiao !== '_all' || search) && (

@@ -31,6 +31,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { buscarPrecoTabela } from '@/lib/tabela-preco';
 import { DriverBadge } from '@/components/DriverTools';
+import { getAnimalAvatarUrl } from '@/lib/animal-avatars';
 
 // Lazy-load heavy admin sub-components (each ~500-1000 lines)
 const AdminPricing = React.lazy(() => import('@/components/AdminPricing'));
@@ -1025,7 +1026,7 @@ const AdminDashboard: React.FC = () => {
                               {u.avatar_url ? (
                                 <img src={u.avatar_url} alt={u.nome} className="w-full h-full object-cover" />
                               ) : (
-                                <Car className="w-5 h-5 text-accent" />
+                                <img src={getAnimalAvatarUrl(u.id)} alt={u.nome} className="w-full h-full object-cover" />
                               )}
                             </div>
 

@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/dialog';
 import { Camera, Loader2, User, Check, X, ZoomIn, ZoomOut } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { getAnimalAvatarUrl } from '@/lib/animal-avatars';
 
 // ── Crop helper: canvas-based crop to blob ──
 async function getCroppedBlob(imageSrc: string, crop: Area): Promise<Blob> {
@@ -196,7 +197,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ profile, onClose, onUpdat
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <User className="w-12 h-12 text-muted-foreground" />
+                  <img src={getAnimalAvatarUrl(profile.id)} alt="Avatar" className="w-full h-full object-cover" />
                 )}
               </div>
               <div className="absolute inset-0 rounded-full bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">

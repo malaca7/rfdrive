@@ -152,8 +152,10 @@ const AdminCorridas: React.FC = () => {
   const [showCreateRideDialog, setShowCreateRideDialog] = useState(false);
   const [createRideForm, setCreateRideForm] = useState({
     origem_texto: '', destino_texto: '', motorista_id: '' as string | null,
-    data: '', hora: '', observacoes: '', valor: '',
+    data: '', hora: '', observacoes: '', valor: '', temBagagem: false,
+    clienteNome: '', clienteTelefone: '',
   });
+  const [usarDataAtual, setUsarDataAtual] = useState(true);
   const [showCreateOrigemSugg, setShowCreateOrigemSugg] = useState(false);
   const [showCreateDestinoSugg, setShowCreateDestinoSugg] = useState(false);
   const allLocations = useAllLocations();
@@ -244,8 +246,8 @@ const AdminCorridas: React.FC = () => {
     mutationFn: async ({ rideId, updates }: { rideId: string; updates: Record<string, unknown> }) => {
       await resilientUpdate('corridas', updates, 'id', rideId);
     },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['admin-rides'] }); toast({ title: 'Corrida atualizada!' }); setShowEditRideDialog(false); setSelectedRide(null); },
-    onError: (e: any) => { toast({ title: 'Erro ao atualizar corrida', description: e?.message || 'Erro desconhecido', variant: 'destructive' }); },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['admin-rides'] }); toast({ title: 'Viagem atualizada!' }); setShowEditRideDialog(false); setSelectedRide(null); },
+    onError: (e: any) => { toast({ title: 'Erro ao atualizar viagem', description: e?.message || 'Erro desconhecido', variant: 'destructive' }); },
   });
 
   const deleteMutation = useMutation({
@@ -256,16 +258,18 @@ const AdminCorridas: React.FC = () => {
       const { error } = await supabase.from('corridas').delete().eq('id', id);
       if (error) throw error;
     },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['admin-rides'] }); toast({ title: 'Corrida excluída!' }); setShowDeleteConfirm(false); setDeleteTarget(null); },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['admin-rides'] }); toast({ title: 'Viagem excluída!' }); setShowDeleteConfirm(false); setDeleteTarget(null); },
     onError: (err: any) => { toast({ title: 'Erro ao excluir', description: err?.message, variant: 'destructive' }); },
   });
 
   const createRideMutation = useMutation({
     mutationFn: async () => {
       if (!createRideForm.motorista_id || !createRideForm.origem_texto.trim() || !createRideForm.destino_texto.trim()) throw new Error('Preencha motorista, origem e destino');
-      const concluidaAt = createRideForm.data
-        ? new Date(`${createRideForm.data}T${createRideForm.hora || '12:00'}`).toISOString()
-        : new Date().toISOString();
+      const concluidaAt = usarDataAtual
+        ? new Date().toISOString()
+        : (createRideForm.data
+          ? new Date(`${createRideForm.data}T${createRideForm.hora || '12:00'}`).toISOString()
+          : new Date().toISOString());
       const valor = createRideForm.valor ? parseFloat(createRideForm.valor) : (precoTabelaCreate?.valor ?? null);
       const { error } = await supabase.from('corridas').insert({
         cliente_id: createRideForm.motorista_id,
@@ -278,6 +282,9 @@ const AdminCorridas: React.FC = () => {
         aprovado_admin: true,
         concluida_at: concluidaAt,
         observacoes: createRideForm.observacoes.trim() || null,
+        tem_bagagem: createRideForm.temBagagem,
+        cliente_nome: createRideForm.clienteNome.trim() || null,
+        cliente_telefone: createRideForm.clienteTelefone.trim() || null,
         preco_regra_aplicada: precoTabelaCreate ? (precoTabelaCreate.estimado ? 'estimado' : 'tabela') : 'manual',
       });
       if (error) throw error;
@@ -286,7 +293,8 @@ const AdminCorridas: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['admin-rides'] });
       toast({ title: 'Viagem registrada com sucesso!' });
       setShowCreateRideDialog(false);
-      setCreateRideForm({ origem_texto: '', destino_texto: '', motorista_id: null, data: '', hora: '', observacoes: '', valor: '' });
+      setCreateRideForm({ origem_texto: '', destino_texto: '', motorista_id: null, data: '', hora: '', observacoes: '', valor: '', temBagagem: false, clienteNome: '', clienteTelefone: '' });
+      setUsarDataAtual(true);
     },
     onError: (err: any) => { toast({ title: 'Erro ao registrar viagem', description: err?.message, variant: 'destructive' }); },
   });
@@ -349,9 +357,9 @@ const AdminCorridas: React.FC = () => {
       <div className="mb-4 flex items-center justify-between flex-wrap gap-2">
         <div>
           <h1 className="text-xl font-extrabold flex items-center gap-2">
-            <Car className="w-5 h-5 text-accent" /> Corridas
+            <Car className="w-5 h-5 text-accent" /> Viagens
           </h1>
-          <p className="text-xs text-muted-foreground mt-1">Gerenciar todas as corridas da plataforma</p>
+          <p className="text-xs text-muted-foreground mt-1">Gerenciar todas as viagens da plataforma</p>
         </div>
         <Button className="gap-2" onClick={() => setShowCreateRideDialog(true)}>
           <Plus className="w-4 h-4" /> Registrar Viagem
@@ -426,7 +434,7 @@ const AdminCorridas: React.FC = () => {
       {loadingRides ? (
         <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin" /></div>
       ) : !filteredRides?.length ? (
-        <Card><CardContent className="py-12 text-center"><Car className="w-12 h-12 text-muted-foreground mx-auto mb-3" /><p className="text-muted-foreground">Nenhuma corrida encontrada</p></CardContent></Card>
+        <Card><CardContent className="py-12 text-center"><Car className="w-12 h-12 text-muted-foreground mx-auto mb-3" /><p className="text-muted-foreground">Nenhuma viagem encontrada</p></CardContent></Card>
       ) : (
         <div className="space-y-3">
           {filteredRides.map((ride, i) => {
@@ -483,7 +491,7 @@ const AdminCorridas: React.FC = () => {
                         <Button size="sm" variant="outline" className="text-xs gap-1 text-green-400 border-green-500/30 hover:bg-green-500/10" onClick={() => handleDirectApprove(ride)}><CheckCircle className="w-3 h-3" /> Aprovar</Button>
                         <Button size="sm" variant="outline" className="text-xs gap-1 text-yellow-400 border-yellow-500/30 hover:bg-yellow-500/10" onClick={() => openApprovalDialog(ride, 'nao_realizada')}><AlertTriangle className="w-3 h-3" /> Não Realizada</Button>
                         <Button size="sm" variant="outline" className="text-xs gap-1 text-red-400 border-red-500/30 hover:bg-red-500/10" onClick={() => openApprovalDialog(ride, 'recusada')}><XCircle className="w-3 h-3" /> Recusar</Button>
-                        <Button size="sm" variant="outline" className="text-xs gap-1 text-red-400 border-red-500/30 hover:bg-red-500/10 ml-auto" onClick={() => { setDeleteTarget({ id: ride.id, label: `Corrida de ${ride.cliente?.nome || 'cliente'}` }); setShowDeleteConfirm(true); }}>
+                        <Button size="sm" variant="outline" className="text-xs gap-1 text-red-400 border-red-500/30 hover:bg-red-500/10 ml-auto" onClick={() => { setDeleteTarget({ id: ride.id, label: `Viagem de ${ride.cliente?.nome || 'cliente'}` }); setShowDeleteConfirm(true); }}>
                           <Trash2 className="w-3 h-3" /> Excluir
                         </Button>
                       </div>
@@ -536,7 +544,7 @@ const AdminCorridas: React.FC = () => {
       {/* ═══ EDIT RIDE DIALOG ═══ */}
       <Dialog open={showEditRideDialog} onOpenChange={setShowEditRideDialog}>
         <DialogContent className="max-w-lg">
-          <DialogHeader><DialogTitle className="flex items-center gap-2"><Pencil className="w-5 h-5 text-accent" />Editar Corrida</DialogTitle><DialogDescription>Altere os dados da corrida.</DialogDescription></DialogHeader>
+          <DialogHeader><DialogTitle className="flex items-center gap-2"><Pencil className="w-5 h-5 text-accent" />Editar Viagem</DialogTitle><DialogDescription>Altere os dados da viagem.</DialogDescription></DialogHeader>
           <div className="space-y-4 py-2 max-h-[60vh] overflow-y-auto">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="sm:col-span-2"><Label className="text-xs">Origem</Label><Input value={editRideForm.origem_texto} onChange={(e) => setEditRideForm(f => ({ ...f, origem_texto: e.target.value }))} /></div>
@@ -580,7 +588,7 @@ const AdminCorridas: React.FC = () => {
       {/* ═══ DETAIL DIALOG ═══ */}
       <Dialog open={showDetailDialog} onOpenChange={setShowDetailDialog}>
         <DialogContent className="max-w-lg">
-          <DialogHeader><DialogTitle className="flex items-center gap-2"><Eye className="w-5 h-5" />Detalhes da Corrida</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle className="flex items-center gap-2"><Eye className="w-5 h-5" />Detalhes da Viagem</DialogTitle></DialogHeader>
           {selectedRide && (
             <div className="space-y-4 py-2 max-h-[60vh] overflow-y-auto">
               <div className="flex items-center gap-2"><span className="text-xs text-muted-foreground">Status:</span><Badge variant="outline" className={STATUS_CONFIG[selectedRide.status]?.color || ''}>{STATUS_CONFIG[selectedRide.status]?.label || selectedRide.status}</Badge></div>
@@ -655,7 +663,7 @@ const AdminCorridas: React.FC = () => {
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2"><Plus className="w-5 h-5 text-accent" />Registrar Viagem</DialogTitle>
-            <DialogDescription>Adicione uma viagem manualmente definindo motorista, rota, data e hora.</DialogDescription>
+            <DialogDescription>Registre uma viagem definindo motorista, rota, valor e data/hora.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2 max-h-[60vh] overflow-y-auto">
             {/* Motorista */}
@@ -741,19 +749,59 @@ const AdminCorridas: React.FC = () => {
                 placeholder={precoTabelaCreate ? `Tabelado: ${precoTabelaCreate.valor.toFixed(2)}` : 'Ex: 25.00'} />
             </div>
 
-            {/* Data e Hora */}
-            <div className="grid grid-cols-2 gap-3">
+            {/* Bagagem */}
+            <div className="flex items-center gap-2">
+              <button type="button" onClick={() => setCreateRideForm(f => ({ ...f, temBagagem: !f.temBagagem }))}
+                className={`w-9 h-5 rounded-full transition-colors relative ${createRideForm.temBagagem ? 'bg-accent' : 'bg-muted'}`}>
+                <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform ${createRideForm.temBagagem ? 'translate-x-4' : 'translate-x-0.5'}`} />
+              </button>
+              <Label className="text-xs cursor-pointer" onClick={() => setCreateRideForm(f => ({ ...f, temBagagem: !f.temBagagem }))}>📦 Com bagagem</Label>
+            </div>
+
+            {/* Cliente info */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <Label className="text-xs">Data</Label>
-                <Input type="date" value={createRideForm.data}
-                  onChange={e => setCreateRideForm(f => ({ ...f, data: e.target.value }))} />
-                <p className="text-[10px] text-muted-foreground mt-0.5">Deixe vazio para data atual</p>
+                <Label className="text-xs flex items-center gap-1.5"><User className="w-3 h-3" /> Nome do Cliente</Label>
+                <Input value={createRideForm.clienteNome} onChange={e => setCreateRideForm(f => ({ ...f, clienteNome: e.target.value }))} placeholder="Nome (opcional)" />
               </div>
               <div>
-                <Label className="text-xs">Hora</Label>
-                <Input type="time" value={createRideForm.hora}
-                  onChange={e => setCreateRideForm(f => ({ ...f, hora: e.target.value }))} />
+                <Label className="text-xs flex items-center gap-1.5"><Phone className="w-3 h-3" /> Telefone</Label>
+                <Input value={createRideForm.clienteTelefone} onChange={e => setCreateRideForm(f => ({ ...f, clienteTelefone: e.target.value }))} placeholder="(81) 9xxxx-xxxx" />
               </div>
+            </div>
+
+            {/* Data e Hora toggle */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-medium">Data e Hora</Label>
+                <button type="button" onClick={() => { setUsarDataAtual(!usarDataAtual); if (!usarDataAtual) setCreateRideForm(f => ({ ...f, data: '', hora: '' })); }}
+                  className="flex items-center gap-1.5 text-xs">
+                  <div className={`w-9 h-5 rounded-full transition-colors relative ${usarDataAtual ? 'bg-green-500' : 'bg-muted'}`}>
+                    <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform ${usarDataAtual ? 'translate-x-4' : 'translate-x-0.5'}`} />
+                  </div>
+                  <span className={usarDataAtual ? 'text-green-400 font-medium' : 'text-muted-foreground'}>Data/hora atual</span>
+                </button>
+              </div>
+              {!usarDataAtual && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs">Data</Label>
+                    <Input type="date" value={createRideForm.data}
+                      onChange={e => setCreateRideForm(f => ({ ...f, data: e.target.value }))} />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Hora</Label>
+                    <Input type="time" value={createRideForm.hora}
+                      onChange={e => setCreateRideForm(f => ({ ...f, hora: e.target.value }))} />
+                  </div>
+                </div>
+              )}
+              {usarDataAtual && (
+                <div className="bg-muted/50 rounded-lg p-2.5 text-xs text-muted-foreground flex items-center gap-2">
+                  <Clock className="w-3.5 h-3.5" />
+                  A viagem será registrada com a data e hora atuais.
+                </div>
+              )}
             </div>
 
             {/* Observações */}
