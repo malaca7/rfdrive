@@ -209,33 +209,22 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                 )}
               </>
             ) : (
-              <>
-                <div className="relative flex flex-col items-center justify-center gap-1 flex-1">
-                  <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-gradient-to-br from-purple-500 to-violet-400 shadow-lg shadow-purple-500/30">
-                    <Shield className="w-5 h-5 text-white" />
-                  </div>
-                  <span className="text-[10px] font-bold tracking-wide text-foreground">Admin</span>
-                </div>
-                {isAdmin && (
-                  <>
-                    <div className="w-px self-stretch my-2.5 bg-border mx-0.5" />
-                    <button
-                      onClick={() => setShowSwitcher(!showSwitcher)}
-                      className="relative flex flex-col items-center justify-center gap-1 flex-1 tap-highlight"
-                      title="Trocar painel"
-                    >
-                      <motion.div
-                        animate={{ rotate: showSwitcher ? 180 : 0 }}
-                        transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-                        className="w-10 h-10 rounded-xl flex items-center justify-center bg-gradient-to-br from-purple-500/20 to-violet-500/20 border border-purple-400/40 text-purple-400 hover:from-purple-500/30 hover:to-violet-500/30 hover:border-purple-400/60 transition-all"
-                      >
-                        <ChevronUp className="w-5 h-5" />
-                      </motion.div>
-                      <span className="text-[10px] font-bold tracking-wide text-purple-400">Painel</span>
-                    </button>
-                  </>
-                )}
-              </>
+              <div className="flex items-center justify-center flex-1">
+                <button
+                  onClick={() => setShowSwitcher(!showSwitcher)}
+                  className="relative flex flex-col items-center justify-center gap-1 tap-highlight"
+                  title="Trocar painel"
+                >
+                  <motion.div
+                    animate={{ rotate: showSwitcher ? 180 : 0 }}
+                    transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+                    className="w-10 h-10 rounded-xl flex items-center justify-center bg-gradient-to-br from-purple-500/20 to-violet-500/20 border border-purple-400/40 text-purple-400 hover:from-purple-500/30 hover:to-violet-500/30 hover:border-purple-400/60 transition-all"
+                  >
+                    <ChevronUp className="w-5 h-5" />
+                  </motion.div>
+                  <span className="text-[10px] font-bold tracking-wide text-purple-400">Painel</span>
+                </button>
+              </div>
             )}
           </div>
         </div>
