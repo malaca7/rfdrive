@@ -1085,7 +1085,7 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
           onClick={handleShare}
         >
           <Send className="w-5 h-5" />
-          Enviar Crachá (WhatsApp)
+          Baixar Crachá
         </Button>
       </div>
     </div>

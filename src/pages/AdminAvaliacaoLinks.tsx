@@ -437,7 +437,7 @@ const AdminAvaliacaoLinks: React.FC = () => {
                   >
                     <button className="w-full h-9 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[12px] font-medium flex items-center justify-center gap-2 transition-colors">
                       <WhatsAppIcon className="w-3.5 h-3.5" />
-                      Enviar via WhatsApp
+                      Baixar
                     </button>
                   </a>
                 )}

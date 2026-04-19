@@ -520,7 +520,7 @@ const CalculadoraDigitalRF: React.FC = () => {
                       className="w-full h-12 rounded-2xl text-base font-bold bg-[#25D366] hover:bg-[#20bd5a] text-white shadow-lg shadow-[#25D366]/30 transition-all"
                     >
                       <MessageCircle className="w-5 h-5 mr-2" />
-                      Enviar pelo WhatsApp
+                      Baixar
                     </Button>
 
                     <Button

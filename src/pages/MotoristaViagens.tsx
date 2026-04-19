@@ -886,7 +886,7 @@ const MotoristaViagens: React.FC = () => {
                     onClick={handleGerarRecibo}
                   >
                     <Send className="w-4 h-4" />
-                    Enviar Recibo (WhatsApp)
+                    Baixar Recibo
                   </Button>
 
                   <Separator />
