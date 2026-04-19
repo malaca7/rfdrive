@@ -1019,93 +1019,91 @@ const AdminDashboard: React.FC = () => {
                   return (
                     <motion.div key={u.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.015 }}>
                       <Card className={`transition-colors hover:border-border ${u.status === 'banido' ? 'border-red-500/30 bg-red-500/5 opacity-60' : ''}`}>
-                        <CardContent className="py-3 px-4">
-                          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
-                            {/* Avatar + Info */}
-                            <div className="flex items-center gap-3 min-w-0 flex-1">
-                              <div className="w-10 h-10 rounded-full shrink-0 overflow-hidden bg-accent/20 flex items-center justify-center">
-                                {u.avatar_url ? (
-                                  <img src={u.avatar_url} alt={u.nome} className="w-full h-full object-cover" />
-                                ) : (
-                                  <img src={getAnimalAvatarUrl(u.id)} alt={u.nome} className="w-full h-full object-cover" />
+                        <CardContent className="py-3 px-4 space-y-2">
+                          {/* Avatar + Info */}
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full shrink-0 overflow-hidden bg-accent/20 flex items-center justify-center">
+                              {u.avatar_url ? (
+                                <img src={u.avatar_url} alt={u.nome} className="w-full h-full object-cover" />
+                              ) : (
+                                <img src={getAnimalAvatarUrl(u.id)} alt={u.nome} className="w-full h-full object-cover" />
+                              )}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-2">
+                                <p className="font-medium truncate text-sm">{u.nome || 'Sem nome'}</p>
+                                {isAdmin && (
+                                  <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 bg-purple-500/20 text-purple-400 border-purple-500/30">
+                                    Admin
+                                  </Badge>
                                 )}
                               </div>
-                              <div className="min-w-0 flex-1">
-                                <div className="flex items-center gap-2">
-                                  <p className="font-medium truncate text-sm">{u.nome || 'Sem nome'}</p>
-                                  {isAdmin && (
-                                    <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 bg-purple-500/20 text-purple-400 border-purple-500/30">
-                                      Admin
-                                    </Badge>
-                                  )}
-                                </div>
-                                <div className="flex items-center gap-3 mt-0.5">
-                                  <span className="text-xs text-muted-foreground flex items-center gap-1">
-                                    <Phone className="w-3 h-3" /> {u.telefone}
-                                  </span>
-                                  <span className="text-[10px] text-muted-foreground">
-                                    {rideCount} corrida{rideCount !== 1 ? 's' : ''}
-                                  </span>
-                                </div>
+                              <div className="flex items-center gap-3 mt-0.5">
+                                <span className="text-xs text-muted-foreground flex items-center gap-1">
+                                  <Phone className="w-3 h-3" /> {u.telefone}
+                                </span>
+                                <span className="text-[10px] text-muted-foreground">
+                                  {rideCount} corrida{rideCount !== 1 ? 's' : ''}
+                                </span>
                               </div>
                             </div>
+                          </div>
 
-                            {/* Ações */}
-                            <div className="flex items-center gap-1 pt-2 sm:pt-0 border-t sm:border-t-0 border-border/40 flex-wrap">
-                              <Button
-                                size="icon" variant="ghost"
-                                className={`h-8 w-8 ${isAdmin ? 'text-purple-400 hover:text-purple-300' : 'text-muted-foreground hover:text-purple-400'}`}
-                                title={isAdmin ? 'Remover admin' : 'Tornar admin'}
-                                onClick={() => {
-                                  const newRoles = isAdmin ? ['motorista'] : ['motorista', 'admin'];
-                                  const newTipo = isAdmin ? 'motorista' : 'admin';
-                                  updateUserMutation.mutate({
-                                    userId: u.id,
-                                    updates: { roles: newRoles, tipo: newTipo },
-                                  });
-                                }}
-                              >
-                                <Shield className="w-3.5 h-3.5" />
-                              </Button>
-                              <Button
-                                size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                                title="Editar"
-                                onClick={() => openEditUserDialog(u)}
-                              >
-                                <Pencil className="w-3.5 h-3.5" />
-                              </Button>
-                              <Button
-                                size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:text-amber-400"
-                                title="Gerar Credencial"
-                                onClick={() => { setCredentialUser(u); setShowCredentialDialog(true); }}
-                              >
-                                <IdCard className="w-3.5 h-3.5" />
-                              </Button>
-                              <Button
-                                size="icon" variant="ghost"
-                                className={`h-8 w-8 ${u.status === 'ativo' ? 'text-green-400 hover:text-red-400' : 'text-red-400 hover:text-green-400'}`}
-                                title={u.status === 'ativo' ? 'Desativar' : 'Ativar'}
-                                onClick={() =>
-                                  updateUserMutation.mutate({
-                                    userId: u.id,
-                                    updates: {
-                                      status: u.status === 'ativo' ? 'banido' : 'ativo',
-                                      ativo: u.status !== 'ativo',
-                                    },
-                                  })
-                                }
-                              >
-                                {u.status === 'ativo' ? <CheckCircle className="w-3.5 h-3.5" /> : <XCircle className="w-3.5 h-3.5" />}
-                              </Button>
-                              <Button
-                                size="icon" variant="ghost"
-                                className="h-8 w-8 text-muted-foreground hover:text-red-400"
-                                title="Excluir"
-                                onClick={() => confirmDelete('user', u.id, u.nome)}
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </Button>
-                            </div>
+                          {/* Ações - sempre em linha separada */}
+                          <div className="flex items-center gap-1 pt-1 border-t border-border/40">
+                            <Button
+                              size="icon" variant="ghost"
+                              className={`h-8 w-8 ${isAdmin ? 'text-purple-400 hover:text-purple-300' : 'text-muted-foreground hover:text-purple-400'}`}
+                              title={isAdmin ? 'Remover admin' : 'Tornar admin'}
+                              onClick={() => {
+                                const newRoles = isAdmin ? ['motorista'] : ['motorista', 'admin'];
+                                const newTipo = isAdmin ? 'motorista' : 'admin';
+                                updateUserMutation.mutate({
+                                  userId: u.id,
+                                  updates: { roles: newRoles, tipo: newTipo },
+                                });
+                              }}
+                            >
+                              <Shield className="w-3.5 h-3.5" />
+                            </Button>
+                            <Button
+                              size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                              title="Editar"
+                              onClick={() => openEditUserDialog(u)}
+                            >
+                              <Pencil className="w-3.5 h-3.5" />
+                            </Button>
+                            <Button
+                              size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:text-amber-400"
+                              title="Gerar Credencial"
+                              onClick={() => { setCredentialUser(u); setShowCredentialDialog(true); }}
+                            >
+                              <IdCard className="w-3.5 h-3.5" />
+                            </Button>
+                            <Button
+                              size="icon" variant="ghost"
+                              className={`h-8 w-8 ${u.status === 'ativo' ? 'text-green-400 hover:text-red-400' : 'text-red-400 hover:text-green-400'}`}
+                              title={u.status === 'ativo' ? 'Desativar' : 'Ativar'}
+                              onClick={() =>
+                                updateUserMutation.mutate({
+                                  userId: u.id,
+                                  updates: {
+                                    status: u.status === 'ativo' ? 'banido' : 'ativo',
+                                    ativo: u.status !== 'ativo',
+                                  },
+                                })
+                              }
+                            >
+                              {u.status === 'ativo' ? <CheckCircle className="w-3.5 h-3.5" /> : <XCircle className="w-3.5 h-3.5" />}
+                            </Button>
+                            <Button
+                              size="icon" variant="ghost"
+                              className="h-8 w-8 text-muted-foreground hover:text-red-400"
+                              title="Excluir"
+                              onClick={() => confirmDelete('user', u.id, u.nome)}
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </Button>
                           </div>
                         </CardContent>
                       </Card>
