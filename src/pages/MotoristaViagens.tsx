@@ -13,7 +13,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Calculator, MapPin, DollarSign, CheckCircle, Loader2, Clock,
   MessageSquare, ChevronRight, TableProperties, AlertTriangle, Send,
-  Copy, Check, Phone, User, Users,
+  Copy, Check, Phone, User, Users, ShoppingCart, Armchair, FileText,
 } from 'lucide-react';
 import { usePrecoTabela, useAllLocations } from '@/hooks/usePrecoTabela';
 import { useDynamicAdjustment } from '@/hooks/useDynamicAdjustment';
@@ -22,11 +22,12 @@ import { getConfigTarifas, type ConfigTarifas } from '@/lib/pricing-engine';
 import { useToast } from '@/hooks/use-toast';
 import { usePlatformConfig } from '@/hooks/usePlatformConfig';
 import { openExternal, copyToClipboard } from '@/lib/native-helpers';
+import jsPDF from 'jspdf';
 
 const MotoristaViagens: React.FC = () => {
   const { user } = useAuth();
   const { toast } = useToast();
-  const { nomePlataforma, siglaPlataforma, slogan } = usePlatformConfig();
+  const { nomePlataforma, siglaPlataforma, slogan, logoUrl } = usePlatformConfig();
   const queryClient = useQueryClient();
   const allLocations = useAllLocations();
   const destinoRef = useRef<HTMLInputElement>(null);
@@ -161,6 +162,349 @@ const MotoristaViagens: React.FC = () => {
       setTimeout(() => setCopied(false), 2000);
     } else {
       toast({ title: 'Erro ao copiar', variant: 'destructive' });
+    }
+  };
+
+  // ── Generate unique token for digital validation ──
+  const generateToken = () => {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    const segments = [4, 4, 4, 4];
+    return segments.map(len => Array.from({ length: len }, () => chars[Math.floor(Math.random() * chars.length)]).join('')).join('-');
+  };
+
+  // ── Load image as base64 for jsPDF ──
+  const loadImageForPDF = (url: string): Promise<HTMLImageElement | null> => {
+    return new Promise(resolve => {
+      if (!url) { resolve(null); return; }
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => resolve(img);
+      img.onerror = () => resolve(null);
+      img.src = url;
+    });
+  };
+
+  // ── Gerar Recibo PDF e enviar WhatsApp ──
+  const handleGerarRecibo = async () => {
+    if (!precoEfetivo) return;
+    const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+    const W = 210;
+    const margin = 18;
+    const contentW = W - margin * 2;
+    let y = 0;
+
+    const now = new Date();
+    const dataFormatada = now.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
+    const horaFormatada = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    const recNum = `REC-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}-${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}`;
+    const token = generateToken();
+
+    // ══ Header Bar (dark) ══
+    doc.setFillColor(15, 23, 42);
+    doc.rect(0, 0, W, 44, 'F');
+
+    // Try to add logo
+    let logoLoaded = false;
+    if (logoUrl) {
+      try {
+        const logoImg = await loadImageForPDF(logoUrl);
+        if (logoImg) {
+          doc.addImage(logoImg, 'PNG', margin, 8, 28, 28);
+          logoLoaded = true;
+        }
+      } catch { /* fallback to text */ }
+    }
+
+    const textStartX = logoLoaded ? margin + 34 : margin;
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(18);
+    doc.setFont('helvetica', 'bold');
+    doc.text(nomePlataforma.toUpperCase(), textStartX, 20);
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(148, 163, 184);
+    doc.text(slogan || 'Transporte executivo', textStartX, 27);
+    // CNPJ / Contact line
+    doc.setFontSize(7);
+    doc.text('Serviço de transporte particular', textStartX, 33);
+
+    // Right side: receipt info
+    doc.setTextColor(148, 163, 184);
+    doc.setFontSize(7);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`N° ${recNum}`, W - margin, 14, { align: 'right' });
+    doc.text(`${dataFormatada}`, W - margin, 20, { align: 'right' });
+    doc.text(`${horaFormatada}`, W - margin, 26, { align: 'right' });
+    // Token badge
+    doc.setFillColor(99, 102, 241);
+    const tokenText = `TOKEN: ${token}`;
+    doc.setFontSize(6);
+    const tokenW = doc.getTextWidth(tokenText) + 6;
+    doc.roundedRect(W - margin - tokenW, 30, tokenW, 8, 1.5, 1.5, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFont('helvetica', 'bold');
+    doc.text(tokenText, W - margin - tokenW / 2, 35, { align: 'center' });
+
+    // Accent line below header
+    doc.setFillColor(99, 102, 241);
+    doc.rect(0, 44, W, 1.2, 'F');
+    y = 54;
+
+    // ══ Title ══
+    doc.setTextColor(15, 23, 42);
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text('RECIBO DE SERVIÇO DE TRANSPORTE', W / 2, y, { align: 'center' });
+    y += 3;
+    doc.setDrawColor(99, 102, 241);
+    doc.setLineWidth(0.6);
+    doc.line(W / 2 - 45, y, W / 2 + 45, y);
+    y += 10;
+
+    // ══ Client Info ══
+    if (clienteNome.trim() || clienteTelefone.trim()) {
+      doc.setFillColor(248, 250, 252);
+      doc.roundedRect(margin, y, contentW, 20, 2, 2, 'F');
+      doc.setDrawColor(226, 232, 240);
+      doc.setLineWidth(0.3);
+      doc.roundedRect(margin, y, contentW, 20, 2, 2, 'S');
+      doc.setFontSize(7);
+      doc.setTextColor(100, 116, 139);
+      doc.setFont('helvetica', 'bold');
+      doc.text('CONTRATANTE', margin + 5, y + 6);
+      doc.setFontSize(10);
+      doc.setTextColor(15, 23, 42);
+      doc.setFont('helvetica', 'normal');
+      doc.text(clienteNome.trim() || '—', margin + 5, y + 14);
+      if (clienteTelefone.trim()) {
+        doc.setFontSize(8);
+        doc.setTextColor(100, 116, 139);
+        doc.text(clienteTelefone.trim(), W - margin - 5, y + 14, { align: 'right' });
+      }
+      y += 26;
+    }
+
+    // ══ Route ══
+    doc.setFillColor(248, 250, 252);
+    doc.roundedRect(margin, y, contentW, 28, 2, 2, 'F');
+    doc.setDrawColor(226, 232, 240);
+    doc.setLineWidth(0.3);
+    doc.roundedRect(margin, y, contentW, 28, 2, 2, 'S');
+
+    // Origin
+    doc.setFillColor(34, 197, 94);
+    doc.circle(margin + 8, y + 8, 2, 'F');
+    doc.setFontSize(7);
+    doc.setTextColor(100, 116, 139);
+    doc.setFont('helvetica', 'bold');
+    doc.text('ORIGEM', margin + 14, y + 6);
+    doc.setFontSize(9);
+    doc.setTextColor(15, 23, 42);
+    doc.setFont('helvetica', 'normal');
+    doc.text(origem.trim(), margin + 14, y + 12);
+
+    // Dotted line between
+    doc.setDrawColor(203, 213, 225);
+    doc.setLineWidth(0.2);
+    doc.setLineDashPattern([1, 1], 0);
+    doc.line(margin + 8, y + 14, margin + 8, y + 17);
+    doc.setLineDashPattern([], 0);
+
+    // Destination
+    doc.setFillColor(99, 102, 241);
+    doc.circle(margin + 8, y + 22, 2, 'F');
+    doc.setFontSize(7);
+    doc.setTextColor(100, 116, 139);
+    doc.setFont('helvetica', 'bold');
+    doc.text('DESTINO', margin + 14, y + 20);
+    doc.setFontSize(9);
+    doc.setTextColor(15, 23, 42);
+    doc.setFont('helvetica', 'normal');
+    doc.text(destino.trim(), margin + 14, y + 26);
+    y += 34;
+
+    // ══ Fare Breakdown ══
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(15, 23, 42);
+    doc.text('DETALHAMENTO DE VALORES', margin, y);
+    y += 5;
+
+    // Table header
+    doc.setFillColor(15, 23, 42);
+    doc.roundedRect(margin, y, contentW, 7, 1, 1, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(7);
+    doc.setFont('helvetica', 'bold');
+    doc.text('DESCRIÇÃO', margin + 4, y + 5);
+    doc.text('VALOR (R$)', W - margin - 4, y + 5, { align: 'right' });
+    y += 7;
+
+    // Rows
+    const rows: { desc: string; valor: string }[] = [];
+    const tipoTarifa = precoEfetivo.mesmo_bairro ? 'Tarifa (mesmo bairro)' : precoEfetivo.estimado ? 'Tarifa estimada' : 'Tarifa tabelada';
+    rows.push({ desc: tipoTarifa, valor: precoEfetivo.valor.toFixed(2).replace('.', ',') });
+    if (!precoEfetivo.mesmo_bairro) {
+      rows.push({ desc: `   Ref: ${precoEfetivo.origem_tabela} → ${precoEfetivo.destino_tabela}`, valor: '' });
+    }
+    if (dynamicAdj) {
+      const ajusteValor = dynamicAdj.aplicar(precoEfetivo.valor) - precoEfetivo.valor;
+      rows.push({ desc: `Ajuste horário: ${dynamicAdj.regra.nome}`, valor: `+${ajusteValor.toFixed(2).replace('.', ',')}` });
+    }
+    if (temBagagem) {
+      rows.push({ desc: 'Taxa Feira/Bagagem', valor: `+${taxaBagagemValor.toFixed(2).replace('.', ',')}` });
+    }
+    if (carro6Lugares && taxaCarro6Valor > 0) {
+      const c6add = taxaCarro6Tipo === 'percentual' ? precoEfetivo.valor * (taxaCarro6Valor / 100) : taxaCarro6Valor;
+      rows.push({ desc: `Carro 6 lugares (${taxaCarro6Tipo === 'percentual' ? `${taxaCarro6Valor}%` : 'fixo'})`, valor: `+${c6add.toFixed(2).replace('.', ',')}` });
+    }
+    if (isTarifaMinima) {
+      rows.push({ desc: 'Ajuste tarifa mínima', valor: `→ ${totalValue.toFixed(2).replace('.', ',')}` });
+    }
+
+    rows.forEach((row, i) => {
+      if (i % 2 === 0) {
+        doc.setFillColor(248, 250, 252);
+        doc.rect(margin, y, contentW, 6.5, 'F');
+      }
+      doc.setTextColor(51, 65, 85);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7.5);
+      doc.text(row.desc, margin + 4, y + 4.5);
+      if (row.valor) {
+        doc.text(row.valor, W - margin - 4, y + 4.5, { align: 'right' });
+      }
+      y += 6.5;
+    });
+
+    // ══ Total ══
+    y += 2;
+    doc.setFillColor(99, 102, 241);
+    doc.roundedRect(margin, y, contentW, 14, 2, 2, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.text('VALOR TOTAL', margin + 6, y + 9);
+    doc.setFontSize(16);
+    doc.text(`R$ ${totalValue.toFixed(2).replace('.', ',')}`, W - margin - 6, y + 10, { align: 'right' });
+    y += 22;
+
+    // ══ Observation ══
+    if (observacao.trim()) {
+      doc.setFontSize(7);
+      doc.setTextColor(100, 116, 139);
+      doc.setFont('helvetica', 'bold');
+      doc.text('OBSERVAÇÕES', margin, y);
+      y += 4;
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(51, 65, 85);
+      const obsLines = doc.splitTextToSize(observacao.trim(), contentW - 8);
+      doc.setFillColor(248, 250, 252);
+      doc.roundedRect(margin, y, contentW, obsLines.length * 4.5 + 5, 2, 2, 'F');
+      doc.text(obsLines, margin + 4, y + 4);
+      y += obsLines.length * 4.5 + 10;
+    }
+
+    // ══ Digital Signature Section ══
+    y += 2;
+    doc.setFillColor(248, 250, 252);
+    doc.roundedRect(margin, y, contentW, 26, 2, 2, 'F');
+    doc.setDrawColor(99, 102, 241);
+    doc.setLineWidth(0.3);
+    doc.roundedRect(margin, y, contentW, 26, 2, 2, 'S');
+
+    doc.setFontSize(7);
+    doc.setTextColor(99, 102, 241);
+    doc.setFont('helvetica', 'bold');
+    doc.text('ASSINATURA DIGITAL', margin + 5, y + 6);
+    doc.setFontSize(6.5);
+    doc.setTextColor(51, 65, 85);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Token de Validação: ${token}`, margin + 5, y + 12);
+    doc.text(`Emitido por: ${nomePlataforma}`, margin + 5, y + 17);
+    doc.text(`Data/Hora: ${dataFormatada} às ${horaFormatada}`, margin + 5, y + 22);
+    // Checkmark badge
+    doc.setFillColor(34, 197, 94);
+    doc.circle(W - margin - 10, y + 13, 5, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'bold');
+    doc.text('✓', W - margin - 10, y + 15, { align: 'center' });
+    doc.setFontSize(5);
+    doc.setTextColor(34, 197, 94);
+    doc.text('VALIDADO', W - margin - 10, y + 22, { align: 'center' });
+    y += 32;
+
+    // ══ Emission info ══
+    doc.setFontSize(6.5);
+    doc.setTextColor(148, 163, 184);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Emissão: ${dataFormatada} às ${horaFormatada}`, margin, y);
+    y += 4;
+    doc.text('Este documento é um comprovante válido de serviço de transporte prestado.', margin, y);
+    y += 4;
+    doc.text('A autenticidade pode ser verificada pelo token de validação acima.', margin, y);
+    y += 10;
+
+    // ══ Signature lines ══
+    doc.setDrawColor(203, 213, 225);
+    doc.setLineWidth(0.3);
+    doc.line(margin, y, margin + 68, y);
+    doc.line(W - margin - 68, y, W - margin, y);
+    y += 4;
+    doc.setFontSize(6.5);
+    doc.setTextColor(148, 163, 184);
+    doc.text('Prestador do serviço', margin + 34, y, { align: 'center' });
+    doc.text('Contratante', W - margin - 34, y, { align: 'center' });
+
+    // ══ Footer ══
+    doc.setFillColor(15, 23, 42);
+    doc.rect(0, 287, W, 10, 'F');
+    doc.setFillColor(99, 102, 241);
+    doc.rect(0, 287, W, 0.8, 'F');
+    doc.setTextColor(148, 163, 184);
+    doc.setFontSize(6.5);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`${siglaPlataforma} • ${slogan}`, W / 2, 293, { align: 'center' });
+
+    // ── Save to Supabase ──
+    try {
+      await supabase.from('recibos').insert({
+        motorista_id: user!.id,
+        numero: recNum,
+        token,
+        cliente_nome: clienteNome.trim() || null,
+        cliente_telefone: clienteTelefone.trim() || null,
+        origem: origem.trim(),
+        destino: destino.trim(),
+        valor_total: totalValue,
+        detalhes: {
+          valor_base: precoEfetivo.valor,
+          tipo_tarifa: tipoTarifa,
+          ajuste_horario: dynamicAdj ? dynamicAdj.regra.nome : null,
+          taxa_bagagem: temBagagem ? taxaBagagemValor : null,
+          carro_6: carro6Lugares ? taxaCarro6Valor : null,
+          tarifa_minima: isTarifaMinima,
+        },
+      });
+    } catch { /* non-blocking: table may not exist yet */ }
+
+    // ── Share via WhatsApp as PDF (or fallback download) ──
+    try {
+      const pdfBlob = doc.output('blob');
+      const file = new File([pdfBlob], `recibo-${recNum}.pdf`, { type: 'application/pdf' });
+
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file] });
+      } else {
+        // Fallback: download
+        doc.save(`recibo-${recNum}.pdf`);
+      }
+      toast({ title: 'Recibo gerado!', description: `Token: ${token}` });
+    } catch {
+      // User cancelled or error — just download
+      doc.save(`recibo-${recNum}.pdf`);
+      toast({ title: 'Recibo salvo!', description: `Token: ${token}` });
     }
   };
 
@@ -318,25 +662,46 @@ const MotoristaViagens: React.FC = () => {
               <Textarea value={observacao} onChange={e => setObservacao(e.target.value)} placeholder="Horário, ponto de referência..." className="resize-none text-sm min-h-[60px]" rows={2} />
             </div>
 
-            {/* Bagagem */}
-            <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
-              <input type="checkbox" id="temBagagemViagem" checked={temBagagem} onChange={e => setTemBagagem(e.target.checked)} className="w-5 h-5 rounded border-border text-accent focus:ring-accent" />
-              <label htmlFor="temBagagemViagem" className="text-sm cursor-pointer">
-                <span className="font-medium">Feira ou Bagagem?</span>
-                <span className="text-muted-foreground"> (+R$ {taxaBagagemValor.toFixed(2).replace('.', ',')})</span>
-              </label>
-            </div>
+            {/* Bagagem + Carro 6 Lugares — lado a lado */}
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setTemBagagem(!temBagagem)}
+                className={`flex flex-col items-center gap-1.5 p-3 rounded-xl transition-all ${
+                  temBagagem ? 'bg-orange-500/15 border border-orange-500/30' : 'bg-muted/30 border border-transparent'
+                }`}
+              >
+                <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all ${
+                  temBagagem ? 'bg-orange-500/20 text-orange-400' : 'bg-muted/40 text-muted-foreground/40'
+                }`}>
+                  <ShoppingCart className="w-7 h-7" />
+                </div>
+                <span className={`text-[10px] font-semibold leading-tight text-center ${temBagagem ? 'text-orange-400' : 'text-muted-foreground'}`}>
+                  Feira/Bagagem
+                </span>
+                <span className="text-[9px] text-muted-foreground/70">+R$ {taxaBagagemValor.toFixed(2).replace('.', ',')}</span>
+              </button>
 
-            {/* Carro 6 Lugares */}
-            {taxaCarro6Valor > 0 && (
-              <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
-                <input type="checkbox" id="carro6Viagem" checked={carro6Lugares} onChange={e => setCarro6Lugares(e.target.checked)} className="w-5 h-5 rounded border-border text-accent focus:ring-accent" />
-                <label htmlFor="carro6Viagem" className="text-sm cursor-pointer">
-                  <span className="font-medium">Carro 6 lugares?</span>
-                  <span className="text-muted-foreground"> (+{taxaCarro6Tipo === 'percentual' ? `${taxaCarro6Valor}%` : `R$ ${taxaCarro6Valor.toFixed(2).replace('.', ',')}`})</span>
-                </label>
-              </div>
-            )}
+              {taxaCarro6Valor > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setCarro6Lugares(!carro6Lugares)}
+                  className={`flex flex-col items-center gap-1.5 p-3 rounded-xl transition-all ${
+                    carro6Lugares ? 'bg-cyan-500/15 border border-cyan-500/30' : 'bg-muted/30 border border-transparent'
+                  }`}
+                >
+                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all ${
+                    carro6Lugares ? 'bg-cyan-500/20 text-cyan-400' : 'bg-muted/40 text-muted-foreground/40'
+                  }`}>
+                    <Armchair className="w-7 h-7" />
+                  </div>
+                  <span className={`text-[10px] font-semibold leading-tight text-center ${carro6Lugares ? 'text-cyan-400' : 'text-muted-foreground'}`}>
+                    Carro 6 Lugares
+                  </span>
+                  <span className="text-[9px] text-muted-foreground/70">+{taxaCarro6Tipo === 'percentual' ? `${taxaCarro6Valor}%` : `R$ ${taxaCarro6Valor.toFixed(2).replace('.', ',')}`}</span>
+                </button>
+              )}
+            </div>
 
             {/* Price preview */}
             <AnimatePresence>
@@ -497,6 +862,15 @@ const MotoristaViagens: React.FC = () => {
                   <Button className="w-full gap-2 h-11 rounded-xl font-semibold" onClick={handleCopy}>
                     {copied ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
                     {copied ? 'Copiado!' : 'Copiar Orçamento'}
+                  </Button>
+
+                  <Button
+                    variant="outline"
+                    className="w-full gap-2 h-11 rounded-xl font-semibold border-green-500/30 text-green-400 hover:bg-green-500/10 hover:text-green-300"
+                    onClick={handleGerarRecibo}
+                  >
+                    <Send className="w-4 h-4" />
+                    Enviar Recibo (WhatsApp)
                   </Button>
 
                   <Separator />

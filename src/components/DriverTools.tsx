@@ -1081,11 +1081,11 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
       />
       <div className="flex flex-col gap-2 max-w-[420px] mx-auto">
         <Button
-          className="w-full h-11 rounded-xl gap-2 font-semibold text-base"
-          onClick={handleDownload}
+          className="w-full h-11 rounded-xl gap-2 font-semibold text-base bg-green-600 hover:bg-green-700 text-white"
+          onClick={handleShare}
         >
-          <Download className="w-5 h-5" />
-          Baixar Crachá
+          <Send className="w-5 h-5" />
+          Enviar Crachá (WhatsApp)
         </Button>
       </div>
     </div>

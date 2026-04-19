@@ -12,6 +12,7 @@ import {
   Star, TrendingUp, DollarSign, CheckCircle,
   Loader2, Filter, Calendar, Car, Award,
   Trophy, Flame, Target, Zap, Shield, ThumbsUp, MapPin,
+  Crown, Rocket, CalendarCheck, CalendarDays, Medal, Gem, Banknote, Timer, Gauge, Map,
 } from 'lucide-react';
 
 type PeriodFilter = 'semana' | 'semana_passada' | 'mes' | 'personalizado';
@@ -53,8 +54,12 @@ type DriverStats = {
   taxaConclusao: number;
   viagensHoje: number;
   viagensSemana: number;
+  viagensMes: number;
+  receitaAllTime: number;
   melhorDia: string;
 };
+
+type BadgeCategory = 'diario' | 'semanal' | 'mensal' | 'viagens' | 'receita' | 'qualidade';
 
 type BadgeDef = {
   id: string;
@@ -63,19 +68,48 @@ type BadgeDef = {
   description: string;
   condition: (stats: DriverStats) => boolean;
   color: string;
+  category: BadgeCategory;
+  progress?: (stats: DriverStats) => { current: number; target: number };
 };
 
+const BADGE_CATEGORIES: { key: BadgeCategory; label: string; emoji: string }[] = [
+  { key: 'diario', label: 'Metas Diárias', emoji: '🔥' },
+  { key: 'semanal', label: 'Metas Semanais', emoji: '📅' },
+  { key: 'mensal', label: 'Metas Mensais', emoji: '📆' },
+  { key: 'viagens', label: 'Marcos de Viagens', emoji: '🏆' },
+  { key: 'receita', label: 'Metas de Receita', emoji: '💰' },
+  { key: 'qualidade', label: 'Qualidade & Confiança', emoji: '⭐' },
+];
+
 const BADGES: BadgeDef[] = [
-  { id: 'first', icon: <Zap className="w-5 h-5" />, title: 'Primeira Corrida', description: 'Completou a primeira viagem', condition: (s) => s.viagensAprovadas >= 1, color: 'from-blue-500 to-cyan-400' },
-  { id: '10', icon: <Car className="w-5 h-5" />, title: '10 Viagens', description: 'Completou 10 viagens', condition: (s) => s.viagensAprovadas >= 10, color: 'from-green-500 to-emerald-400' },
-  { id: '25', icon: <TrendingUp className="w-5 h-5" />, title: '25 Viagens', description: 'Completou 25 viagens', condition: (s) => s.viagensAprovadas >= 25, color: 'from-purple-500 to-violet-400' },
-  { id: '50', icon: <Target className="w-5 h-5" />, title: '50 Viagens', description: 'Meio centenário na estrada', condition: (s) => s.viagensAprovadas >= 50, color: 'from-orange-500 to-amber-400' },
-  { id: '100', icon: <Trophy className="w-5 h-5" />, title: 'Centenário', description: '100 viagens completadas!', condition: (s) => s.viagensAprovadas >= 100, color: 'from-yellow-500 to-yellow-300' },
-  { id: '250', icon: <Award className="w-5 h-5" />, title: 'Lenda', description: '250 viagens — motorista lendário', condition: (s) => s.viagensAprovadas >= 250, color: 'from-red-500 to-pink-400' },
-  { id: 'star5', icon: <Star className="w-5 h-5" />, title: 'Nota Máxima', description: 'Avaliação média de 5.0', condition: (s) => s.avgRating === 5 && s.totalAvaliacoes >= 3, color: 'from-yellow-400 to-amber-300' },
-  { id: 'star4.5', icon: <ThumbsUp className="w-5 h-5" />, title: 'Excelência', description: 'Avaliação média ≥ 4.5', condition: (s) => (s.avgRating || 0) >= 4.5 && s.totalAvaliacoes >= 5, color: 'from-green-400 to-teal-300' },
-  { id: 'reliable', icon: <Shield className="w-5 h-5" />, title: 'Confiável', description: 'Taxa de conclusão ≥ 95%', condition: (s) => s.taxaConclusao >= 95 && s.viagensAprovadas >= 10, color: 'from-indigo-500 to-blue-400' },
-  { id: 'streak5', icon: <Flame className="w-5 h-5" />, title: 'Semana de Fogo', description: '5+ viagens na semana', condition: (s) => s.viagensSemana >= 5, color: 'from-red-500 to-orange-400' },
+  // ── Metas Diárias ──
+  { id: 'dia3', icon: <Timer className="w-5 h-5" />, title: 'Dia Produtivo', description: '3+ viagens em um dia', condition: (s) => s.viagensHoje >= 3, color: 'from-amber-500 to-orange-400', category: 'diario', progress: (s) => ({ current: s.viagensHoje, target: 3 }) },
+  { id: 'dia5', icon: <Rocket className="w-5 h-5" />, title: 'Super Dia', description: '5+ viagens em um dia', condition: (s) => s.viagensHoje >= 5, color: 'from-red-500 to-rose-400', category: 'diario', progress: (s) => ({ current: s.viagensHoje, target: 5 }) },
+  // ── Metas Semanais ──
+  { id: 'week3', icon: <CalendarCheck className="w-5 h-5" />, title: 'Semana Ativa', description: '3+ viagens esta semana', condition: (s) => s.viagensSemana >= 3, color: 'from-teal-500 to-cyan-400', category: 'semanal', progress: (s) => ({ current: s.viagensSemana, target: 3 }) },
+  { id: 'streak5', icon: <Flame className="w-5 h-5" />, title: 'Semana de Fogo', description: '5+ viagens na semana', condition: (s) => s.viagensSemana >= 5, color: 'from-red-500 to-orange-400', category: 'semanal', progress: (s) => ({ current: s.viagensSemana, target: 5 }) },
+  { id: 'week10', icon: <Crown className="w-5 h-5" />, title: 'Maratonista', description: '10+ viagens na semana', condition: (s) => s.viagensSemana >= 10, color: 'from-violet-500 to-purple-400', category: 'semanal', progress: (s) => ({ current: s.viagensSemana, target: 10 }) },
+  { id: 'week15', icon: <Medal className="w-5 h-5" />, title: 'Imbatível', description: '15+ viagens na semana', condition: (s) => s.viagensSemana >= 15, color: 'from-yellow-400 to-amber-300', category: 'semanal', progress: (s) => ({ current: s.viagensSemana, target: 15 }) },
+  // ── Metas Mensais ──
+  { id: 'mes15', icon: <CalendarDays className="w-5 h-5" />, title: 'Mês Ativo', description: '15+ viagens este mês', condition: (s) => s.viagensMes >= 15, color: 'from-sky-500 to-blue-400', category: 'mensal', progress: (s) => ({ current: s.viagensMes, target: 15 }) },
+  { id: 'mes30', icon: <Gem className="w-5 h-5" />, title: 'Mês de Ouro', description: '30+ viagens no mês', condition: (s) => s.viagensMes >= 30, color: 'from-yellow-500 to-amber-400', category: 'mensal', progress: (s) => ({ current: s.viagensMes, target: 30 }) },
+  { id: 'mes50', icon: <Gauge className="w-5 h-5" />, title: 'Máquina do Mês', description: '50+ viagens no mês', condition: (s) => s.viagensMes >= 50, color: 'from-emerald-500 to-green-400', category: 'mensal', progress: (s) => ({ current: s.viagensMes, target: 50 }) },
+  { id: 'mes80', icon: <Map className="w-5 h-5" />, title: 'Rei da Estrada', description: '80+ viagens no mês', condition: (s) => s.viagensMes >= 80, color: 'from-rose-500 to-pink-400', category: 'mensal', progress: (s) => ({ current: s.viagensMes, target: 80 }) },
+  // ── Marcos de Viagens ──
+  { id: 'first', icon: <Zap className="w-5 h-5" />, title: 'Primeira Corrida', description: 'Completou a primeira viagem', condition: (s) => s.viagensAprovadas >= 1, color: 'from-blue-500 to-cyan-400', category: 'viagens', progress: (s) => ({ current: s.viagensAprovadas, target: 1 }) },
+  { id: '10', icon: <Car className="w-5 h-5" />, title: '10 Viagens', description: 'Completou 10 viagens', condition: (s) => s.viagensAprovadas >= 10, color: 'from-green-500 to-emerald-400', category: 'viagens', progress: (s) => ({ current: s.viagensAprovadas, target: 10 }) },
+  { id: '25', icon: <TrendingUp className="w-5 h-5" />, title: '25 Viagens', description: 'Completou 25 viagens', condition: (s) => s.viagensAprovadas >= 25, color: 'from-purple-500 to-violet-400', category: 'viagens', progress: (s) => ({ current: s.viagensAprovadas, target: 25 }) },
+  { id: '50', icon: <Target className="w-5 h-5" />, title: '50 Viagens', description: 'Meio centenário na estrada', condition: (s) => s.viagensAprovadas >= 50, color: 'from-orange-500 to-amber-400', category: 'viagens', progress: (s) => ({ current: s.viagensAprovadas, target: 50 }) },
+  { id: '100', icon: <Trophy className="w-5 h-5" />, title: 'Centenário', description: '100 viagens completadas!', condition: (s) => s.viagensAprovadas >= 100, color: 'from-yellow-500 to-yellow-300', category: 'viagens', progress: (s) => ({ current: s.viagensAprovadas, target: 100 }) },
+  { id: '250', icon: <Award className="w-5 h-5" />, title: 'Lenda', description: '250 viagens — motorista lendário', condition: (s) => s.viagensAprovadas >= 250, color: 'from-red-500 to-pink-400', category: 'viagens', progress: (s) => ({ current: s.viagensAprovadas, target: 250 }) },
+  // ── Metas de Receita ──
+  { id: 'r500', icon: <Banknote className="w-5 h-5" />, title: 'R$ 500', description: 'Faturamento total de R$ 500+', condition: (s) => s.receitaAllTime >= 500, color: 'from-green-500 to-emerald-400', category: 'receita', progress: (s) => ({ current: s.receitaAllTime, target: 500 }) },
+  { id: 'r1k', icon: <Banknote className="w-5 h-5" />, title: 'R$ 1.000', description: 'Faturamento total de R$ 1.000+', condition: (s) => s.receitaAllTime >= 1000, color: 'from-emerald-500 to-teal-400', category: 'receita', progress: (s) => ({ current: s.receitaAllTime, target: 1000 }) },
+  { id: 'r5k', icon: <Banknote className="w-5 h-5" />, title: 'R$ 5.000', description: 'Faturamento total de R$ 5.000+', condition: (s) => s.receitaAllTime >= 5000, color: 'from-cyan-500 to-blue-400', category: 'receita', progress: (s) => ({ current: s.receitaAllTime, target: 5000 }) },
+  // ── Qualidade & Confiança ──
+  { id: 'star5', icon: <Star className="w-5 h-5" />, title: 'Nota Máxima', description: 'Avaliação média de 5.0', condition: (s) => s.avgRating === 5 && s.totalAvaliacoes >= 3, color: 'from-yellow-400 to-amber-300', category: 'qualidade' },
+  { id: 'star4.5', icon: <ThumbsUp className="w-5 h-5" />, title: 'Excelência', description: 'Avaliação média ≥ 4.5', condition: (s) => (s.avgRating || 0) >= 4.5 && s.totalAvaliacoes >= 5, color: 'from-green-400 to-teal-300', category: 'qualidade' },
+  { id: 'reliable', icon: <Shield className="w-5 h-5" />, title: 'Confiável', description: 'Taxa de conclusão ≥ 95%', condition: (s) => s.taxaConclusao >= 95 && s.viagensAprovadas >= 10, color: 'from-indigo-500 to-blue-400', category: 'qualidade' },
 ];
 
 const MotoristaDashboard: React.FC = () => {
@@ -121,7 +155,7 @@ const MotoristaDashboard: React.FC = () => {
         .from('corridas')
         .select('id', { count: 'exact', head: true })
         .eq('motorista_id', user!.id)
-        .in('status', ['aprovada', 'finalizada']);
+        .in('status', ['aprovada', 'finalizada', 'em_analise']);
       if (error) throw error;
       return count || 0;
     },
@@ -149,11 +183,42 @@ const MotoristaDashboard: React.FC = () => {
         .from('corridas')
         .select('id', { count: 'exact', head: true })
         .eq('motorista_id', user!.id)
-        .in('status', ['aprovada', 'finalizada'])
+        .in('status', ['aprovada', 'finalizada', 'em_analise'])
         .gte('concluida_at', weekRange[0].toISOString())
         .lte('concluida_at', weekRange[1].toISOString());
       if (error) throw error;
       return count || 0;
+    },
+    enabled: !!user,
+  });
+
+  const monthRange = useMemo(() => getMonthRange(), []);
+  const { data: monthRides } = useQuery({
+    queryKey: ['driver-month-rides', user?.id, monthRange[0].toISOString()],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from('corridas')
+        .select('id', { count: 'exact', head: true })
+        .eq('motorista_id', user!.id)
+        .in('status', ['aprovada', 'finalizada', 'em_analise'])
+        .gte('created_at', monthRange[0].toISOString())
+        .lte('created_at', monthRange[1].toISOString());
+      if (error) throw error;
+      return count || 0;
+    },
+    enabled: !!user,
+  });
+
+  const { data: allTimeRevenue } = useQuery({
+    queryKey: ['driver-alltime-revenue', user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('corridas')
+        .select('valor')
+        .eq('motorista_id', user!.id)
+        .in('status', ['aprovada', 'finalizada', 'em_analise']);
+      if (error) throw error;
+      return data?.reduce((sum, r) => sum + (r.valor || 0), 0) || 0;
     },
     enabled: !!user,
   });
@@ -193,9 +258,9 @@ const MotoristaDashboard: React.FC = () => {
     enabled: !!user,
   });
 
-  const viagensAprovadas = completedRides?.filter(r => r.status === 'aprovada' || r.status === 'finalizada').length || 0;
+  const viagensAprovadas = completedRides?.filter(r => r.status === 'aprovada' || r.status === 'finalizada' || r.status === 'em_analise').length || 0;
   const viagensPendentes = completedRides?.filter(r => r.status === 'em_analise').length || 0;
-  const receitaTotal = completedRides?.filter(r => r.status === 'aprovada' || r.status === 'finalizada').reduce((sum, r) => sum + (r.valor || 0), 0) || 0;
+  const receitaTotal = completedRides?.filter(r => r.status === 'aprovada' || r.status === 'finalizada' || r.status === 'em_analise').reduce((sum, r) => sum + (r.valor || 0), 0) || 0;
 
   const now = new Date();
   const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -212,7 +277,7 @@ const MotoristaDashboard: React.FC = () => {
 
   const topRoutes = useMemo(() => {
     const routeMap: Record<string, { origem: string; destino: string; count: number }> = {};
-    completedRides?.filter(r => r.status === 'aprovada' || r.status === 'finalizada').forEach(r => {
+    completedRides?.filter(r => r.status === 'aprovada' || r.status === 'finalizada' || r.status === 'em_analise').forEach(r => {
       if (r.origem_texto && r.destino_texto) {
         const key = `${r.origem_texto}→${r.destino_texto}`;
         if (!routeMap[key]) routeMap[key] = { origem: r.origem_texto, destino: r.destino_texto, count: 0 };
@@ -232,16 +297,12 @@ const MotoristaDashboard: React.FC = () => {
     taxaConclusao,
     viagensHoje,
     viagensSemana: weekRides || 0,
+    viagensMes: monthRides || 0,
+    receitaAllTime: allTimeRevenue || 0,
     melhorDia: dayNames[melhorDiaIdx],
   };
 
   const earnedBadges = BADGES.filter(b => b.condition(driverStats));
-  const lockedBadges = BADGES.filter(b => !b.condition(driverStats));
-  const nextBadge = lockedBadges[0];
-  const nextMilestone = useMemo(() => {
-    const milestones = [1, 10, 25, 50, 100, 250];
-    return milestones.find(m => m > (allTimeCount || 0)) || null;
-  }, [allTimeCount]);
 
   return (
     <AppShell>
@@ -375,77 +436,66 @@ const MotoristaDashboard: React.FC = () => {
               </Card>
             </motion.div>
 
-            {/* Insígnias */}
+            {/* Insígnias & Metas */}
             <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}>
-              <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center justify-between mb-4">
                 <h2 className="text-sm font-bold flex items-center gap-2">
                   <Award className="w-4 h-4 text-yellow-400" />
-                  Insígnias
+                  Insígnias & Metas
                 </h2>
                 <Badge variant="outline" className="text-xs">{earnedBadges.length}/{BADGES.length}</Badge>
               </div>
 
-              {earnedBadges.length > 0 && (
-                <div className="grid grid-cols-2 gap-2 mb-3">
-                  {earnedBadges.map((badge, i) => (
-                    <motion.div key={badge.id} initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.28 + i * 0.05 }}>
-                      <Card className="border-border/50 overflow-hidden">
-                        <CardContent className="py-3 px-3">
-                          <div className="flex items-center gap-3">
-                            <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${badge.color} flex items-center justify-center text-white shrink-0 shadow-lg`}>
-                              {badge.icon}
-                            </div>
-                            <div className="min-w-0">
-                              <p className="text-xs font-bold truncate">{badge.title}</p>
-                              <p className="text-[10px] text-muted-foreground truncate">{badge.description}</p>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </motion.div>
-                  ))}
-                </div>
-              )}
+              {BADGE_CATEGORIES.map(cat => {
+                const catBadges = BADGES.filter(b => b.category === cat.key);
+                const earned = catBadges.filter(b => b.condition(driverStats));
+                if (catBadges.length === 0) return null;
 
-              {nextBadge && nextMilestone && (
-                <Card className="mb-3 border-dashed border-muted-foreground/30">
-                  <CardContent className="py-3 px-[4%]">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center text-muted-foreground shrink-0 opacity-50">
-                        {nextBadge.icon}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-bold text-muted-foreground">Próxima: {nextBadge.title}</p>
-                        <p className="text-[10px] text-muted-foreground">{nextBadge.description}</p>
-                        <div className="mt-1.5 w-full h-1.5 bg-muted rounded-full overflow-hidden">
-                          <div className="h-full bg-accent rounded-full transition-all" style={{ width: `${Math.min(((allTimeCount || 0) / nextMilestone) * 100, 100)}%` }} />
-                        </div>
-                        <p className="text-[9px] text-muted-foreground mt-0.5">{allTimeCount || 0}/{nextMilestone} viagens</p>
-                      </div>
+                return (
+                  <div key={cat.key} className="mb-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-sm">{cat.emoji}</span>
+                      <h3 className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">{cat.label}</h3>
+                      <Badge variant="outline" className="text-[9px] ml-auto px-1.5 py-0">{earned.length}/{catBadges.length}</Badge>
                     </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              {lockedBadges.length > 0 && (
-                <div className="grid grid-cols-2 gap-2 mb-[4%]">
-                  {lockedBadges.map(badge => (
-                    <Card key={badge.id} className="border-border/20 opacity-40">
-                      <CardContent className="py-3 px-3">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center text-muted-foreground shrink-0">
-                            {badge.icon}
-                          </div>
-                          <div className="min-w-0">
-                            <p className="text-xs font-bold truncate">{badge.title}</p>
-                            <p className="text-[10px] text-muted-foreground truncate">{badge.description}</p>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              )}
+                    <div className="grid grid-cols-2 gap-2">
+                      {catBadges.map((badge, i) => {
+                        const isEarned = badge.condition(driverStats);
+                        const prog = badge.progress?.(driverStats);
+                        return (
+                          <motion.div key={badge.id} initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.02 * i }}>
+                            <Card className={`overflow-hidden transition-all ${isEarned ? 'border-border/50' : 'border-border/20 opacity-50'}`}>
+                              <CardContent className="py-3 px-3">
+                                <div className="flex items-center gap-3">
+                                  <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
+                                    isEarned
+                                      ? `bg-gradient-to-br ${badge.color} text-white shadow-lg`
+                                      : 'bg-muted text-muted-foreground'
+                                  }`}>
+                                    {badge.icon}
+                                  </div>
+                                  <div className="min-w-0 flex-1">
+                                    <p className="text-xs font-bold truncate">{badge.title}</p>
+                                    <p className="text-[10px] text-muted-foreground truncate">{badge.description}</p>
+                                    {!isEarned && prog && (
+                                      <>
+                                        <div className="mt-1.5 w-full h-1.5 bg-muted rounded-full overflow-hidden">
+                                          <div className="h-full bg-accent rounded-full transition-all" style={{ width: `${Math.min((prog.current / prog.target) * 100, 100)}%` }} />
+                                        </div>
+                                        <p className="text-[9px] text-muted-foreground mt-0.5">{Math.floor(prog.current)}/{prog.target}</p>
+                                      </>
+                                    )}
+                                  </div>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          </motion.div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
             </motion.div>
 
             {/* Corridas por dia + Top Rotas */}

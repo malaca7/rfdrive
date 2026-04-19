@@ -106,11 +106,11 @@ const MotoristaDashboardAll: React.FC = () => {
       if (motoristIds.length === 0) return {};
       const { data, error } = await supabase
         .from('users')
-        .select('id, nome, avatar_url')
+        .select('id, nome')
         .in('id', motoristIds);
       if (error) throw error;
       const map: Record<string, { nome: string; avatar_url: string | null }> = {};
-      data?.forEach(u => { map[u.id] = { nome: u.nome, avatar_url: u.avatar_url }; });
+      data?.forEach(u => { map[u.id] = { nome: u.nome, avatar_url: (u as any).avatar_url || null }; });
       return map;
     },
     enabled: motoristIds.length > 0,
@@ -165,7 +165,7 @@ const MotoristaDashboardAll: React.FC = () => {
 
     const ridesToday = allRides.filter(r => new Date(r.created_at) >= today).length;
     const ridesWeek = allRides.filter(r => new Date(r.created_at) >= weekAgo).length;
-    const completedCount = allRides.filter(r => r.status === 'aprovada' || r.status === 'finalizada').length;
+    const completedCount = allRides.filter(r => r.status === 'aprovada' || r.status === 'finalizada' || r.status === 'em_analise').length;
     const cancelledCount = byStatus.recusada + byStatus.nao_realizada;
 
     const allRatingsFlat: number[] = [];
@@ -176,7 +176,7 @@ const MotoristaDashboardAll: React.FC = () => {
       ? allRatingsFlat.reduce((a, b) => a + b, 0) / allRatingsFlat.length : null;
 
     const byDriver: Record<string, { viagens: number }> = {};
-    allRides.filter(r => r.status === 'aprovada' || r.status === 'finalizada').forEach(r => {
+    allRides.filter(r => r.status === 'aprovada' || r.status === 'finalizada' || r.status === 'em_analise').forEach(r => {
       const mid = r.motorista_id || 'unknown';
       if (!byDriver[mid]) byDriver[mid] = { viagens: 0 };
       byDriver[mid].viagens++;

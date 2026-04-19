@@ -279,26 +279,23 @@ const AdminAvaliacaoLinks: React.FC = () => {
     return (
       <AdminLayout>
         <motion.div
-          initial={{ opacity: 0, x: 20 }}
+          initial={{ opacity: 0, x: 16 }}
           animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -20 }}
-          className="space-y-4"
+          className="space-y-3"
         >
           {/* Header */}
-          <div className="flex items-center gap-3">
-            <Button
-              size="icon"
-              variant="ghost"
-              className="h-9 w-9 shrink-0"
+          <div className="flex items-center gap-2.5">
+            <button
+              className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-muted/40 transition-colors text-muted-foreground/60 hover:text-foreground shrink-0"
               onClick={() => setDetailLink(null)}
             >
-              <ChevronLeft className="w-5 h-5" />
-            </Button>
+              <ChevronLeft className="w-4 h-4" />
+            </button>
             <div className="flex-1 min-w-0">
-              <h1 className="text-lg font-bold">Detalhes da Avaliação</h1>
-              <p className="text-xs text-muted-foreground">Token: {detailLink.token.slice(0, 12)}...</p>
+              <h1 className="text-base font-semibold tracking-tight">Detalhes</h1>
+              <p className="text-[10px] text-muted-foreground/40 font-mono">{detailLink.token.slice(0, 12)}...</p>
             </div>
-            <Badge variant="outline" className={`text-[10px] px-2 py-0.5 shrink-0 ${effectiveStatus.color}`}>
+            <Badge className={`text-[8px] px-2 py-0.5 shrink-0 ${effectiveStatus.color}`}>
               {effectiveStatus.icon}
               <span className="ml-1">{isExpiredNow ? 'Expirada' : effectiveStatus.label}</span>
             </Badge>
@@ -306,10 +303,10 @@ const AdminAvaliacaoLinks: React.FC = () => {
 
           {/* Motorista Card */}
           <Card>
-            <CardContent className="py-4 px-4">
-              <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider mb-3">Motorista</p>
-              <div className="flex items-center gap-3">
-                <div className="w-14 h-14 rounded-full shrink-0 overflow-hidden bg-accent/20 flex items-center justify-center">
+            <CardContent className="py-3 px-3.5">
+              <p className="text-[9px] text-muted-foreground/50 font-medium uppercase tracking-wider mb-2">Motorista</p>
+              <div className="flex items-center gap-2.5">
+                <div className="w-11 h-11 rounded-xl shrink-0 overflow-hidden bg-muted/40 ring-1 ring-border/30">
                   {motorista?.avatar_url ? (
                     <img src={motorista.avatar_url} alt="" className="w-full h-full object-cover" />
                   ) : (
@@ -317,8 +314,8 @@ const AdminAvaliacaoLinks: React.FC = () => {
                   )}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="font-semibold text-base">{motorista?.nome || 'Motorista removido'}</p>
-                  <p className="text-xs text-muted-foreground">{motorista?.telefone || ''}</p>
+                  <p className="font-semibold text-[14px] tracking-tight">{motorista?.nome || 'Removido'}</p>
+                  <p className="text-[11px] text-muted-foreground/50">{motorista?.telefone || ''}</p>
                 </div>
               </div>
             </CardContent>
@@ -327,15 +324,15 @@ const AdminAvaliacaoLinks: React.FC = () => {
           {/* Cliente info (se disponível) */}
           {(detailLink.cliente_nome || detailLink.cliente_telefone) && (
             <Card>
-              <CardContent className="py-3 px-4">
-                <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider mb-2">Cliente</p>
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-muted/50 flex items-center justify-center shrink-0">
-                    <User className="w-5 h-5 text-muted-foreground" />
+              <CardContent className="py-3 px-3.5">
+                <p className="text-[9px] text-muted-foreground/50 font-medium uppercase tracking-wider mb-2">Cliente</p>
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-muted/30 flex items-center justify-center shrink-0 ring-1 ring-border/20">
+                    <User className="w-3.5 h-3.5 text-muted-foreground/50" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    {detailLink.cliente_nome && <p className="text-sm font-medium">{detailLink.cliente_nome}</p>}
-                    {detailLink.cliente_telefone && <p className="text-xs text-muted-foreground">{detailLink.cliente_telefone}</p>}
+                    {detailLink.cliente_nome && <p className="text-[13px] font-medium tracking-tight">{detailLink.cliente_nome}</p>}
+                    {detailLink.cliente_telefone && <p className="text-[11px] text-muted-foreground/50">{detailLink.cliente_telefone}</p>}
                   </div>
                   {canWhatsApp && (
                     <a
@@ -343,10 +340,10 @@ const AdminAvaliacaoLinks: React.FC = () => {
                       target="_blank"
                       rel="noopener noreferrer"
                     >
-                      <Button size="sm" className="gap-1.5 bg-green-600 hover:bg-green-700 text-white h-8 text-xs">
-                        <WhatsAppIcon className="w-3.5 h-3.5" />
+                      <button className="h-8 px-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-medium flex items-center gap-1.5 transition-colors">
+                        <WhatsAppIcon className="w-3 h-3" />
                         WhatsApp
-                      </Button>
+                      </button>
                     </a>
                   )}
                 </div>
@@ -356,61 +353,45 @@ const AdminAvaliacaoLinks: React.FC = () => {
 
           {/* Info Cards */}
           <div className="grid grid-cols-2 gap-2">
-            <Card>
-              <CardContent className="py-3 px-3">
-                <p className="text-[10px] text-muted-foreground font-medium mb-1">CRIADO EM</p>
-                <p className="font-medium text-xs">{new Date(detailLink.created_at).toLocaleString('pt-BR')}</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="py-3 px-3">
-                <p className="text-[10px] text-muted-foreground font-medium mb-1">EXPIRA EM</p>
-                <p className="font-medium text-xs">{new Date(detailLink.expira_em).toLocaleString('pt-BR')}</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="py-3 px-3">
-                <p className="text-[10px] text-muted-foreground font-medium mb-1">COMENTÁRIO</p>
-                <p className="font-medium text-xs">{detailLink.permite_comentario ? '✅ Habilitado' : '❌ Desabilitado'}</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="py-3 px-3">
-                <p className="text-[10px] text-muted-foreground font-medium mb-1">GERADO POR</p>
-                <p className="font-medium text-xs truncate">
-                  {detailLink.admin_id && adminMap[detailLink.admin_id]
-                    ? adminMap[detailLink.admin_id].nome
-                    : 'Sistema'}
-                </p>
-              </CardContent>
-            </Card>
+            {[
+              { label: 'Criado em', value: new Date(detailLink.created_at).toLocaleString('pt-BR') },
+              { label: 'Expira em', value: new Date(detailLink.expira_em).toLocaleString('pt-BR') },
+              { label: 'Comentário', value: detailLink.permite_comentario ? 'Habilitado' : 'Desabilitado' },
+              { label: 'Gerado por', value: detailLink.admin_id && adminMap[detailLink.admin_id] ? adminMap[detailLink.admin_id].nome : 'Sistema' },
+            ].map(item => (
+              <Card key={item.label} className="card-hover">
+                <CardContent className="py-2.5 px-3">
+                  <p className="text-[9px] text-muted-foreground/40 font-medium uppercase tracking-wider mb-0.5">{item.label}</p>
+                  <p className="font-medium text-[11px] tracking-tight truncate">{item.value}</p>
+                </CardContent>
+              </Card>
+            ))}
           </div>
 
           {/* Rating se respondida */}
           {detailLink.status === 'respondida' && detailLink.nota && (
-            <Card className="border-yellow-500/20">
-              <CardContent className="py-4 px-4 space-y-3">
-                <p className="text-[10px] text-yellow-400 font-semibold uppercase tracking-wider">RESPOSTA DO CLIENTE</p>
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center gap-1">
+            <Card className="border-amber-500/10">
+              <CardContent className="py-3 px-3.5 space-y-2.5">
+                <p className="text-[9px] text-amber-400/80 font-medium uppercase tracking-wider">Resposta do Cliente</p>
+                <div className="flex items-center gap-2.5">
+                  <div className="flex items-center gap-px">
                     {[1, 2, 3, 4, 5].map(s => (
                       <Star
                         key={s}
-                        className={`w-6 h-6 ${s <= detailLink.nota! ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground/30'}`}
+                        className={`w-5 h-5 ${s <= detailLink.nota! ? 'fill-amber-400 text-amber-400 drop-shadow-[0_0_6px_rgba(251,191,36,0.4)]' : 'text-muted-foreground/15'}`}
                       />
                     ))}
                   </div>
-                  <span className="text-2xl font-bold text-yellow-400">{detailLink.nota}/5</span>
+                  <span className="text-xl font-bold text-amber-400 tracking-tight">{detailLink.nota}</span>
                 </div>
                 {detailLink.respondida_em && (
-                  <p className="text-[10px] text-muted-foreground">
-                    Respondida em {new Date(detailLink.respondida_em).toLocaleString('pt-BR')}
+                  <p className="text-[10px] text-muted-foreground/40">
+                    {new Date(detailLink.respondida_em).toLocaleString('pt-BR')}
                   </p>
                 )}
                 {detailLink.comentario && (
-                  <div className="bg-muted/30 rounded-lg p-3 mt-2">
-                    <p className="text-[10px] text-muted-foreground font-medium mb-1">COMENTÁRIO</p>
-                    <p className="text-sm italic text-foreground/80">"{detailLink.comentario}"</p>
+                  <div className="bg-muted/20 rounded-xl p-2.5 border border-border/20">
+                    <p className="text-[12px] italic text-foreground/70">"{detailLink.comentario}"</p>
                   </div>
                 )}
               </CardContent>
@@ -422,28 +403,27 @@ const AdminAvaliacaoLinks: React.FC = () => {
             {(detailLink.status === 'ativa' && !isExpiredNow) && (
               <>
                 <Card>
-                  <CardContent className="py-3 px-4">
-                    <p className="text-[10px] text-muted-foreground font-medium mb-2">LINK DA AVALIAÇÃO</p>
-                    <code className="text-[10px] text-muted-foreground bg-muted/40 rounded px-2 py-1.5 block truncate mb-3">
+                  <CardContent className="py-3 px-3.5">
+                    <p className="text-[9px] text-muted-foreground/40 font-medium uppercase tracking-wider mb-1.5">Link da avaliação</p>
+                    <code className="text-[9px] text-muted-foreground/40 bg-muted/20 rounded-lg px-2.5 py-1.5 block truncate mb-2.5 border border-border/20">
                       {url}
                     </code>
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        className="flex-1 gap-1.5 h-9"
+                    <div className="flex gap-1.5">
+                      <button
+                        className="flex-1 h-8 rounded-lg bg-indigo-500 hover:bg-indigo-400 text-white text-[11px] font-medium flex items-center justify-center gap-1.5 transition-colors"
                         onClick={async () => {
                           await copyToClipboard(url);
                           setCopiedToken(detailLink.token);
                           setTimeout(() => setCopiedToken(null), 2000);
                         }}
                       >
-                        {copiedToken === detailLink.token ? <Check className="w-3.5 h-3.5 text-green-400" /> : <Copy className="w-3.5 h-3.5" />}
-                        {copiedToken === detailLink.token ? 'Copiado!' : 'Copiar Link'}
-                      </Button>
+                        {copiedToken === detailLink.token ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                        {copiedToken === detailLink.token ? 'Copiado!' : 'Copiar'}
+                      </button>
                       <a href={url} target="_blank" rel="noopener noreferrer" className="flex-1">
-                        <Button size="sm" variant="outline" className="w-full gap-1.5 h-9">
-                          <ExternalLink className="w-3.5 h-3.5" /> Abrir
-                        </Button>
+                        <button className="w-full h-8 rounded-lg border border-border/30 hover:bg-muted/30 text-[11px] font-medium flex items-center justify-center gap-1.5 transition-colors text-muted-foreground hover:text-foreground">
+                          <ExternalLink className="w-3 h-3" /> Abrir
+                        </button>
                       </a>
                     </div>
                   </CardContent>
@@ -455,23 +435,21 @@ const AdminAvaliacaoLinks: React.FC = () => {
                     rel="noopener noreferrer"
                     className="block"
                   >
-                    <Button size="sm" className="w-full gap-2 h-10 bg-green-600 hover:bg-green-700 text-white">
-                      <WhatsAppIcon className="w-4 h-4" />
-                      Enviar avaliação via WhatsApp
-                    </Button>
+                    <button className="w-full h-9 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[12px] font-medium flex items-center justify-center gap-2 transition-colors">
+                      <WhatsAppIcon className="w-3.5 h-3.5" />
+                      Enviar via WhatsApp
+                    </button>
                   </a>
                 )}
               </>
             )}
 
-            <Button
-              variant="destructive"
-              size="sm"
-              className="w-full gap-1.5 h-9"
+            <button
+              className="w-full h-8 rounded-lg border border-red-500/20 text-red-400 hover:bg-red-500/10 text-[11px] font-medium flex items-center justify-center gap-1.5 transition-colors"
               onClick={() => { deleteMutation.mutate(detailLink.id); setDetailLink(null); }}
             >
-              <Trash2 className="w-3.5 h-3.5" /> Excluir Avaliação
-            </Button>
+              <Trash2 className="w-3 h-3" /> Excluir
+            </button>
           </div>
         </motion.div>
       </AdminLayout>
@@ -480,85 +458,63 @@ const AdminAvaliacaoLinks: React.FC = () => {
 
   return (
     <AdminLayout>
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-5">
         <div>
-          <h1 className="text-xl font-extrabold flex items-center gap-2">
-            <Star className="w-5 h-5 text-accent" /> Avaliações
+          <h1 className="text-lg font-bold flex items-center gap-2 tracking-tight">
+            <div className="w-7 h-7 rounded-lg bg-indigo-500/10 flex items-center justify-center">
+              <Star className="w-3.5 h-3.5 text-indigo-400" />
+            </div>
+            Avaliações
           </h1>
-          <p className="text-xs text-muted-foreground mt-1">
-            Gere links únicos para clientes avaliarem motoristas
+          <p className="text-[11px] text-muted-foreground/60 mt-0.5 ml-9">
+            Links de avaliação para clientes
           </p>
         </div>
         <Button
-          className="gap-1.5 bg-accent hover:bg-accent/90 text-white font-semibold shadow-lg shadow-accent/25"
+          size="sm"
+          className="gap-1.5 bg-indigo-500 hover:bg-indigo-400 text-white font-medium shadow-md shadow-indigo-500/20 h-8 text-[12px] rounded-lg"
           onClick={() => setShowCreateDialog(true)}
         >
-          <Plus className="w-4 h-4" /> Gerar uma Avaliação
+          <Plus className="w-3.5 h-3.5" /> Nova Avaliação
         </Button>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
-        <Card>
-          <CardContent className="py-3 px-4 flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-muted/50 flex items-center justify-center">
-              <Star className="w-4 h-4 text-muted-foreground" />
-            </div>
-            <div>
-              <p className="text-lg font-bold leading-none">{stats.total}</p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">Total</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="py-3 px-4 flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-green-500/10 flex items-center justify-center">
-              <Clock className="w-4 h-4 text-green-400" />
-            </div>
-            <div>
-              <p className="text-lg font-bold leading-none text-green-400">{stats.ativas}</p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">Ativas</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="py-3 px-4 flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-blue-500/10 flex items-center justify-center">
-              <Check className="w-4 h-4 text-blue-400" />
-            </div>
-            <div>
-              <p className="text-lg font-bold leading-none text-blue-400">{stats.respondidas}</p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">Respondidas</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="py-3 px-4 flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-red-500/10 flex items-center justify-center">
-              <AlertCircle className="w-4 h-4 text-red-400" />
-            </div>
-            <div>
-              <p className="text-lg font-bold leading-none text-red-400">{stats.expiradas}</p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">Expiradas</p>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="grid grid-cols-4 gap-2 mb-4">
+        {[
+          { label: 'Total', value: stats.total, icon: Star, color: 'text-muted-foreground/70', bg: 'bg-muted/30' },
+          { label: 'Ativas', value: stats.ativas, icon: Clock, color: 'text-emerald-400', bg: 'bg-emerald-500/8' },
+          { label: 'Respondidas', value: stats.respondidas, icon: Check, color: 'text-blue-400', bg: 'bg-blue-500/8' },
+          { label: 'Expiradas', value: stats.expiradas, icon: AlertCircle, color: 'text-red-400', bg: 'bg-red-500/8' },
+        ].map(s => (
+          <Card key={s.label} className="card-hover">
+            <CardContent className="py-2.5 px-3 flex items-center gap-2">
+              <div className={`w-7 h-7 rounded-lg ${s.bg} flex items-center justify-center shrink-0`}>
+                <s.icon className={`w-3 h-3 ${s.color}`} />
+              </div>
+              <div>
+                <p className={`text-base font-bold leading-none tracking-tight ${s.color}`}>{s.value}</p>
+                <p className="text-[9px] text-muted-foreground/50 mt-0.5">{s.label}</p>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
       {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-3 mb-4">
+      <div className="flex flex-col sm:flex-row gap-2 mb-3">
         <div className="relative flex-1">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground/40" />
           <Input
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Buscar por motorista ou cliente..."
-            className="pl-9"
+            placeholder="Buscar..."
+            className="pl-8 h-8 text-[12px] bg-muted/20 border-border/20 rounded-lg"
           />
         </div>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-full sm:w-48">
-            <Filter className="w-4 h-4 mr-2" />
+          <SelectTrigger className="w-full sm:w-36 h-8 text-[12px] bg-muted/20 border-border/20 rounded-lg">
+            <Filter className="w-3 h-3 mr-1.5 text-muted-foreground/40" />
             <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>
@@ -575,14 +531,17 @@ const AdminAvaliacaoLinks: React.FC = () => {
         <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin" /></div>
       ) : !filteredLinks?.length ? (
         <Card>
-          <CardContent className="py-12 text-center">
-            <Star className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
-            <p className="text-muted-foreground">Nenhuma avaliação encontrada</p>
+          <CardContent className="py-14 text-center">
+            <div className="w-12 h-12 rounded-2xl bg-muted/30 flex items-center justify-center mx-auto mb-3">
+              <Star className="w-6 h-6 text-muted-foreground/40" />
+            </div>
+            <p className="text-sm text-muted-foreground/60 mb-4">Nenhuma avaliação encontrada</p>
             <Button
-              className="mt-4 gap-1 bg-accent hover:bg-accent/90 text-white"
+              size="sm"
+              className="gap-1.5 bg-indigo-500 hover:bg-indigo-400 text-white h-8 text-[12px] rounded-lg"
               onClick={() => setShowCreateDialog(true)}
             >
-              <Plus className="w-4 h-4" /> Gerar uma Avaliação
+              <Plus className="w-3.5 h-3.5" /> Nova Avaliação
             </Button>
           </CardContent>
         </Card>
@@ -600,16 +559,16 @@ const AdminAvaliacaoLinks: React.FC = () => {
               return (
                 <motion.div
                   key={link.id}
-                  initial={{ opacity: 0, y: 8 }}
+                  initial={{ opacity: 0, y: 6 }}
                   animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }}
-                  transition={{ delay: i * 0.02 }}
+                  exit={{ opacity: 0, y: -6 }}
+                  transition={{ delay: i * 0.015, duration: 0.25 }}
                 >
-                  <Card className={`transition-colors hover:border-border ${link.status === 'expirada' || isExpiredNow ? 'opacity-50' : ''}`}>
-                    <CardContent className="py-3 px-4">
-                      <div className="flex items-start gap-3">
+                  <Card className={`card-hover ${link.status === 'expirada' || isExpiredNow ? 'opacity-40' : ''}`}>
+                    <CardContent className="py-3 px-3.5">
+                      <div className="flex items-start gap-2.5">
                         {/* Avatar */}
-                        <div className="w-10 h-10 rounded-full shrink-0 overflow-hidden bg-accent/20 flex items-center justify-center">
+                        <div className="w-9 h-9 rounded-xl shrink-0 overflow-hidden bg-muted/40 ring-1 ring-border/30">
                           {motorista?.avatar_url ? (
                             <img src={motorista.avatar_url} alt="" className="w-full h-full object-cover" />
                           ) : (
@@ -619,72 +578,68 @@ const AdminAvaliacaoLinks: React.FC = () => {
 
                         {/* Info */}
                         <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <p className="font-medium text-sm truncate">{motorista?.nome || 'Motorista removido'}</p>
-                            <Badge variant="outline" className={`text-[9px] px-1.5 py-0 h-4 ${effectiveStatus.color}`}>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <p className="font-medium text-[13px] tracking-tight truncate">{motorista?.nome || 'Removido'}</p>
+                            <Badge className={`text-[8px] px-1.5 py-0 ${effectiveStatus.color}`}>
                               {effectiveStatus.icon}
-                              <span className="ml-1">{isExpiredNow ? 'Expirada' : effectiveStatus.label}</span>
+                              <span className="ml-0.5">{isExpiredNow ? 'Expirada' : effectiveStatus.label}</span>
                             </Badge>
                             {link.permite_comentario && (
-                              <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 bg-muted/40 border-border">
-                                <MessageSquare className="w-2.5 h-2.5 mr-0.5" /> Comentário
+                              <Badge className="text-[8px] px-1.5 py-0 bg-muted/20 border-border/30 text-muted-foreground/60">
+                                <MessageSquare className="w-2 h-2 mr-0.5" /> Com.
                               </Badge>
                             )}
                           </div>
 
-                          {/* Cliente info inline */}
                           {link.cliente_nome && (
-                            <p className="text-[10px] text-muted-foreground mt-0.5">
-                              <User className="w-2.5 h-2.5 inline mr-0.5" />
-                              Cliente: {link.cliente_nome}
+                            <p className="text-[10px] text-muted-foreground/50 mt-0.5 flex items-center gap-1">
+                              <User className="w-2 h-2" /> {link.cliente_nome}
                             </p>
                           )}
 
-                          <div className="flex items-center gap-3 mt-1 text-[10px] text-muted-foreground">
+                          <div className="flex items-center gap-2 mt-1 text-[9px] text-muted-foreground/40">
                             {link.admin_id && adminMap[link.admin_id] && (
-                              <><span>Por {adminMap[link.admin_id].nome}</span><span>•</span></>
+                              <><span>{adminMap[link.admin_id].nome}</span><span>·</span></>
                             )}
-                            <span>Criado {timeAgo(link.created_at)}</span>
-                            <span>•</span>
+                            <span>{timeAgo(link.created_at)}</span>
+                            <span>·</span>
                             {link.status === 'ativa' && !isExpiredNow ? (
-                              <span className="text-green-400">Expira em {timeLeft(link.expira_em)}</span>
+                              <span className="text-emerald-400/70">{timeLeft(link.expira_em)}</span>
                             ) : link.status === 'respondida' ? (
-                              <span className="text-blue-400">Respondida {timeAgo(link.respondida_em!)}</span>
+                              <span className="text-blue-400/70">{timeAgo(link.respondida_em!)}</span>
                             ) : (
-                              <span className="text-red-400">Expirada</span>
+                              <span className="text-red-400/60">Expirada</span>
                             )}
                           </div>
 
-                          {/* Nota se respondida */}
+                          {/* Rating */}
                           {link.status === 'respondida' && link.nota && (
-                            <div className="mt-2 flex items-center gap-2">
-                              <div className="flex items-center gap-0.5">
+                            <div className="mt-1.5 flex items-center gap-1.5">
+                              <div className="flex items-center gap-px">
                                 {[1, 2, 3, 4, 5].map(s => (
                                   <Star
                                     key={s}
-                                    className={`w-3.5 h-3.5 ${s <= link.nota! ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground/30'}`}
+                                    className={`w-3 h-3 ${s <= link.nota! ? 'fill-amber-400 text-amber-400' : 'text-muted-foreground/15'}`}
                                   />
                                 ))}
                               </div>
-                              <span className="text-xs font-semibold text-yellow-400">{link.nota}/5</span>
+                              <span className="text-[10px] font-semibold text-amber-400">{link.nota}</span>
                               {link.comentario && (
-                                <span className="text-[10px] text-muted-foreground truncate max-w-[200px]">
+                                <span className="text-[9px] text-muted-foreground/40 truncate max-w-[160px]">
                                   "{link.comentario}"
                                 </span>
                               )}
                             </div>
                           )}
 
-                          {/* Link URL + WhatsApp */}
+                          {/* Link actions (inline) */}
                           {link.status === 'ativa' && !isExpiredNow && (
-                            <div className="mt-2 flex items-center gap-1.5">
-                              <code className="text-[9px] text-muted-foreground bg-muted/40 rounded px-2 py-0.5 truncate max-w-[200px]">
+                            <div className="mt-1.5 flex items-center gap-1">
+                              <code className="text-[8px] text-muted-foreground/30 bg-muted/20 rounded px-1.5 py-0.5 truncate max-w-[180px]">
                                 {url}
                               </code>
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                className="h-6 w-6"
+                              <button
+                                className="h-5 w-5 flex items-center justify-center rounded hover:bg-muted/40 transition-colors text-muted-foreground/40 hover:text-foreground"
                                 onClick={async (e) => {
                                   e.stopPropagation();
                                   await copyToClipboard(url);
@@ -692,12 +647,12 @@ const AdminAvaliacaoLinks: React.FC = () => {
                                   setTimeout(() => setCopiedToken(null), 2000);
                                 }}
                               >
-                                {copiedToken === link.token ? <Check className="w-3 h-3 text-green-400" /> : <Copy className="w-3 h-3" />}
-                              </Button>
+                                {copiedToken === link.token ? <Check className="w-2.5 h-2.5 text-emerald-400" /> : <Copy className="w-2.5 h-2.5" />}
+                              </button>
                               <a href={url} target="_blank" rel="noopener noreferrer">
-                                <Button size="icon" variant="ghost" className="h-6 w-6">
-                                  <ExternalLink className="w-3 h-3" />
-                                </Button>
+                                <button className="h-5 w-5 flex items-center justify-center rounded hover:bg-muted/40 transition-colors text-muted-foreground/40 hover:text-foreground">
+                                  <ExternalLink className="w-2.5 h-2.5" />
+                                </button>
                               </a>
                               {canWhatsApp && (
                                 <a
@@ -705,34 +660,29 @@ const AdminAvaliacaoLinks: React.FC = () => {
                                   target="_blank"
                                   rel="noopener noreferrer"
                                 >
-                                  <Button size="icon" variant="ghost" className="h-6 w-6 text-green-500 hover:text-green-400">
-                                    <WhatsAppIcon className="w-3.5 h-3.5" />
-                                  </Button>
+                                  <button className="h-5 w-5 flex items-center justify-center rounded hover:bg-emerald-500/20 transition-colors text-emerald-500/60 hover:text-emerald-400">
+                                    <WhatsAppIcon className="w-3 h-3" />
+                                  </button>
                                 </a>
                               )}
                             </div>
                           )}
                         </div>
 
-                        {/* Actions */}
-                        <div className="flex flex-col gap-1 shrink-0">
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-8 w-8 text-muted-foreground hover:text-accent"
+                        {/* Side actions */}
+                        <div className="flex flex-col gap-0.5 shrink-0">
+                          <button
+                            className="h-7 w-7 flex items-center justify-center rounded-lg hover:bg-muted/40 transition-colors text-muted-foreground/40 hover:text-foreground"
                             onClick={() => setDetailLink(link)}
-                            title="Detalhes"
                           >
-                            <Eye className="w-3.5 h-3.5" />
-                          </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-8 w-8 text-muted-foreground hover:text-red-400"
+                            <Eye className="w-3 h-3" />
+                          </button>
+                          <button
+                            className="h-7 w-7 flex items-center justify-center rounded-lg hover:bg-red-500/10 transition-colors text-muted-foreground/40 hover:text-red-400"
                             onClick={() => deleteMutation.mutate(link.id)}
                           >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </Button>
+                            <Trash2 className="w-3 h-3" />
+                          </button>
                         </div>
                       </div>
                     </CardContent>
@@ -748,12 +698,14 @@ const AdminAvaliacaoLinks: React.FC = () => {
       <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Star className="w-5 h-5 text-accent" />
-              Gerar Avaliação
+            <DialogTitle className="flex items-center gap-2 text-base">
+              <div className="w-7 h-7 rounded-lg bg-indigo-500/10 flex items-center justify-center">
+                <Star className="w-3.5 h-3.5 text-indigo-400" />
+              </div>
+              Nova Avaliação
             </DialogTitle>
-            <DialogDescription>
-              Selecione o motorista e configure a avaliação para o cliente.
+            <DialogDescription className="text-[11px]">
+              Configure o link de avaliação para o cliente.
             </DialogDescription>
           </DialogHeader>
 
@@ -847,10 +799,10 @@ const AdminAvaliacaoLinks: React.FC = () => {
             {createForm.motorista_id && (
               <>
                 <Separator />
-                <div className="bg-muted/30 rounded-xl p-3 space-y-1">
-                  <p className="text-[10px] text-muted-foreground font-medium">PREVIEW</p>
-                  <p className="text-sm">
-                    <span className="text-muted-foreground">Motorista:</span>{' '}
+                <div className="bg-muted/20 rounded-xl p-3 space-y-1.5 border border-border/20">
+                  <p className="text-[9px] text-muted-foreground/50 font-medium uppercase tracking-wider">Preview</p>
+                  <p className="text-[12px]">
+                    <span className="text-muted-foreground/60">Motorista:</span>{' '}
                     <span className="font-medium">{motoristaMap[createForm.motorista_id]?.nome}</span>
                   </p>
                   {createForm.cliente_nome && (
@@ -879,14 +831,15 @@ const AdminAvaliacaoLinks: React.FC = () => {
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCreateDialog(false)}>Cancelar</Button>
+            <Button variant="ghost" size="sm" onClick={() => setShowCreateDialog(false)} className="text-[12px]">Cancelar</Button>
             <Button
+              size="sm"
               onClick={() => createMutation.mutate(createForm)}
               disabled={createMutation.isPending || !createForm.motorista_id}
-              className="gap-1 bg-accent hover:bg-accent/90 text-white"
+              className="gap-1.5 bg-indigo-500 hover:bg-indigo-400 text-white h-8 text-[12px] rounded-lg"
             >
-              {createMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
-              <Star className="w-4 h-4" /> Gerar Avaliação
+              {createMutation.isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+              <Star className="w-3.5 h-3.5" /> Gerar Link
             </Button>
           </DialogFooter>
         </DialogContent>

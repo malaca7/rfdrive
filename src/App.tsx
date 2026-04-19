@@ -30,6 +30,7 @@ const MotoristaCredencial = React.lazy(() => import("./pages/MotoristaCredencial
 const MotoristaEditPerfil = React.lazy(() => import("./pages/MotoristaEditPerfil"));
 const MotoristaHistoricoViagens = React.lazy(() => import("./pages/MotoristaHistoricoViagens"));
 const AdminAvaliacaoLinks = React.lazy(() => import("./pages/AdminAvaliacaoLinks"));
+const AdminRecibos = React.lazy(() => import("./pages/AdminRecibos"));
 const AvaliacaoPublica = React.lazy(() => import("./pages/AvaliacaoPublica"));
 
 const PageLoader = () => (
@@ -114,6 +115,7 @@ const AppRoutes = () => {
         {user && effectiveScreen === 'admin' && <Route path="/admin/precos/tabela" element={<AdminPrecosTabela />} />}
         {user && effectiveScreen === 'admin' && <Route path="/admin/config" element={<AdminConfig />} />}
         {user && effectiveScreen === 'admin' && <Route path="/admin/avaliacoes-links" element={<AdminAvaliacaoLinks />} />}
+        {user && effectiveScreen === 'admin' && <Route path="/admin/recibos" element={<AdminRecibos />} />}
 
         {/* Motorista routes */}
         {user && <Route path="/motorista/dashboard" element={<MotoristaDashboard />} />}

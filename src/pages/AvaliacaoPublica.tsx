@@ -1,11 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { Star, CheckCircle, Clock, AlertTriangle, Loader2, Car, Send } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { Star, CheckCircle, Clock, AlertTriangle, Loader2, Send, User as UserIcon } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 type EvalData = {
   id: string;
@@ -156,205 +153,248 @@ const AvaliacaoPublica: React.FC = () => {
     return () => clearInterval(interval);
   }, [state, evalData]);
 
+  const STAR_LABELS = ['', 'Péssimo', 'Ruim', 'Regular', 'Bom', 'Excelente'];
+
   return (
-    <div className="min-h-screen bg-[hsl(0_0%_3%)] flex items-center justify-center p-4">
+    <div className="min-h-screen bg-[#0F172A] flex items-center justify-center p-4 selection:bg-indigo-500/30">
+      {/* Subtle gradient orb */}
+      <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[600px] h-[400px] bg-indigo-500/[0.07] rounded-full blur-[120px] pointer-events-none" />
+
       <motion.div
-        initial={{ opacity: 0, y: 20, scale: 0.95 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ duration: 0.4 }}
-        className="w-full max-w-md"
+        initial={{ opacity: 0, y: 24 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
+        className="w-full max-w-[420px] relative z-10"
       >
         {/* ── Loading ── */}
         {state === 'loading' && (
-          <Card className="border-white/10 bg-white/[0.03]">
-            <CardContent className="py-16 text-center">
-              <Loader2 className="w-10 h-10 animate-spin text-accent mx-auto mb-4" />
-              <p className="text-muted-foreground">Carregando avaliação...</p>
-            </CardContent>
-          </Card>
+          <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] backdrop-blur-sm p-12">
+            <div className="flex flex-col items-center gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 flex items-center justify-center">
+                <Loader2 className="w-6 h-6 animate-spin text-indigo-400" />
+              </div>
+              <p className="text-[#94A3B8] text-sm">Carregando avaliação...</p>
+            </div>
+          </div>
         )}
 
-        {/* ── Submitted (intermediate) ── */}
-        {state === 'submitted' && (
-          <Card className="border-blue-500/20 bg-blue-500/[0.03]">
-            <CardContent className="py-16 text-center">
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ type: 'spring', stiffness: 200, damping: 15 }}
-              >
-                <div className="w-20 h-20 rounded-full bg-blue-500/10 flex items-center justify-center mx-auto mb-4">
-                  <CheckCircle className="w-10 h-10 text-blue-400" />
-                </div>
-              </motion.div>
-              <h2 className="text-lg font-bold text-blue-400 mb-2">
-                Link já respondido
-              </h2>
-            </CardContent>
-          </Card>
-        )}
+        {/* ── Submitted (flash) ── */}
+        <AnimatePresence>
+          {state === 'submitted' && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 1.05 }}
+              className="rounded-2xl border border-emerald-500/10 bg-emerald-500/[0.03] backdrop-blur-sm p-14"
+            >
+              <div className="flex flex-col items-center gap-3">
+                <motion.div
+                  initial={{ scale: 0, rotate: -180 }}
+                  animate={{ scale: 1, rotate: 0 }}
+                  transition={{ type: 'spring', stiffness: 200, damping: 12 }}
+                  className="w-16 h-16 rounded-full bg-emerald-500/10 flex items-center justify-center"
+                >
+                  <CheckCircle className="w-8 h-8 text-emerald-400" />
+                </motion.div>
+                <h2 className="text-lg font-semibold text-[#F8FAFC]">Enviando...</h2>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-        {/* ── Already responded (final green) ── */}
+        {/* ── Already responded ── */}
         {state === 'responded' && (
-          <Card className="border-green-500/20 bg-green-500/[0.03]">
-            <CardContent className="py-16 text-center">
+          <div className="rounded-2xl border border-emerald-500/10 bg-emerald-500/[0.03] backdrop-blur-sm p-14">
+            <div className="flex flex-col items-center gap-4">
               <motion.div
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
-                transition={{ type: 'spring', stiffness: 200, damping: 15 }}
+                transition={{ type: 'spring', stiffness: 180, damping: 14 }}
+                className="w-16 h-16 rounded-full bg-emerald-500/10 flex items-center justify-center"
               >
-                <div className="w-20 h-20 rounded-full bg-green-500/10 flex items-center justify-center mx-auto mb-4">
-                  <CheckCircle className="w-10 h-10 text-green-400" />
-                </div>
+                <CheckCircle className="w-8 h-8 text-emerald-400" />
               </motion.div>
-              <h2 className="text-lg font-bold text-green-400 mb-2">
-                Avaliação já enviada
-              </h2>
-              <p className="text-sm text-muted-foreground max-w-xs mx-auto">
-                Obrigado pelo feedback!
-              </p>
-            </CardContent>
-          </Card>
+              <div className="text-center">
+                <h2 className="text-lg font-semibold text-[#F8FAFC] mb-1">Avaliação enviada</h2>
+                <p className="text-sm text-[#94A3B8]">Obrigado pelo seu feedback!</p>
+              </div>
+            </div>
+          </div>
         )}
 
         {/* ── Expired ── */}
         {state === 'expired' && (
-          <Card className="border-red-500/20 bg-red-500/[0.03]">
-            <CardContent className="py-16 text-center">
-              <div className="w-16 h-16 rounded-full bg-red-500/10 flex items-center justify-center mx-auto mb-4">
-                <AlertTriangle className="w-8 h-8 text-red-400" />
+          <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] backdrop-blur-sm p-14">
+            <div className="flex flex-col items-center gap-4">
+              <div className="w-14 h-14 rounded-2xl bg-red-500/10 flex items-center justify-center">
+                <Clock className="w-7 h-7 text-red-400" />
               </div>
-              <h2 className="text-lg font-bold text-red-400 mb-2">
-                Avaliação expirada
-              </h2>
-              <p className="text-sm text-muted-foreground max-w-xs mx-auto">
-                Este link não está mais disponível. Solicite um novo link ao administrador.
-              </p>
-            </CardContent>
-          </Card>
+              <div className="text-center">
+                <h2 className="text-lg font-semibold text-[#F8FAFC] mb-1">Link expirado</h2>
+                <p className="text-sm text-[#94A3B8] max-w-[280px]">
+                  Este link não está mais disponível. Solicite um novo ao administrador.
+                </p>
+              </div>
+            </div>
+          </div>
         )}
 
         {/* ── Error ── */}
         {state === 'error' && (
-          <Card className="border-red-500/20 bg-red-500/[0.03]">
-            <CardContent className="py-16 text-center">
-              <div className="w-16 h-16 rounded-full bg-red-500/10 flex items-center justify-center mx-auto mb-4">
-                <AlertTriangle className="w-8 h-8 text-red-400" />
+          <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] backdrop-blur-sm p-14">
+            <div className="flex flex-col items-center gap-4">
+              <div className="w-14 h-14 rounded-2xl bg-red-500/10 flex items-center justify-center">
+                <AlertTriangle className="w-7 h-7 text-red-400" />
               </div>
-              <h2 className="text-lg font-bold text-red-400 mb-2">
-                Link inválido
-              </h2>
-              <p className="text-sm text-muted-foreground">
-                Verifique se o link está correto e tente novamente.
-              </p>
+              <div className="text-center">
+                <h2 className="text-lg font-semibold text-[#F8FAFC] mb-1">Link inválido</h2>
+                <p className="text-sm text-[#94A3B8]">Verifique se o link está correto.</p>
+              </div>
               {errorMsg && (
-                <p className="text-xs text-red-400/60 mt-3 font-mono break-all">
-                  Debug: {errorMsg}
-                </p>
+                <p className="text-[10px] text-red-400/40 font-mono break-all mt-2">{errorMsg}</p>
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         )}
 
         {/* ── Ready — Evaluation Form ── */}
         {state === 'ready' && evalData && (
-          <Card className="border-white/10 bg-white/[0.03]">
-            <CardContent className="py-6 px-5 space-y-6">
-              {/* Header */}
-              <div className="text-center space-y-3">
-                <div className="w-16 h-16 rounded-full bg-accent/20 flex items-center justify-center mx-auto overflow-hidden">
-                  {evalData.motorista_avatar ? (
-                    <img src={evalData.motorista_avatar} alt="" className="w-full h-full object-cover" />
-                  ) : (
-                    <Car className="w-8 h-8 text-accent" />
-                  )}
+          <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] backdrop-blur-sm overflow-hidden">
+            {/* Top accent line */}
+            <div className="h-[2px] bg-gradient-to-r from-transparent via-indigo-500/60 to-transparent" />
+
+            <div className="p-6 sm:p-8 space-y-7">
+              {/* Header: avatar + name */}
+              <div className="flex flex-col items-center gap-4">
+                <div className="relative">
+                  <div className="w-[72px] h-[72px] rounded-2xl overflow-hidden bg-white/[0.04] ring-1 ring-white/[0.06] flex items-center justify-center">
+                    {evalData.motorista_avatar ? (
+                      <img src={evalData.motorista_avatar} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      <UserIcon className="w-8 h-8 text-[#94A3B8]" />
+                    )}
+                  </div>
+                  <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center ring-2 ring-[#0F172A]">
+                    <CheckCircle className="w-3 h-3 text-white" />
+                  </div>
                 </div>
-                <div>
-                  <h2 className="text-lg font-bold">Avaliar Motorista</h2>
-                  <p className="text-sm text-muted-foreground">{evalData.motorista_nome}</p>
+                <div className="text-center">
+                  <p className="text-[11px] font-medium text-indigo-400 uppercase tracking-[0.15em] mb-1">Avaliação de Motorista</p>
+                  <h1 className="text-xl font-bold text-[#F8FAFC] tracking-tight">{evalData.motorista_nome}</h1>
                 </div>
-                <div className="flex items-center justify-center gap-1.5 text-[11px] text-muted-foreground">
-                  <Clock className="w-3 h-3" />
-                  <span>Expira em {timeLeft}</span>
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.04] border border-white/[0.06]">
+                  <Clock className="w-3 h-3 text-[#94A3B8]" />
+                  <span className="text-[11px] text-[#94A3B8] font-medium tabular-nums">{timeLeft}</span>
                 </div>
               </div>
 
+              {/* Divider */}
+              <div className="h-px bg-white/[0.04]" />
+
               {/* Stars */}
-              <div className="text-center space-y-2">
-                <p className="text-xs text-muted-foreground font-medium">
+              <div className="space-y-3">
+                <p className="text-[13px] text-[#94A3B8] text-center font-medium">
                   Como foi sua experiência?
                 </p>
-                <div className="flex items-center justify-center gap-2">
-                  {[1, 2, 3, 4, 5].map(s => (
-                    <motion.button
-                      key={s}
-                      type="button"
-                      whileHover={{ scale: 1.15 }}
-                      whileTap={{ scale: 0.9 }}
-                      onMouseEnter={() => setHoveredStar(s)}
-                      onMouseLeave={() => setHoveredStar(0)}
-                      onClick={() => setNota(s)}
-                      className="transition-colors"
-                    >
-                      <Star
-                        className={`w-10 h-10 transition-colors ${
-                          s <= (hoveredStar || nota)
-                            ? 'fill-yellow-400 text-yellow-400 drop-shadow-[0_0_8px_rgba(250,204,21,0.4)]'
-                            : 'text-white/15 hover:text-white/30'
-                        }`}
-                      />
-                    </motion.button>
-                  ))}
+                <div className="flex items-center justify-center gap-1.5">
+                  {[1, 2, 3, 4, 5].map(s => {
+                    const active = s <= (hoveredStar || nota);
+                    return (
+                      <motion.button
+                        key={s}
+                        type="button"
+                        whileHover={{ scale: 1.12 }}
+                        whileTap={{ scale: 0.88 }}
+                        onMouseEnter={() => setHoveredStar(s)}
+                        onMouseLeave={() => setHoveredStar(0)}
+                        onClick={() => setNota(s)}
+                        className="p-1 transition-all duration-200"
+                      >
+                        <Star
+                          className={`w-11 h-11 transition-all duration-200 ${
+                            active
+                              ? 'fill-amber-400 text-amber-400 drop-shadow-[0_0_12px_rgba(251,191,36,0.5)]'
+                              : 'text-white/[0.08] hover:text-white/[0.15]'
+                          }`}
+                        />
+                      </motion.button>
+                    );
+                  })}
                 </div>
-                {nota > 0 && (
-                  <motion.p
-                    initial={{ opacity: 0, y: 5 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="text-sm font-medium text-yellow-400"
-                  >
-                    {nota === 1 ? 'Péssimo' : nota === 2 ? 'Ruim' : nota === 3 ? 'Regular' : nota === 4 ? 'Bom' : 'Excelente'}
-                  </motion.p>
-                )}
+                <AnimatePresence mode="wait">
+                  {nota > 0 && (
+                    <motion.p
+                      key={nota}
+                      initial={{ opacity: 0, y: 4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -4 }}
+                      className="text-center text-sm font-medium text-amber-400"
+                    >
+                      {STAR_LABELS[nota]}
+                    </motion.p>
+                  )}
+                </AnimatePresence>
               </div>
 
               {/* Comment */}
-              {evalData.permite_comentario && (
-                <div className="space-y-1.5">
-                  <label className="text-xs text-muted-foreground font-medium">
-                    Deixe um comentário (opcional)
-                  </label>
-                  <Textarea
-                    value={comentario}
-                    onChange={(e) => setComentario(e.target.value)}
-                    placeholder="Conte como foi sua experiência..."
-                    className="resize-none h-24 bg-white/[0.03] border-white/10"
-                    maxLength={500}
-                  />
-                  <p className="text-[10px] text-muted-foreground text-right">{comentario.length}/500</p>
-                </div>
-              )}
+              <AnimatePresence>
+                {evalData.permite_comentario && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    className="space-y-2"
+                  >
+                    <label className="text-[12px] text-[#94A3B8] font-medium">
+                      Comentário <span className="text-white/20">(opcional)</span>
+                    </label>
+                    <textarea
+                      value={comentario}
+                      onChange={(e) => setComentario(e.target.value)}
+                      placeholder="Conte como foi sua viagem..."
+                      maxLength={500}
+                      rows={3}
+                      className="w-full rounded-xl bg-white/[0.03] border border-white/[0.06] text-[#F8FAFC] text-sm placeholder:text-white/[0.15] px-4 py-3 resize-none focus:outline-none focus:border-indigo-500/40 focus:ring-1 focus:ring-indigo-500/20 transition-all"
+                      style={{ fontSize: '16px' }}
+                    />
+                    <p className="text-[10px] text-white/20 text-right tabular-nums">{comentario.length}/500</p>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               {/* Submit */}
-              <Button
-                className="w-full gap-2 h-12 text-base font-semibold"
+              <motion.button
+                whileHover={{ scale: nota > 0 ? 1.01 : 1 }}
+                whileTap={{ scale: nota > 0 ? 0.98 : 1 }}
                 disabled={nota === 0 || submitting}
                 onClick={handleSubmit}
+                className={`w-full h-12 rounded-xl font-semibold text-[15px] flex items-center justify-center gap-2 transition-all duration-300 ${
+                  nota > 0
+                    ? 'bg-indigo-500 hover:bg-indigo-400 text-white shadow-lg shadow-indigo-500/25 cursor-pointer'
+                    : 'bg-white/[0.04] text-white/20 cursor-not-allowed'
+                }`}
               >
                 {submitting ? (
                   <Loader2 className="w-5 h-5 animate-spin" />
                 ) : (
-                  <Send className="w-5 h-5" />
+                  <>
+                    <Send className="w-4 h-4" />
+                    Enviar Avaliação
+                  </>
                 )}
-                Enviar Avaliação
-              </Button>
+              </motion.button>
 
               {/* Footer */}
-              <p className="text-[10px] text-center text-muted-foreground/60">
-                Este link é de uso único e expira automaticamente.
+              <p className="text-[10px] text-center text-white/[0.15]">
+                Link de uso único · expira automaticamente
               </p>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         )}
+
+        {/* Branding */}
+        <p className="text-center text-[10px] text-white/[0.1] mt-6 tracking-wider">
+          POWERED BY ESCRITÓRIO RF
+        </p>
       </motion.div>
     </div>
   );

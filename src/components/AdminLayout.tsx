@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
-  BarChart3, Car, Users, DollarSign, Settings, Star, Truck, Route,
+  BarChart3, Car, Users, DollarSign, Settings, Star, Truck, Route, FileText,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePlatformConfig } from '@/hooks/usePlatformConfig';
@@ -16,6 +16,7 @@ const ADMIN_NAV = [
   { path: '/admin/usuarios', label: 'Motoristas', icon: Users, color: 'from-emerald-500 to-green-400' },
   { path: '/admin/precos', label: 'Preços', icon: DollarSign, color: 'from-amber-500 to-yellow-400' },
   { path: '/admin/avaliacoes-links', label: 'Avaliações', icon: Star, color: 'from-pink-500 to-rose-400' },
+  { path: '/admin/recibos', label: 'Recibos', icon: FileText, color: 'from-indigo-500 to-violet-400' },
   { path: '/admin/config', label: 'Config', icon: Settings, color: 'from-slate-400 to-zinc-300' },
 ];
 
