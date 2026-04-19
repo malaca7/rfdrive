@@ -947,47 +947,47 @@ const AdminDashboard: React.FC = () => {
 
             {/* Summary cards */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
-              <Card>
+              <Card className="card-hover">
                 <CardContent className="py-3 px-4 flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-muted/50 flex items-center justify-center">
-                    <Users className="w-4 h-4 text-muted-foreground" />
+                  <div className="w-8 h-8 rounded-lg bg-muted/30 flex items-center justify-center">
+                    <Users className="w-3.5 h-3.5 text-muted-foreground/70" />
                   </div>
                   <div>
-                    <p className="text-lg font-bold leading-none">{stats.totalUsers}</p>
-                    <p className="text-[10px] text-muted-foreground mt-0.5">Total</p>
+                    <p className="text-lg font-bold leading-none tracking-tight">{stats.totalUsers}</p>
+                    <p className="text-[10px] text-muted-foreground/60 mt-0.5">Total</p>
                   </div>
                 </CardContent>
               </Card>
-              <Card>
+              <Card className="card-hover">
                 <CardContent className="py-3 px-4 flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-green-500/10 flex items-center justify-center">
-                    <CheckCircle className="w-4 h-4 text-green-400" />
+                  <div className="w-8 h-8 rounded-lg bg-green-500/8 flex items-center justify-center">
+                    <CheckCircle className="w-3.5 h-3.5 text-green-400/80" />
                   </div>
                   <div>
-                    <p className="text-lg font-bold leading-none text-green-400">{users?.filter(u => u.status === 'ativo').length || 0}</p>
-                    <p className="text-[10px] text-muted-foreground mt-0.5">Ativos</p>
+                    <p className="text-lg font-bold leading-none tracking-tight text-green-400">{users?.filter(u => u.status === 'ativo').length || 0}</p>
+                    <p className="text-[10px] text-muted-foreground/60 mt-0.5">Ativos</p>
                   </div>
                 </CardContent>
               </Card>
-              <Card>
+              <Card className="card-hover">
                 <CardContent className="py-3 px-4 flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-purple-500/10 flex items-center justify-center">
-                    <Shield className="w-4 h-4 text-purple-400" />
+                  <div className="w-8 h-8 rounded-lg bg-purple-500/8 flex items-center justify-center">
+                    <Shield className="w-3.5 h-3.5 text-purple-400/80" />
                   </div>
                   <div>
-                    <p className="text-lg font-bold leading-none text-purple-400">{users?.filter(u => u.roles?.includes('admin') || u.tipo === 'admin').length || 0}</p>
-                    <p className="text-[10px] text-muted-foreground mt-0.5">Admins</p>
+                    <p className="text-lg font-bold leading-none tracking-tight text-purple-400">{users?.filter(u => u.roles?.includes('admin') || u.tipo === 'admin').length || 0}</p>
+                    <p className="text-[10px] text-muted-foreground/60 mt-0.5">Admins</p>
                   </div>
                 </CardContent>
               </Card>
-              <Card>
+              <Card className="card-hover">
                 <CardContent className="py-3 px-4 flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-red-500/10 flex items-center justify-center">
-                    <XCircle className="w-4 h-4 text-red-400" />
+                  <div className="w-8 h-8 rounded-lg bg-red-500/8 flex items-center justify-center">
+                    <XCircle className="w-3.5 h-3.5 text-red-400/80" />
                   </div>
                   <div>
-                    <p className="text-lg font-bold leading-none text-red-400">{stats.banidos}</p>
-                    <p className="text-[10px] text-muted-foreground mt-0.5">Inativos</p>
+                    <p className="text-lg font-bold leading-none tracking-tight text-red-400">{stats.banidos}</p>
+                    <p className="text-[10px] text-muted-foreground/60 mt-0.5">Inativos</p>
                   </div>
                 </CardContent>
               </Card>
@@ -1017,12 +1017,12 @@ const AdminDashboard: React.FC = () => {
                   const rideCount = rides?.filter(r => r.cliente_id === u.id || r.motorista_id === u.id).length || 0;
                   const isAdmin = u.roles?.includes('admin') || u.tipo === 'admin';
                   return (
-                    <motion.div key={u.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.015 }}>
-                      <Card className={`transition-colors hover:border-border ${u.status === 'banido' ? 'border-red-500/30 bg-red-500/5 opacity-60' : ''}`}>
+                    <motion.div key={u.id} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.012, duration: 0.25 }}>
+                      <Card className={`card-hover ${u.status === 'banido' ? 'border-red-500/20 bg-red-500/5 opacity-50' : ''}`}>
                         <CardContent className="py-3 px-4 space-y-2">
-                          {/* Avatar + Info */}
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full shrink-0 overflow-hidden bg-accent/20 flex items-center justify-center">
+                          {/* Info */}
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-9 h-9 rounded-xl shrink-0 overflow-hidden bg-muted/40 ring-1 ring-border/30">
                               {u.avatar_url ? (
                                 <img src={u.avatar_url} alt={u.nome} className="w-full h-full object-cover" />
                               ) : (
@@ -1030,30 +1030,30 @@ const AdminDashboard: React.FC = () => {
                               )}
                             </div>
                             <div className="min-w-0 flex-1">
-                              <div className="flex items-center gap-2">
-                                <p className="font-medium truncate text-sm">{u.nome || 'Sem nome'}</p>
+                              <div className="flex items-center gap-1.5">
+                                <p className="font-medium truncate text-[13px] tracking-tight">{u.nome || 'Sem nome'}</p>
                                 {isAdmin && (
-                                  <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 bg-purple-500/20 text-purple-400 border-purple-500/30">
+                                  <Badge className="text-[8px] px-1.5 py-0 bg-purple-500/10 text-purple-400 border-purple-500/20">
                                     Admin
                                   </Badge>
                                 )}
                               </div>
                               <div className="flex items-center gap-3 mt-0.5">
-                                <span className="text-xs text-muted-foreground flex items-center gap-1">
-                                  <Phone className="w-3 h-3" /> {u.telefone}
+                                <span className="text-[10px] text-muted-foreground/70 flex items-center gap-1">
+                                  <Phone className="w-2.5 h-2.5" /> {u.telefone}
                                 </span>
-                                <span className="text-[10px] text-muted-foreground">
-                                  {rideCount} corrida{rideCount !== 1 ? 's' : ''}
+                                <span className="text-[10px] text-muted-foreground/50">
+                                  {rideCount} viagens
                                 </span>
                               </div>
                             </div>
                           </div>
 
-                          {/* Ações - sempre em linha separada */}
-                          <div className="flex items-center gap-1 pt-1 border-t border-border/40">
+                          {/* Ações */}
+                          <div className="flex items-center gap-0.5 pt-1.5 border-t border-border/20">
                             <Button
                               size="icon" variant="ghost"
-                              className={`h-8 w-8 ${isAdmin ? 'text-purple-400 hover:text-purple-300' : 'text-muted-foreground hover:text-purple-400'}`}
+                              className={`h-7 w-7 rounded-lg ${isAdmin ? 'text-purple-400' : 'text-muted-foreground/60 hover:text-purple-400'}`}
                               title={isAdmin ? 'Remover admin' : 'Tornar admin'}
                               onClick={() => {
                                 const newRoles = isAdmin ? ['motorista'] : ['motorista', 'admin'];
@@ -1064,25 +1064,25 @@ const AdminDashboard: React.FC = () => {
                                 });
                               }}
                             >
-                              <Shield className="w-3.5 h-3.5" />
+                              <Shield className="w-3 h-3" />
                             </Button>
                             <Button
-                              size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                              size="icon" variant="ghost" className="h-7 w-7 rounded-lg text-muted-foreground/60 hover:text-foreground"
                               title="Editar"
                               onClick={() => openEditUserDialog(u)}
                             >
-                              <Pencil className="w-3.5 h-3.5" />
+                              <Pencil className="w-3 h-3" />
                             </Button>
                             <Button
-                              size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:text-amber-400"
-                              title="Gerar Credencial"
+                              size="icon" variant="ghost" className="h-7 w-7 rounded-lg text-muted-foreground/60 hover:text-amber-400"
+                              title="Credencial"
                               onClick={() => { setCredentialUser(u); setShowCredentialDialog(true); }}
                             >
-                              <IdCard className="w-3.5 h-3.5" />
+                              <IdCard className="w-3 h-3" />
                             </Button>
                             <Button
                               size="icon" variant="ghost"
-                              className={`h-8 w-8 ${u.status === 'ativo' ? 'text-green-400 hover:text-red-400' : 'text-red-400 hover:text-green-400'}`}
+                              className={`h-7 w-7 rounded-lg ${u.status === 'ativo' ? 'text-green-400 hover:text-red-400' : 'text-red-400 hover:text-green-400'}`}
                               title={u.status === 'ativo' ? 'Desativar' : 'Ativar'}
                               onClick={() =>
                                 updateUserMutation.mutate({
@@ -1094,15 +1094,15 @@ const AdminDashboard: React.FC = () => {
                                 })
                               }
                             >
-                              {u.status === 'ativo' ? <CheckCircle className="w-3.5 h-3.5" /> : <XCircle className="w-3.5 h-3.5" />}
+                              {u.status === 'ativo' ? <CheckCircle className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
                             </Button>
                             <Button
                               size="icon" variant="ghost"
-                              className="h-8 w-8 text-muted-foreground hover:text-red-400"
+                              className="h-7 w-7 rounded-lg text-muted-foreground/60 hover:text-red-400"
                               title="Excluir"
                               onClick={() => confirmDelete('user', u.id, u.nome)}
                             >
-                              <Trash2 className="w-3.5 h-3.5" />
+                              <Trash2 className="w-3 h-3" />
                             </Button>
                           </div>
                         </CardContent>

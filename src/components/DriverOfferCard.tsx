@@ -68,13 +68,13 @@ const OfferCard: React.FC<OfferCardProps> = ({
         animate={{ scale: [1, 1.02, 1] }}
         transition={{ duration: 0.3 }}
       >
-        <Card className="border-green-500/40 bg-green-500/5 rounded-2xl">
+        <Card className="border-green-500/30 bg-green-500/5">
           <CardContent className="py-6 text-center">
-            <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-green-500/10 mb-3">
-              <Check className="w-6 h-6 text-green-400" />
+            <div className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-green-500/10 mb-3">
+              <Check className="w-5 h-5 text-green-400" />
             </div>
-            <p className="font-bold text-green-400">Corrida aceita!</p>
-            <p className="text-xs text-muted-foreground mt-1">Vá até o menu "Ativas" para acompanhar</p>
+            <p className="font-semibold text-green-400 text-sm">Corrida aceita!</p>
+            <p className="text-[10px] text-muted-foreground/60 mt-1">Vá até o menu "Ativas" para acompanhar</p>
           </CardContent>
         </Card>
       </motion.div>
@@ -89,16 +89,16 @@ const OfferCard: React.FC<OfferCardProps> = ({
       transition={{ type: 'spring', stiffness: 300, damping: 25 }}
     >
       <Card
-        className={`rounded-2xl overflow-hidden transition-all ${
+        className={`overflow-hidden transition-all ${
           isCritical
-            ? 'border-red-500/50 shadow-[0_0_20px_rgba(239,68,68,0.1)]'
+            ? 'border-red-500/30 shadow-[0_0_16px_rgba(239,68,68,0.08)]'
             : isUrgent
-            ? 'border-yellow-500/40 shadow-[0_0_15px_rgba(234,179,8,0.08)]'
-            : 'border-accent/30'
+            ? 'border-yellow-500/25 shadow-[0_0_12px_rgba(234,179,8,0.06)]'
+            : 'border-accent/20'
         }`}
       >
         {/* Timer bar */}
-        <div className="h-1.5 bg-muted/30 relative overflow-hidden">
+        <div className="h-1 bg-muted/20 relative overflow-hidden">
           <motion.div
             className={`absolute inset-y-0 left-0 ${
               isCritical ? 'bg-red-500' : isUrgent ? 'bg-yellow-500' : 'bg-accent'
@@ -109,12 +109,12 @@ const OfferCard: React.FC<OfferCardProps> = ({
           />
         </div>
 
-        <CardContent className="py-4 px-4 space-y-3">
-          {/* Header: urgency badge + timer */}
+        <CardContent className="py-3.5 px-4 space-y-2.5">
+          {/* Header */}
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Zap className="w-4 h-4 text-accent" />
-              <span className="text-sm font-semibold">Nova Corrida</span>
+            <div className="flex items-center gap-1.5">
+              <Zap className="w-3.5 h-3.5 text-accent/80" />
+              <span className="text-[13px] font-semibold tracking-tight">Nova Corrida</span>
               {offer.rodada_disparo > 1 && (
                 <Badge variant="outline" className="text-[10px] py-0 px-1.5 bg-purple-500/10 text-purple-400 border-purple-500/20">
                   Rodada {offer.rodada_disparo}
@@ -122,65 +122,65 @@ const OfferCard: React.FC<OfferCardProps> = ({
               )}
             </div>
             <div
-              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${
+              className={`flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold ${
                 isCritical
-                  ? 'bg-red-500/15 text-red-400'
+                  ? 'bg-red-500/10 text-red-400'
                   : isUrgent
-                  ? 'bg-yellow-500/15 text-yellow-400'
-                  : 'bg-accent/10 text-accent'
+                  ? 'bg-yellow-500/10 text-yellow-400'
+                  : 'bg-accent/8 text-accent'
               }`}
             >
-              {isCritical && <AlertTriangle className="w-3 h-3" />}
-              <Clock className="w-3 h-3" />
+              {isCritical && <AlertTriangle className="w-2.5 h-2.5" />}
+              <Clock className="w-2.5 h-2.5" />
               {offer.secondsLeft}s
             </div>
           </div>
 
           {/* Ride info */}
           {offer.corrida && (
-            <div className="bg-muted/40 rounded-xl p-3 space-y-2.5">
+            <div className="bg-muted/30 rounded-lg p-2.5 space-y-2">
               <div className="flex items-start gap-2">
-                <div className="mt-1.5 w-2 h-2 rounded-full bg-green-500 shrink-0" />
+                <div className="mt-1.5 w-1.5 h-1.5 rounded-full bg-green-500/80 shrink-0" />
                 <div className="min-w-0">
-                  <p className="text-[10px] text-muted-foreground">Embarque</p>
-                  <p className="text-sm font-medium truncate">{offer.corrida.origem_texto}</p>
+                  <p className="text-[9px] text-muted-foreground/60 uppercase tracking-wider">Embarque</p>
+                  <p className="text-[13px] font-medium truncate">{offer.corrida.origem_texto}</p>
                 </div>
               </div>
               <div className="flex items-start gap-2">
-                <div className="mt-1.5 w-2 h-2 rounded-full bg-accent shrink-0" />
+                <div className="mt-1.5 w-1.5 h-1.5 rounded-full bg-accent/80 shrink-0" />
                 <div className="min-w-0">
-                  <p className="text-[10px] text-muted-foreground">Destino</p>
-                  <p className="text-sm font-medium truncate">{offer.corrida.destino_texto}</p>
+                  <p className="text-[9px] text-muted-foreground/60 uppercase tracking-wider">Destino</p>
+                  <p className="text-[13px] font-medium truncate">{offer.corrida.destino_texto}</p>
                 </div>
               </div>
 
               <div className="flex items-center gap-3 flex-wrap">
                 {offer.corrida.valor_estimado != null && (
                   <div className="flex items-center gap-1">
-                    <DollarSign className="w-3.5 h-3.5 text-green-400" />
-                    <span className="text-sm font-bold text-green-400">
+                    <DollarSign className="w-3 h-3 text-green-400/80" />
+                    <span className="text-[13px] font-bold text-green-400">
                       R$ {Number(offer.corrida.valor_estimado).toFixed(2)}
                     </span>
                   </div>
                 )}
                 {offer.distancia_km != null && (
                   <div className="flex items-center gap-1">
-                    <MapPin className="w-3.5 h-3.5 text-blue-400" />
-                    <span className="text-xs text-blue-400">
-                      {Number(offer.distancia_km).toFixed(1)} km de você
+                    <MapPin className="w-3 h-3 text-blue-400/70" />
+                    <span className="text-[11px] text-blue-400/80">
+                      {Number(offer.distancia_km).toFixed(1)} km
                     </span>
                   </div>
                 )}
                 {offer.corrida.tem_bagagem && (
-                  <span className="text-[10px] text-orange-400 bg-orange-500/10 px-1.5 py-0.5 rounded">
+                  <span className="text-[9px] text-orange-400/80 bg-orange-500/8 px-1.5 py-0.5 rounded">
                     📦 Bagagem
                   </span>
                 )}
               </div>
 
               {offer.corrida.cliente_nome && (
-                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                  <User className="w-3 h-3" />
+                <div className="flex items-center gap-1 text-[11px] text-muted-foreground/60">
+                  <User className="w-2.5 h-2.5" />
                   <span>{offer.corrida.cliente_nome}</span>
                 </div>
               )}
@@ -195,18 +195,18 @@ const OfferCard: React.FC<OfferCardProps> = ({
           )}
 
           {/* Action buttons */}
-          <div className="flex gap-2.5">
+          <div className="flex gap-2">
             <Button
               variant="outline"
               onClick={handleDecline}
               disabled={isDeclining || isAccepting}
-              className="flex-1 h-12 border-red-500/30 text-red-400 hover:bg-red-500/10 hover:border-red-500/50 rounded-xl font-semibold"
+              className="flex-1 h-11 border-red-500/20 text-red-400/80 hover:bg-red-500/8 hover:border-red-500/40 rounded-xl font-medium text-sm"
             >
               {isDeclining ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
               ) : (
                 <>
-                  <X className="w-4 h-4 mr-1.5" />
+                  <X className="w-3.5 h-3.5 mr-1" />
                   Recusar
                 </>
               )}
@@ -214,7 +214,7 @@ const OfferCard: React.FC<OfferCardProps> = ({
             <Button
               onClick={handleAccept}
               disabled={isAccepting || isDeclining}
-              className={`flex-1 h-12 rounded-xl font-bold text-base ${
+              className={`flex-1 h-11 rounded-xl font-semibold text-sm ${
                 isCritical
                   ? 'bg-red-600 hover:bg-red-700 text-white animate-pulse'
                   : 'bg-green-600 hover:bg-green-700 text-white'
@@ -224,7 +224,7 @@ const OfferCard: React.FC<OfferCardProps> = ({
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
                 <>
-                  <Check className="w-5 h-5 mr-1.5" />
+                  <Check className="w-4 h-4 mr-1" />
                   Aceitar
                 </>
               )}

@@ -15,7 +15,7 @@ import AdminLayout from '@/components/AdminLayout';
 import { motion } from 'framer-motion';
 import {
   CheckCircle, XCircle, Car, Shield, Loader2, Phone, Search, Filter,
-  Users, UserPlus, Pencil, Trash2, Save, Camera, IdCard, Download,
+  Users, UserPlus, Pencil, Trash2, Save, Camera, IdCard, Download, Power,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { DriverBadge } from '@/components/DriverTools';
@@ -328,38 +328,42 @@ const AdminUsuarios: React.FC = () => {
             const rideCount = rides?.filter(r => r.cliente_id === u.id || r.motorista_id === u.id).length || 0;
             const isAdmin = u.roles?.includes('admin') || u.tipo === 'admin';
             return (
-              <motion.div key={u.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.015 }}>
-                <Card className={`transition-colors hover:border-border ${u.status === 'banido' ? 'border-red-500/30 bg-red-500/5 opacity-60' : ''}`}>
-                  <CardContent className="py-2.5 px-3 sm:py-3 sm:px-4">
-                    <div className="flex items-center gap-2 sm:gap-3">
-                      <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full shrink-0 overflow-hidden bg-accent/20 flex items-center justify-center">
+              <motion.div key={u.id} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.012, duration: 0.25 }}>
+                <Card className={`card-hover ${u.status === 'banido' ? 'border-red-500/20 bg-red-500/5 opacity-50' : ''}`}>
+                  <CardContent className="py-3 px-3.5 sm:px-4 space-y-2">
+                    {/* Info */}
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-9 h-9 rounded-xl shrink-0 overflow-hidden bg-muted/40 ring-1 ring-border/30">
                         {u.avatar_url ? <img src={u.avatar_url} alt={u.nome} className="w-full h-full object-cover" /> : <img src={getAnimalAvatarUrl(u.id)} alt={u.nome} className="w-full h-full object-cover" />}
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5">
-                          <p className="font-medium truncate text-sm">{u.nome || 'Sem nome'}</p>
-                          {isAdmin && <Badge variant="outline" className="text-[8px] sm:text-[9px] px-1 sm:px-1.5 py-0 h-4 bg-purple-500/20 text-purple-400 border-purple-500/30 shrink-0">Admin</Badge>}
+                          <p className="font-medium truncate text-[13px] tracking-tight">{u.nome || 'Sem nome'}</p>
+                          {isAdmin && <Badge className="text-[8px] px-1.5 py-0 bg-purple-500/10 text-purple-400 border-purple-500/20">Admin</Badge>}
                         </div>
-                        <div className="flex items-center gap-2 sm:gap-3 mt-0.5">
-                          <span className="text-[10px] sm:text-xs text-muted-foreground flex items-center gap-1"><Phone className="w-3 h-3 shrink-0" /> <span className="truncate">{u.telefone}</span></span>
-                          <span className="text-[10px] text-muted-foreground shrink-0">{rideCount} corrida{rideCount !== 1 ? 's' : ''}</span>
+                        <div className="flex items-center gap-3 mt-0.5">
+                          <span className="text-[10px] text-muted-foreground/70 flex items-center gap-1"><Phone className="w-2.5 h-2.5" /> <span className="truncate">{u.telefone}</span></span>
+                          <span className="text-[10px] text-muted-foreground/50">{rideCount} viagens</span>
                         </div>
                       </div>
-                      <div className="flex items-center gap-0.5 sm:gap-1.5 shrink-0">
-                        <Button size="icon" variant="ghost" className={`h-7 w-7 sm:h-8 sm:w-8 ${isAdmin ? 'text-purple-400' : 'text-muted-foreground hover:text-purple-400'}`} title={isAdmin ? 'Remover admin' : 'Tornar admin'}
-                          onClick={() => { const nR = isAdmin ? ['motorista'] : ['motorista', 'admin']; const nT = isAdmin ? 'motorista' : 'admin'; updateUserMutation.mutate({ userId: u.id, updates: { roles: nR, tipo: nT } }); }}>
-                          <Shield className="w-3.5 h-3.5" />
-                        </Button>
-                        <Button size="icon" variant="ghost" className="h-7 w-7 sm:h-8 sm:w-8 text-muted-foreground hover:text-accent hidden sm:flex" title="Crachá" onClick={() => { setBadgeUser(u); setShowBadgeDialog(true); }}><IdCard className="w-3.5 h-3.5" /></Button>
-                        <Button size="icon" variant="ghost" className="h-7 w-7 sm:h-8 sm:w-8 text-muted-foreground hover:text-foreground" title="Editar" onClick={() => openEditUserDialog(u)}><Pencil className="w-3.5 h-3.5" /></Button>
-                        <button className="h-7 sm:h-8 flex items-center gap-1.5 px-0.5 sm:px-1" title={u.status === 'ativo' ? 'Desativar' : 'Ativar'}
-                          onClick={() => updateUserMutation.mutate({ userId: u.id, updates: { status: u.status === 'ativo' ? 'banido' : 'ativo', ativo: u.status !== 'ativo' } })}>
-                          <div className={`w-8 sm:w-9 h-[18px] sm:h-5 rounded-full transition-colors relative ${u.status === 'ativo' ? 'bg-green-500' : 'bg-border'}`}>
-                            <div className={`absolute top-[2px] sm:top-0.5 left-0.5 w-3.5 sm:w-4 h-3.5 sm:h-4 rounded-full bg-white transition-transform ${u.status === 'ativo' ? 'translate-x-3.5 sm:translate-x-4' : ''}`} />
-                          </div>
-                        </button>
-                        <Button size="icon" variant="ghost" className="h-7 w-7 sm:h-8 sm:w-8 text-muted-foreground hover:text-red-400" title="Excluir" onClick={() => { setDeleteTarget({ id: u.id, label: u.nome }); setShowDeleteConfirm(true); }}><Trash2 className="w-3.5 h-3.5" /></Button>
-                      </div>
+                    </div>
+                    {/* Ações */}
+                    <div className="flex items-center gap-0.5 pt-1.5 border-t border-border/20">
+                      <Button size="icon" variant="ghost" className={`h-7 w-7 rounded-lg ${isAdmin ? 'text-purple-400' : 'text-muted-foreground/60 hover:text-purple-400'}`} title={isAdmin ? 'Remover admin' : 'Tornar admin'}
+                        onClick={() => { const nR = isAdmin ? ['motorista'] : ['motorista', 'admin']; const nT = isAdmin ? 'motorista' : 'admin'; updateUserMutation.mutate({ userId: u.id, updates: { roles: nR, tipo: nT } }); }}>
+                        <Shield className="w-3 h-3" />
+                      </Button>
+                      <Button size="icon" variant="ghost" className="h-7 w-7 rounded-lg text-muted-foreground/60 hover:text-foreground" title="Editar" onClick={() => openEditUserDialog(u)}><Pencil className="w-3 h-3" /></Button>
+                      <Button size="icon" variant="ghost" className="h-7 w-7 rounded-lg text-muted-foreground/60 hover:text-amber-400" title="Credencial" onClick={() => { setBadgeUser(u); setShowBadgeDialog(true); }}><IdCard className="w-3 h-3" /></Button>
+                      <button
+                        className="h-7 w-7 flex items-center justify-center rounded-lg hover:bg-muted/40 transition-colors"
+                        title={u.status === 'ativo' ? 'Desativar' : 'Ativar'}
+                        onClick={() => updateUserMutation.mutate({ userId: u.id, updates: { status: u.status === 'ativo' ? 'banido' : 'ativo', ativo: u.status !== 'ativo' } })}>
+                        <div className={`w-5 h-3 rounded-full transition-all relative ${u.status === 'ativo' ? 'bg-green-500/80' : 'bg-muted-foreground/25'}`}>
+                          <div className={`absolute top-[2px] left-[2px] w-2 h-2 rounded-full bg-white shadow-sm transition-transform ${u.status === 'ativo' ? 'translate-x-2' : ''}`} />
+                        </div>
+                      </button>
+                      <Button size="icon" variant="ghost" className="h-7 w-7 rounded-lg text-muted-foreground/60 hover:text-red-400" title="Excluir" onClick={() => { setDeleteTarget({ id: u.id, label: u.nome }); setShowDeleteConfirm(true); }}><Trash2 className="w-3 h-3" /></Button>
                     </div>
                   </CardContent>
                 </Card>

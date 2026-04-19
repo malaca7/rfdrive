@@ -448,19 +448,19 @@ const AdminCorridas: React.FC = () => {
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
         {[
-          { label: 'Total', value: stats.total, color: 'text-foreground', bg: 'bg-muted/50' },
-          { label: 'Em Análise', value: stats.emAnalise, color: 'text-orange-400', bg: 'bg-orange-500/10' },
-          { label: 'Aprovadas', value: stats.aprovadas, color: 'text-green-400', bg: 'bg-green-500/10' },
-          { label: 'Recusadas', value: stats.recusadas, color: 'text-red-400', bg: 'bg-red-500/10' },
+          { label: 'Total', value: stats.total, color: 'text-foreground', bg: 'bg-muted/30' },
+          { label: 'Em Análise', value: stats.emAnalise, color: 'text-orange-400', bg: 'bg-orange-500/8' },
+          { label: 'Aprovadas', value: stats.aprovadas, color: 'text-green-400', bg: 'bg-green-500/8' },
+          { label: 'Recusadas', value: stats.recusadas, color: 'text-red-400', bg: 'bg-red-500/8' },
         ].map(s => (
-          <Card key={s.label}>
+          <Card key={s.label} className="card-hover">
             <CardContent className="py-3 px-4 flex items-center gap-3">
-              <div className={`w-9 h-9 rounded-xl ${s.bg} flex items-center justify-center`}>
-                <Car className={`w-4 h-4 ${s.color}`} />
+              <div className={`w-8 h-8 rounded-lg ${s.bg} flex items-center justify-center`}>
+                <Car className={`w-3.5 h-3.5 ${s.color} opacity-80`} />
               </div>
               <div>
-                <p className={`text-lg font-bold leading-none ${s.color}`}>{s.value}</p>
-                <p className="text-[10px] text-muted-foreground mt-0.5">{s.label}</p>
+                <p className={`text-lg font-bold leading-none tracking-tight ${s.color}`}>{s.value}</p>
+                <p className="text-[10px] text-muted-foreground/60 mt-0.5">{s.label}</p>
               </div>
             </CardContent>
           </Card>
@@ -515,18 +515,18 @@ const AdminCorridas: React.FC = () => {
       ) : !filteredRides?.length ? (
         <Card><CardContent className="py-12 text-center"><Car className="w-12 h-12 text-muted-foreground mx-auto mb-3" /><p className="text-muted-foreground">Nenhuma viagem encontrada</p></CardContent></Card>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-2.5">
           {filteredRides.map((ride, i) => {
             const cfg = STATUS_CONFIG[ride.status] || STATUS_CONFIG.nova;
             const needsAction = ride.status === 'em_analise';
             return (
-              <motion.div key={ride.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.02 }}>
-                <Card className={needsAction ? 'border-orange-500/30 bg-orange-500/5' : ''}>
-                  <CardContent className="py-4">
-                    <div className="flex flex-col gap-3">
+              <motion.div key={ride.id} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.015, duration: 0.25 }}>
+                <Card className={`card-hover ${needsAction ? 'border-orange-500/20 bg-orange-500/5' : ''}`}>
+                  <CardContent className="py-3.5 px-4">
+                    <div className="flex flex-col gap-2.5">
                       <div className="flex items-center justify-between flex-wrap gap-2">
                         <div className="flex items-center gap-2">
-                          <Badge variant="outline" className={`text-xs gap-1 ${cfg.color}`}>{cfg.icon}{cfg.label}</Badge>
+                          <Badge variant="outline" className={`text-[10px] gap-1 ${cfg.color}`}>{cfg.icon}{cfg.label}</Badge>
                         </div>
                         <span className="text-xs text-muted-foreground">{new Date(ride.concluida_at || ride.created_at).toLocaleString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
                       </div>
@@ -538,9 +538,9 @@ const AdminCorridas: React.FC = () => {
                           </div>
                         )}
                       </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-green-500 shrink-0" /><span className="text-sm">{ride.origem_texto}</span></div>
-                        <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-accent shrink-0" /><span className="text-sm">{ride.destino_texto}</span></div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                        <div className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-green-500/80 shrink-0" /><span className="text-[13px] text-foreground/80">{ride.origem_texto}</span></div>
+                        <div className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-accent/80 shrink-0" /><span className="text-[13px] text-foreground/80">{ride.destino_texto}</span></div>
                       </div>
                       {(ride.valor != null || ride.valor_estimado != null) && (
                         <div className="flex items-center gap-4 text-xs flex-wrap">
@@ -564,14 +564,14 @@ const AdminCorridas: React.FC = () => {
                           )}
                         </div>
                       )}
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <Button size="sm" variant="outline" className="text-xs gap-1" onClick={() => openDetailDialog(ride)}><Eye className="w-3 h-3" /> Detalhes</Button>
-                        <Button size="sm" variant="outline" className="text-xs gap-1" onClick={() => openEditRideDialog(ride)}><Pencil className="w-3 h-3" /> Editar</Button>
-                        <Button size="sm" variant="outline" className="text-xs gap-1 text-green-400 border-green-500/30 hover:bg-green-500/10" onClick={() => handleDirectApprove(ride)}><CheckCircle className="w-3 h-3" /> Aprovar</Button>
-                        <Button size="sm" variant="outline" className="text-xs gap-1 text-yellow-400 border-yellow-500/30 hover:bg-yellow-500/10" onClick={() => openApprovalDialog(ride, 'nao_realizada')}><AlertTriangle className="w-3 h-3" /> Não Realizada</Button>
-                        <Button size="sm" variant="outline" className="text-xs gap-1 text-red-400 border-red-500/30 hover:bg-red-500/10" onClick={() => openApprovalDialog(ride, 'recusada')}><XCircle className="w-3 h-3" /> Recusar</Button>
-                        <Button size="sm" variant="outline" className="text-xs gap-1 text-red-400 border-red-500/30 hover:bg-red-500/10 ml-auto" onClick={() => { setDeleteTarget({ id: ride.id, label: `Viagem de ${ride.cliente?.nome || 'cliente'}` }); setShowDeleteConfirm(true); }}>
-                          <Trash2 className="w-3 h-3" /> Excluir
+                      <div className="flex items-center gap-1.5 flex-wrap pt-1 border-t border-border/20">
+                        <Button size="sm" variant="ghost" className="text-[11px] gap-1 h-7 px-2 text-muted-foreground/70 hover:text-foreground" onClick={() => openDetailDialog(ride)}><Eye className="w-3 h-3" /> Detalhes</Button>
+                        <Button size="sm" variant="ghost" className="text-[11px] gap-1 h-7 px-2 text-muted-foreground/70 hover:text-foreground" onClick={() => openEditRideDialog(ride)}><Pencil className="w-3 h-3" /> Editar</Button>
+                        <Button size="sm" variant="ghost" className="text-[11px] gap-1 h-7 px-2 text-green-400/70 hover:text-green-400 hover:bg-green-500/10" onClick={() => handleDirectApprove(ride)}><CheckCircle className="w-3 h-3" /> Aprovar</Button>
+                        <Button size="sm" variant="ghost" className="text-[11px] gap-1 h-7 px-2 text-yellow-400/70 hover:text-yellow-400 hover:bg-yellow-500/10" onClick={() => openApprovalDialog(ride, 'nao_realizada')}><AlertTriangle className="w-3 h-3" /> Não Realizada</Button>
+                        <Button size="sm" variant="ghost" className="text-[11px] gap-1 h-7 px-2 text-red-400/70 hover:text-red-400 hover:bg-red-500/10" onClick={() => openApprovalDialog(ride, 'recusada')}><XCircle className="w-3 h-3" /> Recusar</Button>
+                        <Button size="sm" variant="ghost" className="text-[11px] gap-1 h-7 px-2 text-red-400/70 hover:text-red-400 hover:bg-red-500/10 ml-auto" onClick={() => { setDeleteTarget({ id: ride.id, label: `Viagem de ${ride.cliente?.nome || 'cliente'}` }); setShowDeleteConfirm(true); }}>
+                          <Trash2 className="w-3 h-3" />
                         </Button>
                       </div>
                     </div>
