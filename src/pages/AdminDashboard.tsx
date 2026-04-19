@@ -1051,7 +1051,7 @@ const AdminDashboard: React.FC = () => {
                             </div>
 
                             {/* Actions */}
-                            <div className="flex items-center gap-1.5 shrink-0">
+                            <div className="flex items-center gap-1 shrink-0 flex-wrap justify-end">
                               {/* Admin toggle */}
                               <Button
                                 size="icon" variant="ghost"
@@ -1081,7 +1081,6 @@ const AdminDashboard: React.FC = () => {
                                 onClick={() => { setCredentialUser(u); setShowCredentialDialog(true); }}
                               >
                                 <IdCard className="w-3.5 h-3.5" />
-                              </Button>
                               </Button>
                               {/* Ativar/Desativar */}
                               <Button
