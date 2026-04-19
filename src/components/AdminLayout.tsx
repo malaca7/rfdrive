@@ -1,13 +1,14 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+import { flushSync } from 'react-dom';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
-  BarChart3, Car, Users, DollarSign, Settings, Star, Truck, Route, FileText,
+  BarChart3, Car, Users, DollarSign, Settings, Star, Truck, Route, FileText, Shield, ChevronUp,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePlatformConfig } from '@/hooks/usePlatformConfig';
 import { useTheme } from '@/hooks/useTheme';
 import { Navigation, LogOut, Sun, Moon } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { getAnimalAvatarUrl } from '@/lib/animal-avatars';
 
 const ADMIN_NAV = [
@@ -26,6 +27,20 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { profile, signOut, setActiveScreen } = useAuth();
   const { nomePlataforma, logoUrl } = usePlatformConfig();
   const { theme, toggleTheme } = useTheme();
+  const [showSwitcher, setShowSwitcher] = useState(false);
+  const switcherRef = useRef<HTMLDivElement>(null);
+
+  // Close switcher on outside click
+  useEffect(() => {
+    if (!showSwitcher) return;
+    const handler = (e: MouseEvent) => {
+      if (switcherRef.current && !switcherRef.current.contains(e.target as Node)) {
+        setShowSwitcher(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showSwitcher]);
 
   return (
     <div className="h-[100dvh] w-full flex flex-col bg-background overflow-hidden">
@@ -74,9 +89,41 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         </main>
       </div>
 
-      {/* ── Mobile floating dock (visible only on mobile, no sidebar) ── */}
+      {/* ── Mobile floating dock ── */}
       <nav className="shrink-0 z-40 safe-bottom bar-glow-top">
-        <div className="mx-3 mb-2 bg-bar backdrop-blur-2xl rounded-2xl border border-border/40 shadow-2xl shadow-black/20 dark:shadow-black/50">
+        <div className="mx-3 mb-2 bg-bar backdrop-blur-2xl rounded-2xl border border-border/40 shadow-2xl shadow-black/20 dark:shadow-black/50 relative" ref={switcherRef}>
+          {/* Switcher popup */}
+          <AnimatePresence>
+            {showSwitcher && (
+              <motion.div
+                initial={{ opacity: 0, y: 8, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 8, scale: 0.95 }}
+                transition={{ duration: 0.15 }}
+                className="absolute bottom-full mb-2 right-3 bg-bar backdrop-blur-2xl rounded-xl border border-border/40 shadow-2xl shadow-black/30 p-1.5 min-w-[160px] z-50"
+              >
+                <button
+                  onClick={() => { flushSync(() => setActiveScreen('motorista')); navigate('/motorista/viagens'); setShowSwitcher(false); }}
+                  className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium transition-all hover:bg-muted/40 text-foreground/70 hover:text-foreground"
+                >
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-muted/30">
+                    <Truck className="w-4 h-4" />
+                  </div>
+                  Motorista
+                </button>
+                <button
+                  onClick={() => { setShowSwitcher(false); }}
+                  className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium transition-all bg-purple-500/15 text-purple-400"
+                >
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-purple-500/20 border border-purple-400/40">
+                    <Shield className="w-4 h-4" />
+                  </div>
+                  Admin
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           <div className="flex items-stretch justify-around h-[66px] px-1">
             {ADMIN_NAV.map(item => {
               const isActive = location.pathname.startsWith(item.path);
@@ -105,14 +152,18 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             })}
             <div className="w-px self-stretch my-2.5 bg-border mx-0.5" />
             <button
-              onClick={() => { setActiveScreen('motorista'); navigate('/motorista/viagens'); }}
+              onClick={() => setShowSwitcher(!showSwitcher)}
               className="relative flex flex-col items-center justify-center gap-1 flex-1 tap-highlight"
-              title="Motorista"
+              title="Trocar painel"
             >
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-gradient-to-br from-emerald-500/20 to-green-500/20 border border-emerald-400/40 text-emerald-400 hover:from-emerald-500/30 hover:to-green-500/30 hover:border-emerald-400/60 transition-all">
-                <Truck className="w-5 h-5" />
-              </div>
-              <span className="text-[10px] font-bold tracking-wide text-emerald-400">Motorista</span>
+              <motion.div
+                animate={{ rotate: showSwitcher ? 180 : 0 }}
+                transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+                className="w-10 h-10 rounded-xl flex items-center justify-center bg-gradient-to-br from-purple-500/20 to-violet-500/20 border border-purple-400/40 text-purple-400 hover:from-purple-500/30 hover:to-violet-500/30 hover:border-purple-400/60 transition-all"
+              >
+                <ChevronUp className="w-5 h-5" />
+              </motion.div>
+              <span className="text-[10px] font-bold tracking-wide text-purple-400">Painel</span>
             </button>
           </div>
         </div>
