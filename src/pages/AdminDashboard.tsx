@@ -1051,7 +1051,7 @@ const AdminDashboard: React.FC = () => {
                             </div>
 
                             {/* Ações */}
-                            <div className="flex items-center gap-1 pt-2 sm:pt-0 border-t sm:border-t-0 border-border/40 shrink-0">
+                            <div className="flex items-center gap-1 pt-2 sm:pt-0 border-t sm:border-t-0 border-border/40 flex-wrap">
                               <Button
                                 size="icon" variant="ghost"
                                 className={`h-8 w-8 ${isAdmin ? 'text-purple-400 hover:text-purple-300' : 'text-muted-foreground hover:text-purple-400'}`}
