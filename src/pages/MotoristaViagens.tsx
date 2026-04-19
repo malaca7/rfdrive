@@ -489,21 +489,37 @@ const MotoristaViagens: React.FC = () => {
       });
     } catch { /* non-blocking: table may not exist yet */ }
 
-    // ── Share via WhatsApp as PDF (or fallback download) ──
+    // ── Share via WhatsApp as PDF ──
     try {
       const pdfBlob = doc.output('blob');
       const file = new File([pdfBlob], `recibo-${recNum}.pdf`, { type: 'application/pdf' });
 
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        await navigator.share({ files: [file] });
+        await navigator.share({
+          files: [file],
+          title: `Recibo ${recNum}`,
+        });
       } else {
-        // Fallback: download
-        doc.save(`recibo-${recNum}.pdf`);
+        // Fallback: gerar URL blob e abrir WhatsApp web
+        const url = URL.createObjectURL(pdfBlob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `recibo-${recNum}.pdf`;
+        a.click();
+        URL.revokeObjectURL(url);
+        // Abre WhatsApp para enviar manualmente
+        window.open('https://api.whatsapp.com/send?text=Segue%20o%20recibo%20em%20PDF', '_blank');
       }
       toast({ title: 'Recibo gerado!', description: `Token: ${token}` });
     } catch {
-      // User cancelled or error — just download
-      doc.save(`recibo-${recNum}.pdf`);
+      // User cancelled ou erro — baixa e abre WhatsApp
+      const pdfBlob = doc.output('blob');
+      const url = URL.createObjectURL(pdfBlob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `recibo-${recNum}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
       toast({ title: 'Recibo salvo!', description: `Token: ${token}` });
     }
   };
