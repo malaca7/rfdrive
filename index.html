@@ -46,14 +46,27 @@
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@Lovable" />
     <meta name="twitter:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
-    <script type="module" src="./assets/index-CF-ibYkX.js"></script>
-    <link rel="modulepreload" href="./assets/vendor-react-BfbYjnKn.js">
-    <link rel="modulepreload" href="./assets/vendor-query-TXsN0V9q.js">
-    <link rel="modulepreload" href="./assets/vendor-supabase-6nRBcVya.js">
-    <link rel="stylesheet" href="./assets/index-Dat6FbCC.css">
+    <script type="module" src="/rfdrive/assets/index-H_fEzdV-.js"></script>
+    <link rel="modulepreload" href="/rfdrive/assets/vendor-react-BsUw3VZd.js">
+    <link rel="modulepreload" href="/rfdrive/assets/vendor-query-DVcR1ptf.js">
+    <link rel="modulepreload" href="/rfdrive/assets/vendor-supabase-6nRBcVya.js">
+    <link rel="stylesheet" href="/rfdrive/assets/index-Dat6FbCC.css">
   </head>
 
   <body>
+    <script>
+      // SPA redirect restore — works with 404.html
+      (function(l) {
+        if (l.search[1] === '/') {
+          var decoded = l.search.slice(1).split('&').map(function(s) {
+            return s.replace(/~and~/g, '&');
+          }).join('?');
+          window.history.replaceState(null, null,
+            l.pathname.slice(0, -1) + decoded + l.hash
+          );
+        }
+      }(window.location));
+    </script>
     <div id="root">
       <div style="display:flex;align-items:center;justify-content:center;min-height:100vh;background:#0a0a0a;">
         <div style="width:32px;height:32px;border:3px solid #333;border-top-color:#f5c542;border-radius:50%;animation:spin 0.8s linear infinite;"></div>
