@@ -1,1 +1,0 @@
-import{c as r}from"./vendor-query-CPPo5fWD.js";function y(e,n,u){return r({queryKey:["dynamic-adjustment",e,n,u],queryFn:async()=>({precoFinal:null,rulesApplied:[]}),enabled:typeof e=="number"})}export{y as u};

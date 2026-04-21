@@ -1,1 +1,0 @@
-import{j as a}from"./vendor-query-CPPo5fWD.js";const n=({children:s})=>a.jsx(a.Fragment,{children:s}),r=({className:s,...t})=>a.jsx("div",{className:s,...t}),x=({className:s,...t})=>a.jsx("button",{className:s,...t}),b=({className:s,...t})=>a.jsx("div",{className:s,...t});export{n as T,r as a,x as b,b as c};
