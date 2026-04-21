@@ -387,9 +387,14 @@ export const TripCalculator: React.FC<{
                         {precoEfetivo.mesmo_bairro ? 'Viagem pro mesmo bairro' : precoEfetivo.estimado ? 'Média via Centro do Cabo' : precoEfetivo.match_exato ? 'Correspondência exata' : 'Melhor correspondência'}
                       </p>
                       {!precoEfetivo.mesmo_bairro && (
-                        <p className="text-[10px] text-muted-foreground truncate max-w-[160px]">
-                          {precoEfetivo.origem_tabela} → {precoEfetivo.destino_tabela}
-                        </p>
+                        <>
+                          <p className="text-[10px] text-muted-foreground truncate max-w-[160px]">
+                            {precoEfetivo.origem_tabela} → {precoEfetivo.destino_tabela}
+                          </p>
+                          <p className="text-[10px] text-muted-foreground">
+                            {precoEfetivo.origem_regiao || '—'} → {precoEfetivo.destino_regiao || '—'}
+                          </p>
+                        </>
                       )}
                     </div>
                   </div>
@@ -528,7 +533,7 @@ export const TripCalculator: React.FC<{
                   onClick={handleCopy}
                 >
                   {copied ? <Check className="w-5 h-5 text-green-400" /> : <Copy className="w-5 h-5" />}
-                  {copied ? 'Copiado!' : 'Copiar Orçamento'}
+                  {copied ? 'Copiado!' : 'Compartilhar Orçamento'}
                 </Button>
               </CardContent>
             </Card>
@@ -565,6 +570,21 @@ function drawDiamond(ctx: CanvasRenderingContext2D, cx: number, cy: number, half
   ctx.lineTo(cx + halfW, cy);
   ctx.lineTo(cx, cy + halfH);
   ctx.lineTo(cx - halfW, cy);
+  ctx.closePath();
+}
+
+function drawRoundedRectPath(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
+  const rr = Math.max(0, Math.min(r, Math.min(w, h) / 2));
+  ctx.beginPath();
+  ctx.moveTo(x + rr, y);
+  ctx.lineTo(x + w - rr, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + rr);
+  ctx.lineTo(x + w, y + h - rr);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - rr, y + h);
+  ctx.lineTo(x + rr, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - rr);
+  ctx.lineTo(x, y + rr);
+  ctx.quadraticCurveTo(x, y, x + rr, y);
   ctx.closePath();
 }
 
@@ -730,29 +750,35 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
     ctx.restore();
 
     // Diamond avatar frame
-    const avCX = LC;
+    const avCX = LC - 12;
     const avCY = 270;
-    const diamHalf = 180;
+    const frameSize = 360;
+    const frameRadius = 28;
+    const frameTiltRad = -8 * (Math.PI / 180);
 
-    // Gold diamond border
+    // Gold rounded frame (slightly tilted left)
     ctx.save();
+    ctx.translate(avCX, avCY);
+    ctx.rotate(frameTiltRad);
     ctx.shadowColor = 'rgba(245,212,66,0.4)';
     ctx.shadowBlur = 25;
     ctx.shadowOffsetY = 5;
-    drawDiamond(ctx, avCX, avCY, diamHalf + 12, diamHalf + 12);
-    const borderGrad = ctx.createLinearGradient(avCX, avCY - diamHalf - 12, avCX, avCY + diamHalf + 12);
+    drawRoundedRectPath(ctx, -(frameSize / 2) - 12, -(frameSize / 2) - 12, frameSize + 24, frameSize + 24, frameRadius + 8);
+    const borderGrad = ctx.createLinearGradient(0, -(frameSize / 2) - 12, 0, (frameSize / 2) + 12);
     borderGrad.addColorStop(0, GOLD1);
     borderGrad.addColorStop(1, GOLD2);
     ctx.fillStyle = borderGrad;
     ctx.fill();
     ctx.restore();
 
-    // Clip diamond for avatar
+    // Clip rounded frame for avatar
     ctx.save();
-    drawDiamond(ctx, avCX, avCY, diamHalf, diamHalf);
+    ctx.translate(avCX, avCY);
+    ctx.rotate(frameTiltRad);
+    drawRoundedRectPath(ctx, -(frameSize / 2), -(frameSize / 2), frameSize, frameSize, frameRadius);
     ctx.clip();
     ctx.fillStyle = '#333';
-    ctx.fillRect(avCX - diamHalf, avCY - diamHalf, diamHalf * 2, diamHalf * 2);
+    ctx.fillRect(-(frameSize / 2), -(frameSize / 2), frameSize, frameSize);
 
     let avatarLoaded = false;
     if (profile.avatar_url) {
@@ -760,10 +786,10 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
         const avImg = await loadImageAny(profile.avatar_url);
         if (avImg) {
           const ar = avImg.width / avImg.height;
-          const size = diamHalf * 2;
+          const size = frameSize;
           let dw = size, dh = size;
           if (ar > 1) dw = size * ar; else dh = size / ar;
-          ctx.drawImage(avImg, avCX - dw / 2, avCY - dh / 2, dw, dh);
+          ctx.drawImage(avImg, -dw / 2, -dh / 2, dw, dh);
           avatarLoaded = true;
         }
       } catch { /* fallback */ }
@@ -773,8 +799,8 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
         const animalUrl = getAnimalAvatarUrl(profile.id || profile.nome || 'driver');
         const animalImg = await loadImageAny(animalUrl);
         if (animalImg) {
-          const size = diamHalf * 2;
-          ctx.drawImage(animalImg, avCX - size / 2, avCY - size / 2, size, size);
+          const size = frameSize;
+          ctx.drawImage(animalImg, -size / 2, -size / 2, size, size);
           avatarLoaded = true;
         }
       } catch { /* fallback */ }
@@ -783,11 +809,11 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
       ctx.strokeStyle = '#888';
       ctx.lineWidth = 4;
       ctx.lineCap = 'round';
-      ctx.beginPath(); ctx.arc(avCX, avCY - 18, 32, 0, Math.PI * 2); ctx.stroke();
+      ctx.beginPath(); ctx.arc(0, -18, 32, 0, Math.PI * 2); ctx.stroke();
       ctx.beginPath();
-      ctx.moveTo(avCX - 46, avCY + 50);
-      ctx.bezierCurveTo(avCX - 46, avCY + 18, avCX - 36, avCY + 12, avCX, avCY + 12);
-      ctx.bezierCurveTo(avCX + 36, avCY + 12, avCX + 46, avCY + 18, avCX + 46, avCY + 50);
+      ctx.moveTo(-46, 50);
+      ctx.bezierCurveTo(-46, 18, -36, 12, 0, 12);
+      ctx.bezierCurveTo(36, 12, 46, 18, 46, 50);
       ctx.stroke();
     }
     ctx.restore();
@@ -912,26 +938,31 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
         ctx.fillStyle = '#ffcc00';
         ctx.fill();
 
-        // Plate characters — BIGGER
-        ctx.textAlign = 'center';
-        ctx.font = `800 46px "FE-Schrift", "Segoe UI", ${FONT}`;
-        ctx.fillStyle = '#1a1a1a';
+        // Plate characters — single centered text for reliable alignment
         let displayPlate = plateText;
         if (plateText.length === 7) {
           displayPlate = plateText.slice(0, 3) + '-' + plateText.slice(3);
         }
-        const charStartX = plateX + 18;
-        const charY = plateY + bandH + 47;
-        const charSpacing = (plateW - 36) / (displayPlate.length > 0 ? displayPlate.length : 1);
-        for (let i = 0; i < displayPlate.length; i++) {
-          const cx = charStartX + i * charSpacing + charSpacing / 2;
-          ctx.fillStyle = '#1a1a1a';
-          ctx.fillText(displayPlate[i], cx, charY);
-        }
+        ctx.save();
+        ctx.shadowColor = 'transparent';
+        ctx.shadowBlur = 0;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 0;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'alphabetic';
+        ctx.font = `800 44px "FE-Schrift", "Segoe UI", ${FONT}`;
+        ctx.fillStyle = '#1a1a1a';
+        ctx.fillText(displayPlate, RC, plateY + bandH + 48);
+        ctx.restore();
       }
     }
 
     // ══ TOP BAR (rendered last to overlay everything) ══
+    // Reset any lingering shadow/state from previous draws
+    ctx.shadowColor = 'transparent';
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 0;
     const topBarH = 60;
     ctx.fillStyle = '#111111';
     ctx.fillRect(BORDER, BORDER, W - BORDER * 2, topBarH);
@@ -958,9 +989,7 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
 
     ctx.font = `600 12px ${FONT}`;
     ctx.fillStyle = 'rgba(255,255,255,0.6)';
-    ctx.letterSpacing = '2px';
     ctx.fillText('MOBILIDADE COM EXCELÊNCIA', 28 + rfW + 14, tbCY);
-    ctx.letterSpacing = '0px';
 
     // Small stars right-aligned in top bar
     ctx.textAlign = 'center';
@@ -971,47 +1000,55 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
       ctx.fill();
     }
 
-    // ══ ADMINISTRADOR — centered, overlays everything ══
-    const isAdmin = profile.tipo === 'admin';
+    // ══ ADMINISTRADOR — flat tag, top-right of photo frame ══
+    const isAdmin = profile.tipo === 'admin' || profile.tipo === 'ceo';
     if (isAdmin) {
       const badgeText = 'ADMINISTRADOR';
-      ctx.font = `800 22px ${FONT}`;
-      const badgeW = ctx.measureText(badgeText).width + 44;
-      const badgeH = 36;
-      const badgeX = W / 2 - badgeW / 2;
-      const badgeY = BORDER + topBarH + 30;
+      ctx.font = `800 16px ${FONT}`;
+      const textW = ctx.measureText(badgeText).width;
+      const padX = 18;
+      const tagW = textW + padX * 2;
+      const tagH = 32;
+      const frameRight = avCX + frameSize / 2 + 12;
+      const frameTop = avCY - frameSize / 2 - 12;
+      const tagX = frameRight + 30 - tagW / 2;
+      const tagY = frameTop + frameSize * 0.12 - tagH / 2;
 
+      // Shadow
       ctx.save();
-      ctx.shadowColor = '#3b82f6';
-      ctx.shadowBlur = 30;
-      ctx.fillStyle = 'rgba(59,130,246,0.15)';
-      ctx.beginPath();
-      ctx.roundRect(badgeX - 4, badgeY - 4, badgeW + 8, badgeH + 8, 8);
-      ctx.fill();
-      ctx.restore();
+      ctx.shadowColor = 'rgba(0,0,0,0.5)';
+      ctx.shadowBlur = 14;
+      ctx.shadowOffsetX = 3;
+      ctx.shadowOffsetY = 5;
 
-      ctx.save();
-      ctx.shadowColor = '#60a5fa';
-      ctx.shadowBlur = 20;
-      const badgeFill = ctx.createLinearGradient(badgeX, 0, badgeX + badgeW, 0);
+      // Tag body
+      const badgeFill = ctx.createLinearGradient(tagX, 0, tagX + tagW, 0);
       badgeFill.addColorStop(0, '#1e40af');
       badgeFill.addColorStop(0.5, '#2563eb');
       badgeFill.addColorStop(1, '#1e40af');
       ctx.fillStyle = badgeFill;
       ctx.beginPath();
-      ctx.roundRect(badgeX, badgeY, badgeW, badgeH, 6);
+      ctx.roundRect(tagX, tagY, tagW, tagH, 6);
       ctx.fill();
+      ctx.restore();
+
+      // Border
+      ctx.save();
       ctx.strokeStyle = '#60a5fa';
       ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.roundRect(tagX, tagY, tagW, tagH, 6);
       ctx.stroke();
       ctx.restore();
 
+      // Text
+      ctx.save();
       ctx.fillStyle = '#ffffff';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.font = `800 22px ${FONT}`;
-      ctx.fillText(badgeText, W / 2, badgeY + badgeH / 2);
-      ctx.textBaseline = 'alphabetic';
+      ctx.font = `800 16px ${FONT}`;
+      ctx.fillText(badgeText, tagX + tagW / 2, tagY + tagH / 2);
+      ctx.restore();
     }
 
     // ══ Re-draw border on top ══
@@ -1085,7 +1122,7 @@ export const DriverBadge: React.FC<DriverToolsProps> = ({ profile, avgRating, co
           onClick={handleShare}
         >
           <Send className="w-5 h-5" />
-          Baixar Crachá
+          Compartilhar Crachá
         </Button>
       </div>
     </div>

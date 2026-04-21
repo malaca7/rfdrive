@@ -1,9 +1,11 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { hasPermission as rbacHasPermission, hasMinRole as rbacHasMinRole, type Permission, type AppRole as RbacRole } from '@/lib/rbac';
+import { logPlatformActivity } from '@/lib/activity-log';
 
-type AppRole = 'cliente' | 'motorista' | 'admin';
+type AppRole = 'cliente' | 'motorista' | 'admin' | 'ceo';
 
-type ScreenKey = 'cliente' | 'motorista' | 'admin';
+type ScreenKey = 'cliente' | 'motorista' | 'admin' | 'ceo';
 
 interface UserData {
   id: string;
@@ -14,6 +16,7 @@ interface UserData {
   status: string;
   veiculo_placa?: string | null;
   avatar_url?: string | null;
+  created_at?: string;
 }
 
 interface AuthContextType {
@@ -23,6 +26,9 @@ interface AuthContextType {
   roles: AppRole[];
   loading: boolean;
   hasRole: (r: AppRole) => boolean;
+  hasPermission: (p: Permission) => boolean;
+  hasMinRole: (r: RbacRole) => boolean;
+  isCEO: boolean;
   availableScreens: ScreenKey[];
   activeScreen: ScreenKey;
   setActiveScreen: (s: ScreenKey) => void;
@@ -51,21 +57,26 @@ export const useAuth = () => {
 // Derive effective roles from DB roles + tipo fallback
 function deriveRoles(tipo: string, dbRoles?: string[] | null): AppRole[] {
   const validRoles = new Set<AppRole>();
+  const normalizedTipo = String(tipo || '').toLowerCase();
 
   // Add roles from DB array
   if (dbRoles && dbRoles.length > 0) {
     for (const r of dbRoles) {
-      if (r === 'cliente' || r === 'motorista' || r === 'admin') {
-        validRoles.add(r);
+      const normalizedRole = String(r || '').toLowerCase();
+      if (normalizedRole === 'cliente' || normalizedRole === 'motorista' || normalizedRole === 'admin' || normalizedRole === 'ceo') {
+        validRoles.add(normalizedRole as AppRole);
       }
     }
   }
 
   // Fallback: if no DB roles, derive from tipo
   if (!dbRoles || dbRoles.length === 0) {
-    if (tipo === 'motorista') {
+    if (normalizedTipo === 'ceo') {
+      validRoles.add('ceo');
+      validRoles.add('admin');
+    } else if (normalizedTipo === 'motorista') {
       validRoles.add('motorista');
-    } else if (tipo === 'admin') {
+    } else if (normalizedTipo === 'admin') {
       validRoles.add('admin');
     } else {
       validRoles.add('cliente');
@@ -81,7 +92,8 @@ function deriveRoles(tipo: string, dbRoles?: string[] | null): AppRole[] {
 // Determine which screens a user can access
 function getAvailableScreens(roles: AppRole[], user?: UserData | null): ScreenKey[] {
   const screens: ScreenKey[] = [];
-  const isAdmin = user?.tipo === 'admin' || roles.includes('admin');
+  const isCeo = user?.tipo === 'ceo' || roles.includes('ceo');
+  const isAdmin = user?.tipo === 'admin' || roles.includes('admin') || isCeo;
   const isMotorista = user?.tipo === 'motorista' || roles.includes('motorista');
 
   // Todos têm acesso a cliente
@@ -95,6 +107,11 @@ function getAvailableScreens(roles: AppRole[], user?: UserData | null): ScreenKe
   // Admin
   if (isAdmin) {
     screens.push('admin');
+  }
+
+  // CEO — painel exclusivo
+  if (isCeo) {
+    screens.push('ceo');
   }
 
   return screens;
@@ -112,7 +129,7 @@ function loadCachedUser(): UserData | null {
 function loadCachedScreen(): ScreenKey {
   try {
     const saved = localStorage.getItem(SCREEN_KEY);
-    if (saved === 'cliente' || saved === 'motorista' || saved === 'admin') return saved;
+    if (saved === 'cliente' || saved === 'motorista' || saved === 'admin' || saved === 'ceo') return saved;
   } catch (_e) { /* ignore */ }
   return 'cliente';
 }
@@ -125,12 +142,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const roles = user ? deriveRoles(user.tipo, user.roles) : [];
   const availableScreens = getAvailableScreens(roles, user);
+  const isCEO = roles.includes('ceo') || String(user?.tipo || '').toLowerCase() === 'ceo';
 
   const hasRole = (r: AppRole) => roles.includes(r);
+  const hasPermission = (p: Permission) => rbacHasPermission(roles, p);
+  const hasMinRole = (r: RbacRole) => rbacHasMinRole(roles, r);
 
   const setActiveScreen = (s: ScreenKey) => {
-    const isAdmin = user?.tipo === 'admin' || roles.includes('admin');
-    const canAccess = availableScreens.includes(s) || (s === 'admin' && isAdmin);
+    const tipo = String(user?.tipo || '').toLowerCase();
+    const isCeo = tipo === 'ceo' || roles.includes('ceo');
+    const isAdmin = tipo === 'admin' || roles.includes('admin') || isCeo;
+    const canAccess = availableScreens.includes(s)
+      || (s === 'admin' && isAdmin)
+      || (s === 'ceo' && isCeo);
     if (canAccess) {
       setActiveScreenState(s);
       localStorage.setItem(SCREEN_KEY, s);
@@ -140,12 +164,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Ensure activeScreen is valid for current user
   useEffect(() => {
     if (user) {
-      const isAdmin = user.tipo === 'admin' || roles.includes('admin');
-      const allScreens = isAdmin ? [...availableScreens, 'admin'] : availableScreens;
+      const tipo = String(user.tipo || '').toLowerCase();
+      const isCeo = tipo === 'ceo' || roles.includes('ceo');
+      const isAdmin = tipo === 'admin' || roles.includes('admin') || isCeo;
+      const allScreens = [...availableScreens];
+      if (isAdmin && !allScreens.includes('admin')) allScreens.push('admin');
+      if (isCeo && !allScreens.includes('ceo')) allScreens.push('ceo');
       if (!allScreens.includes(activeScreen as ScreenKey)) {
-        const defaultScreen = allScreens.includes('admin') ? 'admin' :
-          allScreens.includes('motorista') ? 'motorista' :
-          allScreens.includes('cliente') ? 'cliente' : 'cliente';
+        const defaultScreen = allScreens.includes('ceo') ? 'ceo' :
+          allScreens.includes('admin') ? 'admin' :
+          allScreens.includes('motorista') ? 'motorista' : 'cliente';
         setActiveScreenState(defaultScreen);
         localStorage.setItem(SCREEN_KEY, defaultScreen);
       }
@@ -159,6 +187,56 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       localStorage.removeItem(STORAGE_KEY);
     }
   }, [user]);
+
+  // Refresh do usuário em cache para evitar role desatualizada (ex.: admin -> ceo)
+  useEffect(() => {
+    if (!user?.id) return;
+
+    let mounted = true;
+    const refreshUser = async () => {
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if (error || !data || !mounted) return;
+
+      const dbRoles = deriveRoles(data.tipo, data.roles);
+      const mergedUser: UserData = {
+        id: data.id,
+        nome: data.nome,
+        telefone: data.telefone,
+        tipo: (String(data.tipo || '').toLowerCase() as AppRole),
+        roles: dbRoles,
+        status: data.status,
+        veiculo_placa: data.veiculo_placa || null,
+        avatar_url: data.avatar_url || null,
+        created_at: data.created_at || user.created_at,
+      };
+
+      const hasRoleChanged =
+        String(user.tipo || '').toLowerCase() !== mergedUser.tipo
+        || user.roles.join('|') !== mergedUser.roles.join('|');
+
+      if (hasRoleChanged) {
+        setUser(mergedUser);
+        setRole(mergedUser.tipo);
+
+        const screens = getAvailableScreens(mergedUser.roles, mergedUser);
+        if (screens.includes('ceo')) {
+          setActiveScreenState('ceo');
+          localStorage.setItem(SCREEN_KEY, 'ceo');
+        }
+      }
+    };
+
+    refreshUser();
+
+    return () => {
+      mounted = false;
+    };
+  }, [user?.id]);
 
   const signUp = async (telefone: string, password: string, nome: string) => {
     setLoading(true);
@@ -183,9 +261,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         ...userData,
         roles: deriveRoles(userData.tipo, userData.roles),
         veiculo_placa: userData.veiculo_placa || null,
+        created_at: userData.created_at,
       } as UserData);
       setRole('cliente');
       setActiveScreen('cliente');
+
+      await logPlatformActivity({
+        userId: userData.id,
+        action: 'signup',
+        category: 'auth',
+        entity: 'users',
+        entityId: userData.id,
+        details: { tipo: 'cliente' },
+      });
     } finally {
       setLoading(false);
     }
@@ -235,17 +323,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         status: userData.status,
         veiculo_placa: userData.veiculo_placa || null,
         avatar_url: userData.avatar_url || null,
+        created_at: userData.created_at,
       };
       setUser(userObj);
       setRole(userData.tipo as AppRole);
 
       // Definir tela direto (sem wrapper, que usa closure stale)
       const screens = getAvailableScreens(derivedRoles, userObj);
-      const defaultScreen = screens.includes('admin') ? 'admin' :
+      const defaultScreen = screens.includes('ceo') ? 'ceo' :
+        screens.includes('admin') ? 'admin' :
         screens.includes('motorista') ? 'motorista' :
         screens.includes('cliente') ? 'cliente' : 'cliente';
       setActiveScreenState(defaultScreen);
       localStorage.setItem(SCREEN_KEY, defaultScreen);
+
+      await logPlatformActivity({
+        userId: userObj.id,
+        action: 'signin',
+        category: 'auth',
+        entity: 'users',
+        entityId: userObj.id,
+        details: { tipo: userObj.tipo, screen: defaultScreen },
+      });
 
       return true;
     } finally {
@@ -258,6 +357,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signOut = async () => {
+    if (user?.id) {
+      await logPlatformActivity({
+        userId: user.id,
+        action: 'signout',
+        category: 'auth',
+        entity: 'users',
+        entityId: user.id,
+        details: { tipo: user.tipo },
+      });
+    }
+
     setUser(null);
     setRole(null);
     setActiveScreenState('cliente');
@@ -268,7 +378,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   return (
     <AuthContext.Provider value={{
       user, profile: user, role, roles, loading,
-      hasRole, availableScreens, activeScreen, setActiveScreen,
+      hasRole, hasPermission, hasMinRole, isCEO,
+      availableScreens, activeScreen, setActiveScreen,
       signUp, signIn, signOut, updateProfile,
     }}>
       {children}

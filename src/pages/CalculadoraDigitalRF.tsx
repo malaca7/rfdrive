@@ -30,6 +30,7 @@ const CalculadoraDigitalRF: React.FC = () => {
   const [origem, setOrigem] = useState('');
   const [destino, setDestino] = useState('');
   const [temBagagem, setTemBagagem] = useState(false);
+  const [porteAnimal, setPorteAnimal] = useState<'none' | 'pequeno' | 'medio'>('none');
   const [showOrigemSuggestions, setShowOrigemSuggestions] = useState(false);
   const [showDestinoSuggestions, setShowDestinoSuggestions] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -91,11 +92,13 @@ const CalculadoraDigitalRF: React.FC = () => {
       return { valorFinal: null, isTarifaMinima: false };
     }
     if (temBagagem) valor += (configTarifas?.taxa_bagagem ?? 5);
+    const taxaAnimal = porteAnimal === 'pequeno' ? 5 : porteAnimal === 'medio' ? 7 : 0;
+    if (taxaAnimal > 0) valor += taxaAnimal;
     const minima = configTarifas?.tarifa_minima ?? 0;
     const isMin = minima > 0 && valor < minima;
     if (isMin) valor = minima;
     return { valorFinal: Math.round(valor * 100) / 100, isTarifaMinima: isMin };
-  }, [precoDinamico, precoTabela, dynamicAdj, temBagagem, configTarifas]);
+  }, [precoDinamico, precoTabela, dynamicAdj, temBagagem, porteAnimal, configTarifas]);
 
   const temPreco = !!(precoDinamico || precoTabela);
 
@@ -124,6 +127,8 @@ const CalculadoraDigitalRF: React.FC = () => {
         msg += `_🌙 +R$ ${ajusteValor.toFixed(2).replace('.', ',')} ${dynamicAdj.regra.nome}_\n`;
       }
       if (temBagagem) msg += `_🛒 +R$ ${taxaBagagem.toFixed(2).replace('.', ',')} Adicional Bagagem/Feira_\n`;
+      const taxaAnimalMsg = porteAnimal === 'pequeno' ? 5 : porteAnimal === 'medio' ? 7 : 0;
+      if (taxaAnimalMsg > 0) msg += `_🐾 +R$ ${taxaAnimalMsg.toFixed(2).replace('.', ',')} Animal ${porteAnimal === 'pequeno' ? 'Pequeno' : 'Médio'} Porte_\n`;
       if (isTarifaMinima) msg += `_⚠️ Tarifa mínima aplicada_\n`;
       msg += `\n`;
       msg += `💵 *Total: R$ ${valorFinal.toFixed(2).replace('.', ',')}*\n`;
@@ -347,6 +352,37 @@ const CalculadoraDigitalRF: React.FC = () => {
                     </label>
                   </div>
 
+                  {/* Animal */}
+                  <div className="p-3 bg-white/[0.03] border border-white/[0.06] rounded-2xl space-y-2">
+                    <p className="text-sm font-medium">Levando Animal?</p>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => { setPorteAnimal(porteAnimal === 'pequeno' ? 'none' : 'pequeno'); setMensagemGerada(''); }}
+                        className={`flex-1 py-2 px-3 rounded-xl text-xs font-medium transition-all ${
+                          porteAnimal === 'pequeno'
+                            ? 'bg-emerald-500/15 border border-emerald-500/30 text-emerald-400'
+                            : 'bg-white/[0.03] border border-white/[0.06] text-white/50'
+                        }`}
+                      >
+                        🐕 Pequeno Porte
+                        <span className="block text-[10px] mt-0.5">+R$ 5,00</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { setPorteAnimal(porteAnimal === 'medio' ? 'none' : 'medio'); setMensagemGerada(''); }}
+                        className={`flex-1 py-2 px-3 rounded-xl text-xs font-medium transition-all ${
+                          porteAnimal === 'medio'
+                            ? 'bg-emerald-500/15 border border-emerald-500/30 text-emerald-400'
+                            : 'bg-white/[0.03] border border-white/[0.06] text-white/50'
+                        }`}
+                      >
+                        🐕‍🦺 Médio Porte
+                        <span className="block text-[10px] mt-0.5">+R$ 7,00</span>
+                      </button>
+                    </div>
+                  </div>
+
                   {/* Price preview */}
                   {(precoDinamico || precoTabela) ? (
                     <div className={`${
@@ -414,10 +450,23 @@ const CalculadoraDigitalRF: React.FC = () => {
                               </div>
                               <div className="text-right">
                                 <p className="text-[10px] text-white/50">
-                                  {precoTabela.estimado ? 'Média via Centro do Cabo' : precoTabela.match_exato ? 'Correspondência exata' : 'Melhor correspondência'}
+                                  {precoTabela.estimado ? 'Calculado por IA (rota sem ligacao direta)' : precoTabela.match_exato ? 'Correspondência exata' : 'Melhor correspondência'}
+                                </p>
+                                <p className="text-[10px] text-white/50">
+                                  {precoTabela.origem_regiao || '—'} → {precoTabela.destino_regiao || '—'}
                                 </p>
                               </div>
                             </div>
+
+                            {precoTabela.estimado && (
+                              <div className="flex items-start gap-2 bg-amber-500/10 border border-amber-500/30 rounded-lg px-3 py-2">
+                                <span className="text-amber-400 text-xs mt-0.5">⚠️</span>
+                                <div className="text-xs">
+                                  <p className="text-amber-300 font-semibold">Valor calculado pela IA do sistema</p>
+                                  <p className="text-white/70">Se o preço nao condizer com a realidade, verifique com um administrador.</p>
+                                </div>
+                              </div>
+                            )}
 
                             {dynamicAdj && (() => {
                               const _cor = dynamicAdj.regra.cor || '#8b5cf6';
@@ -446,6 +495,15 @@ const CalculadoraDigitalRF: React.FC = () => {
                             <span className="text-sm font-bold text-orange-400">+R$ {(configTarifas?.taxa_bagagem ?? 5).toFixed(2)}</span>
                           </div>
                         )}
+                        {porteAnimal !== 'none' && (
+                          <div className="flex items-center justify-between bg-emerald-500/10 border border-emerald-500/20 rounded-lg px-3 py-2">
+                            <div className="flex items-center gap-2">
+                              <span className="text-emerald-400 text-xs">🐾</span>
+                              <span className="text-xs text-white/50">Animal {porteAnimal === 'pequeno' ? 'Pequeno' : 'Médio'} Porte</span>
+                            </div>
+                            <span className="text-sm font-bold text-emerald-400">+R$ {(porteAnimal === 'pequeno' ? 5 : 7).toFixed(2)}</span>
+                          </div>
+                        )}
                         {isTarifaMinima && (
                           <div className="flex items-center justify-between bg-yellow-500/10 border border-yellow-500/20 rounded-lg px-3 py-2">
                             <div className="flex items-center gap-2">
@@ -455,7 +513,7 @@ const CalculadoraDigitalRF: React.FC = () => {
                             <span className="text-sm font-bold text-yellow-400">R$ {(configTarifas?.tarifa_minima ?? 0).toFixed(2)}</span>
                           </div>
                         )}
-                        {valorFinal != null && (temBagagem || dynamicAdj || precoDinamico?.regra_horario || isTarifaMinima) && (
+                        {valorFinal != null && (temBagagem || porteAnimal !== 'none' || dynamicAdj || precoDinamico?.regra_horario || isTarifaMinima) && (
                           <div className="flex items-center justify-between border-t border-white/[0.06] pt-2">
                             <span className="text-sm font-medium">Total da viagem</span>
                             <span className={`text-lg font-bold ${precoDinamico ? 'text-blue-400' : precoTabela?.estimado ? 'text-amber-400' : 'text-green-400'}`}>
@@ -520,7 +578,7 @@ const CalculadoraDigitalRF: React.FC = () => {
                       className="w-full h-12 rounded-2xl text-base font-bold bg-[#25D366] hover:bg-[#20bd5a] text-white shadow-lg shadow-[#25D366]/30 transition-all"
                     >
                       <MessageCircle className="w-5 h-5 mr-2" />
-                      Baixar
+                      Compartilhar Orçamento
                     </Button>
 
                     <Button
@@ -536,7 +594,7 @@ const CalculadoraDigitalRF: React.FC = () => {
                     </Button>
 
                     <Button
-                      onClick={() => { setEtapa(0); setOrigem(''); setDestino(''); setTemBagagem(false); setMensagemGerada(''); }}
+                      onClick={() => { setEtapa(0); setOrigem(''); setDestino(''); setTemBagagem(false); setPorteAnimal('none'); setMensagemGerada(''); }}
                       variant="ghost"
                       className="w-full h-10 rounded-2xl text-sm text-white/40 hover:text-white/60 hover:bg-white/[0.03]"
                     >

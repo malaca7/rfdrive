@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { getAnimalAvatarUrl } from '@/lib/animal-avatars';
+import { logActivityEvent, logAuditEvent, logSystemEvent } from '@/lib/logging';
 
 type UserRecord = {
   id: string; nome: string; telefone: string; tipo: string; status: string;
@@ -165,6 +166,33 @@ const AdminAvaliacaoLinks: React.FC = () => {
         .select()
         .single();
       if (error) throw error;
+
+      await logActivityEvent({
+        userId: user?.id,
+        action: 'criar_link_avaliacao',
+        entity: 'evaluation_links',
+        entityId: data.id,
+        after: {
+          motorista_id: form.motorista_id,
+          permite_comentario: form.permite_comentario,
+          expira_em: expiresAt,
+        },
+        source: 'AdminAvaliacaoLinks.createMutation',
+      });
+
+      await logAuditEvent({
+        userId: user?.id,
+        action: 'enviar_avaliacao_link',
+        entity: 'evaluation_links',
+        entityId: data.id,
+        after: {
+          motorista_id: form.motorista_id,
+          cliente_nome: form.cliente_nome || null,
+          cliente_telefone: form.cliente_telefone || null,
+        },
+        source: 'AdminAvaliacaoLinks.createMutation',
+      });
+
       return data as EvalLink;
     },
     onSuccess: (data) => {
@@ -175,14 +203,42 @@ const AdminAvaliacaoLinks: React.FC = () => {
       copyToClipboard(getEvalUrl(data.token));
       setCreateForm({ motorista_id: '', permite_comentario: true, expira_minutos: 60, cliente_nome: '', cliente_telefone: '' });
     },
-    onError: (e: any) => toast({ title: 'Erro', description: e?.message, variant: 'destructive' }),
+    onError: async (e: any) => {
+      await logSystemEvent({
+        userId: user?.id,
+        action: 'criar_link_avaliacao_error',
+        entity: 'evaluation_links',
+        details: { message: e?.message || 'Erro desconhecido' },
+        level: 'error',
+        errorMessage: e?.message || 'Erro desconhecido',
+        stackTrace: e?.stack || null,
+        source: 'AdminAvaliacaoLinks.createMutation',
+      });
+      toast({ title: 'Erro', description: e?.message, variant: 'destructive' });
+    },
   });
 
   // Delete link
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
+      const target = links?.find(l => l.id === id) || null;
       const { error } = await supabase.from('evaluation_links').delete().eq('id', id);
       if (error) throw error;
+
+      await logActivityEvent({
+        userId: user?.id,
+        action: 'excluir_link_avaliacao',
+        entity: 'evaluation_links',
+        entityId: id,
+        before: target
+          ? {
+            motorista_id: target.motorista_id,
+            status: target.status,
+            nota: target.nota,
+          }
+          : null,
+        source: 'AdminAvaliacaoLinks.deleteMutation',
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['eval-links'] });
@@ -437,7 +493,7 @@ const AdminAvaliacaoLinks: React.FC = () => {
                   >
                     <button className="w-full h-9 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[12px] font-medium flex items-center justify-center gap-2 transition-colors">
                       <WhatsAppIcon className="w-3.5 h-3.5" />
-                      Baixar
+                      Compartilhar Avaliações
                     </button>
                   </a>
                 )}

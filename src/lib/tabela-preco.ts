@@ -19,9 +19,14 @@ export interface LookupResult {
   origem_tabela: string;
   destino_tabela: string;
   regiao: string;
+  origem_regiao?: string | null;
+  destino_regiao?: string | null;
   match_exato: boolean;
   estimado?: boolean;
   mesmo_bairro?: boolean;
+  estimado_por_ia?: boolean;
+  alerta_ia?: string;
+  regra_estimativa?: string;
 }
 
 // ── Normalize text for matching ──
@@ -232,6 +237,43 @@ function findBestDestinoGlobal(input: string): { nome: string; origemNorm: strin
   return best && best.score >= 150 ? best : null;
 }
 
+function inferRegionForLocation(local: string): string | null {
+  const normalizedLocal = normalize(local);
+  const regionCount = new Map<string, number>();
+
+  for (const entry of tabela) {
+    if (normalize(entry.origem) === normalizedLocal || normalize(entry.destino) === normalizedLocal) {
+      const regiao = String(entry.regiao || '').trim();
+      if (!regiao) continue;
+      regionCount.set(regiao, (regionCount.get(regiao) || 0) + 1);
+    }
+  }
+
+  if (regionCount.size > 0) {
+    return Array.from(regionCount.entries()).sort((a, b) => b[1] - a[1])[0][0];
+  }
+
+  const bestOrigem = findBestOrigin(local);
+  if (bestOrigem) {
+    for (const entry of tabela) {
+      if (normalize(entry.origem) === bestOrigem.normalized && entry.regiao) {
+        return entry.regiao;
+      }
+    }
+  }
+
+  const bestDestino = findBestDestinoGlobal(local);
+  if (bestDestino) {
+    for (const entry of tabela) {
+      if (normalize(entry.destino) === normalize(bestDestino.nome) && entry.regiao) {
+        return entry.regiao;
+      }
+    }
+  }
+
+  return null;
+}
+
 // ══════════════════════════════════════════════════════════
 // MAIN LOOKUP
 // ══════════════════════════════════════════════════════════
@@ -245,6 +287,8 @@ function lookupDirect(origem: string, destino: string): LookupResult | null {
       origem_tabela: exactEntry.origem,
       destino_tabela: exactEntry.destino,
       regiao: exactEntry.regiao,
+      origem_regiao: inferRegionForLocation(exactEntry.origem),
+      destino_regiao: inferRegionForLocation(exactEntry.destino),
       match_exato: true,
     };
   }
@@ -264,6 +308,8 @@ function lookupDirect(origem: string, destino: string): LookupResult | null {
     origem_tabela: entry.origem,
     destino_tabela: entry.destino,
     regiao: entry.regiao,
+    origem_regiao: inferRegionForLocation(entry.origem),
+    destino_regiao: inferRegionForLocation(entry.destino),
     match_exato: bestOrigem.score >= 1000 && bestDestino.score >= 1000,
   };
 }
@@ -297,19 +343,32 @@ function lookupCentroToDestino(destino: string): LookupResult | null {
   const nd = normalize(destino);
   for (const hub of HUB_ALIASES) {
     if (normalize(hub) === nd) {
-      return { valor: 9.99, origem_tabela: 'Centro do Cabo', destino_tabela: hub, regiao: 'Cabo', match_exato: true };
+      return {
+        valor: 9.99,
+        origem_tabela: 'Centro do Cabo',
+        destino_tabela: hub,
+        regiao: 'Cabo',
+        origem_regiao: inferRegionForLocation('Centro do Cabo'),
+        destino_regiao: inferRegionForLocation(hub),
+        match_exato: true,
+      };
     }
   }
   return null;
 }
 
 /** Busca o preço base de um local ao Centro (de qualquer direção) */
-function getBaseToCentro(local: string): number | null {
+function getBaseToCentro(local: string): { valor: number; regiao: string } | null {
   const direto = lookupOrigemToCentro(local);
-  if (direto) return direto.valor;
+  if (direto) return { valor: direto.valor, regiao: direto.regiao };
   const reverso = lookupCentroToDestino(local);
-  if (reverso) return reverso.valor;
+  if (reverso) return { valor: reverso.valor, regiao: reverso.regiao };
   return null;
+}
+
+function isRegiao1Cabo(regiao: string | null | undefined): boolean {
+  const norm = normalize(String(regiao || ''));
+  return norm === 'cabo' || norm.includes('1 cabo') || norm.includes('1 - cabo') || norm.includes('1- cabo') || norm.includes('1-cabo');
 }
 
 export function buscarPrecoTabela(origem: string, destino: string): LookupResult | null {
@@ -322,6 +381,8 @@ export function buscarPrecoTabela(origem: string, destino: string): LookupResult
       origem_tabela: origem.trim(),
       destino_tabela: destino.trim(),
       regiao: 'Cabo',
+      origem_regiao: inferRegionForLocation(origem.trim()),
+      destino_regiao: inferRegionForLocation(destino.trim()),
       match_exato: true,
       mesmo_bairro: true,
     };
@@ -331,23 +392,49 @@ export function buscarPrecoTabela(origem: string, destino: string): LookupResult
   const direct = lookupDirect(origem, destino);
   if (direct) return direct;
 
-  // ── 2. Sem correspondência exata: estimar via Centro ──
-  // Pega Origem→Centro e Destino→Centro, aplica: MAIOR + (MENOR / 10) + R$1
-  const precoOrigemCentro = getBaseToCentro(origem);
-  const precoCentroDestino = getBaseToCentro(destino);
+  // ── 2. Sem correspondência exata: estimar via Centro (IA) ──
+  // Regra solicitada:
+  // X=origem, Y=destino, considerar X↔Centro e Y↔Centro;
+  // valor = maior + percentual(menor), onde:
+  // - menor da regiao "1 - CABO" => 18%
+  // - menor de qualquer outra regiao => 88%
+  const trechoOrigemCentro = getBaseToCentro(origem);
+  const trechoDestinoCentro = getBaseToCentro(destino);
 
-  if (precoOrigemCentro != null && precoCentroDestino != null) {
-    const maior = Math.max(precoOrigemCentro, precoCentroDestino);
-    const menor = Math.min(precoOrigemCentro, precoCentroDestino);
-    const estimado = maior + (menor / 10) + 1;
+  if (trechoOrigemCentro != null && trechoDestinoCentro != null) {
+    const origemMenor = trechoOrigemCentro.valor <= trechoDestinoCentro.valor;
+    const menorTrecho = origemMenor ? trechoOrigemCentro : trechoDestinoCentro;
+    const maiorTrecho = origemMenor ? trechoDestinoCentro : trechoOrigemCentro;
+    const menorEhCabo = isRegiao1Cabo(menorTrecho.regiao);
+    const maiorEhCabo = isRegiao1Cabo(maiorTrecho.regiao);
+
+    let estimado = 0;
+    let regraEstimativa = '';
+
+    if (!menorEhCabo && !maiorEhCabo) {
+      estimado = maiorTrecho.valor + menorTrecho.valor;
+      regraEstimativa = 'maior + 100% do menor (ambos fora de 1 - CABO)';
+    } else {
+      const percentual = menorEhCabo ? 0.18 : 0.88;
+      estimado = maiorTrecho.valor + (menorTrecho.valor * percentual);
+      regraEstimativa = `maior + ${(percentual * 100).toFixed(0)}% do menor (${menorEhCabo ? '1 - CABO' : 'outra regiao'})`;
+    }
+
     const valorFinal = Math.round(estimado * 100) / 100;
+    const alertaIa = 'Valor calculado pela IA do sistema; se nao condizer com a realidade, verifique com um administrador.';
+
     return {
       valor: valorFinal,
       origem_tabela: origem.trim(),
       destino_tabela: destino.trim(),
       regiao: 'Cabo',
+      origem_regiao: inferRegionForLocation(origem.trim()),
+      destino_regiao: inferRegionForLocation(destino.trim()),
       match_exato: false,
       estimado: true,
+      estimado_por_ia: true,
+      alerta_ia: alertaIa,
+      regra_estimativa: regraEstimativa,
     };
   }
 

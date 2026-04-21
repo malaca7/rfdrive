@@ -2,29 +2,39 @@ import React, { useState, useRef, useEffect } from 'react';
 import { flushSync } from 'react-dom';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
-  BarChart3, Car, Users, DollarSign, Settings, Star, Truck, Route, FileText, Shield, ChevronUp,
+  BarChart3, Car, Users, Settings, Star, Truck, Route, FileText, Shield, ChevronUp, Crown, Bell,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePlatformConfig } from '@/hooks/usePlatformConfig';
 import { useTheme } from '@/hooks/useTheme';
-import { Navigation, LogOut, Sun, Moon } from 'lucide-react';
+import { Navigation, LogOut, Sun, Moon, User } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getAnimalAvatarUrl } from '@/lib/animal-avatars';
+import { getHighestRole, ROLE_LABELS, ROLE_TEXT_CLASS } from '@/lib/rbac';
+import NotificationBell from '@/components/NotificationBell';
 
 const ADMIN_NAV = [
   { path: '/admin/dashboard', label: 'Dashboard', icon: BarChart3, color: 'from-blue-500 to-cyan-400' },
   { path: '/admin/corridas', label: 'Viagens', icon: Route, color: 'from-violet-500 to-purple-400' },
   { path: '/admin/usuarios', label: 'Motoristas', icon: Users, color: 'from-emerald-500 to-green-400' },
-  { path: '/admin/precos', label: 'Preços', icon: DollarSign, color: 'from-amber-500 to-yellow-400' },
   { path: '/admin/avaliacoes-links', label: 'Avaliações', icon: Star, color: 'from-pink-500 to-rose-400' },
   { path: '/admin/recibos', label: 'Recibos', icon: FileText, color: 'from-indigo-500 to-violet-400' },
-  { path: '/admin/config', label: 'Config', icon: Settings, color: 'from-slate-400 to-zinc-300' },
+  { path: '/admin/notifications', label: 'Avisos', icon: Bell, color: 'from-orange-500 to-amber-400' },
 ];
 
 const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { profile, signOut, setActiveScreen } = useAuth();
+  const { profile, signOut, setActiveScreen, roles, user } = useAuth();
+  const isCEO = String(user?.tipo || '').toLowerCase() === 'ceo' || roles.some(r => String(r).toLowerCase() === 'ceo');
+  const highestRole = getHighestRole([
+    ...roles.map(r => String(r).toLowerCase()),
+    String(user?.tipo || '').toLowerCase(),
+  ].filter(Boolean));
+  const HighestRoleIcon = highestRole === 'ceo' ? Crown
+    : highestRole === 'admin' ? Shield
+    : highestRole === 'motorista' ? Truck
+    : User;
   const { nomePlataforma, logoUrl } = usePlatformConfig();
   const { theme, toggleTheme } = useTheme();
   const [showSwitcher, setShowSwitcher] = useState(false);
@@ -46,35 +56,39 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     <div className="h-[100dvh] w-full flex flex-col bg-background overflow-hidden">
       {/* ── Top Bar — original style with motorista switch ── */}
       <header className="shrink-0 z-50 bg-bar backdrop-blur-2xl border-b border-border/40 safe-top shadow-lg shadow-black/10 dark:shadow-black/30 bar-glow-bottom">
-        <div className="w-full px-[4%] h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl gradient-accent flex items-center justify-center shadow-lg shadow-accent/30 glow-accent overflow-hidden">
-              {logoUrl ? <img src={logoUrl} alt="" className="w-full h-full object-cover" /> : <Navigation className="w-5 h-5 text-white" />}
+        <div className="w-full px-[4%] h-14 sm:h-16 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl gradient-accent flex items-center justify-center shadow-lg shadow-accent/30 glow-accent overflow-hidden shrink-0">
+              {logoUrl ? <img src={logoUrl} alt="" className="w-full h-full object-cover" /> : <Navigation className="w-4 h-4 sm:w-5 sm:h-5 text-white" />}
             </div>
-            <span className="font-extrabold text-xl tracking-tight text-foreground">{nomePlataforma}</span>
+            <span className="font-extrabold text-base sm:text-xl tracking-tight text-foreground truncate">{nomePlataforma}</span>
           </div>
-          <div className="flex items-center gap-2.5">
-            <div className="text-right mr-1">
+          <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+            <div className="text-right mr-0.5 sm:mr-1 hidden sm:block">
               <p className="text-[15px] font-semibold truncate max-w-[140px] text-foreground">{(profile?.nome || '').split(' ')[0]}</p>
-              <p className="text-[11px] text-accent font-medium">Admin</p>
+              <p className={`text-[11px] font-semibold flex items-center justify-end gap-1 ${ROLE_TEXT_CLASS[highestRole]}`}>
+                <HighestRoleIcon className="w-3.5 h-3.5" />
+                {ROLE_LABELS[highestRole]}
+              </p>
             </div>
             {profile?.avatar_url ? (
-              <img src={profile.avatar_url} alt="" className="w-10 h-10 rounded-2xl object-cover border-2 border-border shadow-md" />
+              <img src={profile.avatar_url} alt="" className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl object-cover border-2 border-border shadow-md" />
             ) : (
-              <img src={getAnimalAvatarUrl(profile?.id || profile?.nome || '?')} alt="" className="w-10 h-10 rounded-2xl object-cover border-2 border-border shadow-md" />
+              <img src={getAnimalAvatarUrl(profile?.id || profile?.nome || '?')} alt="" className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl object-cover border-2 border-border shadow-md" />
             )}
+            <NotificationBell />
             <button
               onClick={toggleTheme}
-              className="w-10 h-10 rounded-2xl flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all"
+              className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all"
               title={theme === 'dark' ? 'Modo claro' : 'Modo escuro'}
             >
-              {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+              {theme === 'dark' ? <Sun className="w-4 h-4 sm:w-5 sm:h-5" /> : <Moon className="w-4 h-4 sm:w-5 sm:h-5" />}
             </button>
             <button
               onClick={() => { signOut(); navigate('/'); }}
-              className="w-10 h-10 rounded-2xl flex items-center justify-center text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-all"
+              className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl flex items-center justify-center text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-all"
             >
-              <LogOut className="w-5 h-5" />
+              <LogOut className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
           </div>
         </div>
@@ -120,6 +134,17 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                   </div>
                   Admin
                 </button>
+                {isCEO && (
+                  <button
+                    onClick={() => { flushSync(() => setActiveScreen('ceo')); navigate('/ceo/dashboard'); setShowSwitcher(false); }}
+                    className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium transition-all hover:bg-yellow-500/15 text-yellow-400 hover:text-yellow-300"
+                  >
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-yellow-500/20 border border-yellow-400/40">
+                      <Crown className="w-4 h-4" />
+                    </div>
+                    CEO
+                  </button>
+                )}
               </motion.div>
             )}
           </AnimatePresence>
@@ -153,17 +178,17 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             <div className="w-px self-stretch my-2.5 bg-border mx-0.5" />
             <button
               onClick={() => setShowSwitcher(!showSwitcher)}
-              className="relative flex flex-col items-center justify-center gap-1 flex-1 tap-highlight"
+              className="relative flex flex-col items-center justify-center gap-0.5 w-12 shrink-0 tap-highlight"
               title="Trocar painel"
             >
               <motion.div
                 animate={{ rotate: showSwitcher ? 180 : 0 }}
                 transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-                className="w-10 h-10 rounded-xl flex items-center justify-center bg-gradient-to-br from-purple-500/20 to-violet-500/20 border border-purple-400/40 text-purple-400 hover:from-purple-500/30 hover:to-violet-500/30 hover:border-purple-400/60 transition-all"
+                className="w-8 h-8 rounded-lg flex items-center justify-center bg-gradient-to-br from-purple-500/20 to-violet-500/20 border border-purple-400/40 text-purple-400 hover:from-purple-500/30 hover:to-violet-500/30 hover:border-purple-400/60 transition-all"
               >
-                <ChevronUp className="w-5 h-5" />
+                <ChevronUp className="w-4 h-4" />
               </motion.div>
-              <span className="text-[10px] font-bold tracking-wide text-purple-400">Painel</span>
+              <span className="text-[8px] font-bold tracking-wide text-purple-400">Painel</span>
             </button>
           </div>
         </div>

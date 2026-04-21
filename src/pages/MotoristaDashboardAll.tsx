@@ -19,18 +19,21 @@ type PeriodFilter = 'semana' | 'semana_passada' | 'mes' | 'personalizado';
 
 function getWeekRange(): [Date, Date] {
   const now = new Date();
+  const day = now.getDay();
+  const offset = day === 0 ? -6 : 1 - day;
   const start = new Date(now);
-  start.setDate(now.getDate() - now.getDay());
+  start.setDate(now.getDate() + offset);
   start.setHours(0, 0, 0, 0);
-  const end = new Date(now);
+  const end = new Date(start);
+  end.setDate(start.getDate() + 6);
   end.setHours(23, 59, 59, 999);
   return [start, end];
 }
 
 function getLastWeekRange(): [Date, Date] {
-  const now = new Date();
-  const end = new Date(now);
-  end.setDate(now.getDate() - now.getDay() - 1);
+  const [thisStart] = getWeekRange();
+  const end = new Date(thisStart);
+  end.setDate(end.getDate() - 1);
   end.setHours(23, 59, 59, 999);
   const start = new Date(end);
   start.setDate(end.getDate() - 6);
@@ -58,7 +61,7 @@ const Bar = ({ value, max, color }: { value: number; max: number; color: string 
   </div>
 );
 
-const MotoristaDashboardAll: React.FC = () => {
+export const MotoristaDashboardGeralContent: React.FC = () => {
   const { user } = useAuth();
   const [period, setPeriod] = useState<PeriodFilter>('semana');
   const [customStart, setCustomStart] = useState('');
@@ -85,6 +88,7 @@ const MotoristaDashboardAll: React.FC = () => {
       const { data, error } = await supabase
         .from('corridas')
         .select('id, motorista_id, status, origem_texto, destino_texto, created_at, concluida_at')
+        .eq('status', 'aprovada')
         .gte('created_at', dateRange[0].toISOString())
         .lte('created_at', dateRange[1].toISOString());
       if (error) throw error;
@@ -150,7 +154,7 @@ const MotoristaDashboardAll: React.FC = () => {
   const { ranking, platformStats, statusBreakdown, topRoutes, ridesByDay, dayNames } = useMemo(() => {
     if (!allRides) return {
       ranking: [], platformStats: { total: 0, motoristas: 0, today: 0, week: 0, avgRating: null as number | null, totalRatings: 0, completedCount: 0, cancelledCount: 0 },
-      statusBreakdown: { nova: 0, aguardando_motorista: 0, aceita: 0, em_analise: 0, aprovada: 0, recusada: 0, nao_realizada: 0 },
+      statusBreakdown: { em_analise: 0, aprovada: 0, nao_realizada: 0 },
       topRoutes: [] as { origem: string; destino: string; count: number }[],
       ridesByDay: Array(7).fill(0) as number[],
       dayNames: ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'],
@@ -160,13 +164,13 @@ const MotoristaDashboardAll: React.FC = () => {
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const weekAgo = new Date(today.getTime() - 7 * 86400000);
 
-    const byStatus = { nova: 0, aguardando_motorista: 0, aceita: 0, em_analise: 0, aprovada: 0, recusada: 0, nao_realizada: 0 };
+    const byStatus = { em_analise: 0, aprovada: 0, nao_realizada: 0 };
     allRides.forEach(r => { if (r.status in byStatus) byStatus[r.status as keyof typeof byStatus]++; });
 
     const ridesToday = allRides.filter(r => new Date(r.created_at) >= today).length;
     const ridesWeek = allRides.filter(r => new Date(r.created_at) >= weekAgo).length;
-    const completedCount = allRides.filter(r => r.status === 'aprovada' || r.status === 'finalizada' || r.status === 'em_analise').length;
-    const cancelledCount = byStatus.recusada + byStatus.nao_realizada;
+    const completedCount = allRides.filter(r => r.status === 'aprovada').length;
+    const cancelledCount = byStatus.nao_realizada;
 
     const allRatingsFlat: number[] = [];
     if (driverRatings) {
@@ -176,7 +180,7 @@ const MotoristaDashboardAll: React.FC = () => {
       ? allRatingsFlat.reduce((a, b) => a + b, 0) / allRatingsFlat.length : null;
 
     const byDriver: Record<string, { viagens: number }> = {};
-    allRides.filter(r => r.status === 'aprovada' || r.status === 'finalizada' || r.status === 'em_analise').forEach(r => {
+    allRides.filter(r => r.status === 'aprovada').forEach(r => {
       const mid = r.motorista_id || 'unknown';
       if (!byDriver[mid]) byDriver[mid] = { viagens: 0 };
       byDriver[mid].viagens++;
@@ -225,16 +229,20 @@ const MotoristaDashboardAll: React.FC = () => {
   const myPosition = ranking.findIndex(r => r.isMe) + 1;
   const maxDay = Math.max(...ridesByDay, 1);
 
+  const formatRange = (s: Date, e: Date) => {
+    const fmt = (d: Date) => d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+    return `${fmt(s)} – ${fmt(e)}`;
+  };
+
   const periodLabel: Record<PeriodFilter, string> = {
-    semana: 'Esta Semana',
-    semana_passada: 'Semana Passada',
+    semana: `Esta Semana (${formatRange(...getWeekRange())})`,
+    semana_passada: `Semana Passada (${formatRange(...getLastWeekRange())})`,
     mes: 'Este Mês',
     personalizado: 'Personalizado',
   };
 
   return (
-    <AppShell>
-      <div className="w-full px-[4%] py-[3%] max-w-2xl mx-auto">
+    <div className="w-full max-w-2xl mx-auto">
         {/* Header */}
         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-[4%]">
           <h1 className="text-[clamp(1.3rem,4.5vw,1.75rem)] font-extrabold leading-tight flex items-center gap-2">
@@ -430,12 +438,8 @@ const MotoristaDashboardAll: React.FC = () => {
                     </h3>
                     <div className="space-y-2">
                       {([
-                        { key: 'nova', label: 'Novas', icon: FileText, color: 'text-purple-400', bg: 'bg-purple-500' },
-                        { key: 'aguardando_motorista', label: 'Aguardando', icon: Clock, color: 'text-yellow-400', bg: 'bg-yellow-500' },
-                        { key: 'aceita', label: 'Aceitas', icon: Car, color: 'text-blue-400', bg: 'bg-blue-500' },
                         { key: 'em_analise', label: 'Em Análise', icon: Eye, color: 'text-orange-400', bg: 'bg-orange-500' },
                         { key: 'aprovada', label: 'Aprovadas', icon: CheckCircle, color: 'text-green-400', bg: 'bg-green-500' },
-                        { key: 'recusada', label: 'Recusadas', icon: XCircle, color: 'text-red-400', bg: 'bg-red-500' },
                         { key: 'nao_realizada', label: 'Não Realizadas', icon: AlertTriangle, color: 'text-gray-400', bg: 'bg-gray-500' },
                       ] as const).map(s => (
                         <div key={s.key} className="flex items-center gap-2">
@@ -505,14 +509,14 @@ const MotoristaDashboardAll: React.FC = () => {
                       Corridas por Dia
                     </h3>
                     <div className="flex items-end gap-1.5 h-24 px-1">
-                      {ridesByDay.map((count, i) => (
-                        <div key={i} className="flex-1 flex flex-col items-center gap-1">
-                          <span className="text-[10px] font-bold text-muted-foreground">{count}</span>
+                      {[1,2,3,4,5,6,0].map((dayIdx) => (
+                        <div key={dayIdx} className="flex-1 flex flex-col items-center gap-1">
+                          <span className="text-[10px] font-bold text-muted-foreground">{ridesByDay[dayIdx]}</span>
                           <div
                             className="w-full bg-accent/80 rounded-t-sm transition-all"
-                            style={{ height: `${maxDay > 0 ? (count / maxDay) * 64 : 0}px`, minHeight: count > 0 ? '4px' : '0px' }}
+                            style={{ height: `${maxDay > 0 ? (ridesByDay[dayIdx] / maxDay) * 64 : 0}px`, minHeight: ridesByDay[dayIdx] > 0 ? '4px' : '0px' }}
                           />
-                          <span className="text-[9px] text-muted-foreground">{dayNames[i]}</span>
+                          <span className="text-[9px] text-muted-foreground">{dayNames[dayIdx]}</span>
                         </div>
                       ))}
                     </div>
@@ -545,7 +549,7 @@ const MotoristaDashboardAll: React.FC = () => {
                         <span className="font-semibold">{platformStats.total}</span>
                       </div>
                       <div className="flex justify-between text-xs">
-                        <span className="text-muted-foreground">Canceladas/Recusadas</span>
+                        <span className="text-muted-foreground">Não Realizadas</span>
                         <span className="font-semibold text-red-400">{platformStats.cancelledCount}</span>
                       </div>
                       <div className="flex justify-between text-xs">
@@ -559,9 +563,16 @@ const MotoristaDashboardAll: React.FC = () => {
             </div>
           </>
         )}
-      </div>
-    </AppShell>
+    </div>
   );
 };
+
+const MotoristaDashboardAll: React.FC = () => (
+  <AppShell>
+    <div className="w-full px-[4%] py-[3%] max-w-2xl mx-auto">
+      <MotoristaDashboardGeralContent />
+    </div>
+  </AppShell>
+);
 
 export default MotoristaDashboardAll;

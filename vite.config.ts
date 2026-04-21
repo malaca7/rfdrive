@@ -14,7 +14,7 @@ function removeCrossorigin(): Plugin {
 }
 
 export default defineConfig(({ mode }) => ({
-  base: './',
+  base: '/rfdrive/',
   server: {
     host: "::",
     port: 8080,

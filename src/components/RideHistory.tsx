@@ -10,23 +10,12 @@ import { motion } from 'framer-motion';
 /** Status mapping for client-visible badges */
 const getStatusBadge = (status: string): { label: string; variant: 'outline' | 'destructive' | 'default' | 'secondary'; className?: string } => {
   switch (status) {
-    case 'nova':
-      return { label: 'Nova', variant: 'secondary' };
-    case 'aguardando_motorista':
-      return { label: 'Aguardando', variant: 'secondary', className: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20' };
-    case 'aceita':
-      return { label: 'Aceita', variant: 'outline', className: 'bg-blue-500/10 text-blue-400 border-blue-500/20' };
-    case 'a_caminho':
-      return { label: 'A caminho', variant: 'outline', className: 'bg-blue-500/10 text-blue-400 border-blue-500/20' };
-    case 'em_corrida':
-      return { label: 'Em viagem', variant: 'outline', className: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' };
     case 'em_analise':
+      return { label: 'Em Análise', variant: 'outline', className: 'bg-orange-500/10 text-orange-400 border-orange-500/20' };
     case 'aprovada':
-    case 'finalizada':
-      return { label: 'Concluída', variant: 'outline', className: 'bg-green-500/10 text-green-400 border-green-500/20' };
+      return { label: 'Aprovada', variant: 'outline', className: 'bg-green-500/10 text-green-400 border-green-500/20' };
     case 'nao_realizada':
-    case 'recusada':
-      return { label: 'Não Concluída', variant: 'destructive' };
+      return { label: 'Não Realizada', variant: 'destructive' };
     default:
       return { label: status, variant: 'secondary' };
   }

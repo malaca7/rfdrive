@@ -16,7 +16,7 @@ import {
 
 /**
  * Runs in the admin/system context.
- * Polls for rides in 'aguardando_motorista' status and dispatches them.
+ * Polls for rides in 'em_analise' status and dispatches them.
  */
 export function useDispatchEngine(enabled: boolean = true) {
   const qc = useQueryClient();
@@ -102,7 +102,7 @@ export function useDispatchEngine(enabled: boolean = true) {
       const { data } = await supabase
         .from('corridas')
         .select('id')
-        .eq('status', 'aguardando_motorista')
+        .eq('status', 'em_analise')
         .order('created_at', { ascending: true });
 
       if (!data) return;
@@ -132,7 +132,7 @@ export function useDispatchEngine(enabled: boolean = true) {
           event: 'INSERT',
           schema: 'public',
           table: 'corridas',
-          filter: 'status=eq.aguardando_motorista',
+          filter: 'status=eq.em_analise',
         },
         (payload) => {
           const rideId = (payload.new as any)?.id;
@@ -148,7 +148,7 @@ export function useDispatchEngine(enabled: boolean = true) {
           event: 'UPDATE',
           schema: 'public',
           table: 'corridas',
-          filter: 'status=eq.aguardando_motorista',
+          filter: 'status=eq.em_analise',
         },
         (payload) => {
           const rideId = (payload.new as any)?.id;

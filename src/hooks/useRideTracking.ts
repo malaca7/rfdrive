@@ -1,12 +1,11 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
-type RideTrackingStatus = 'aceita' | 'a_caminho' | 'em_corrida' | 'finalizada';
+type RideTrackingStatus = 'em_analise' | 'aprovada' | 'nao_realizada';
 
 /**
  * Etapa 10 — Ride tracking status transitions.
- * Handles: aceita → a_caminho → em_corrida → finalizada
- * Activates/deactivates `tracking_ativo`.
+ * Simplified: only em_analise, aprovada, nao_realizada.
  */
 export function useRideTracking(driverId: string | undefined) {
   const qc = useQueryClient();
@@ -18,44 +17,29 @@ export function useRideTracking(driverId: string | undefined) {
     qc.invalidateQueries({ queryKey: ['admin-drivers-tracking'] });
   };
 
-  // Accept ride: sets motorista_id, status=aceita, tracking_ativo=true
+  // Accept ride: sets motorista_id, status=em_analise
   const acceptRide = useMutation({
     mutationFn: async (rideId: string) => {
       const { error } = await supabase
         .from('corridas')
         .update({
           motorista_id: driverId!,
-          status: 'aceita' as any,
-          tracking_ativo: true,
+          status: 'em_analise' as any,
         } as any)
-        .eq('id', rideId)
-        .eq('status', 'aguardando_motorista');
+        .eq('id', rideId);
       if (error) throw error;
     },
     onSuccess: invalidateAll,
   });
 
-  // Transition to "a_caminho" (heading to pick up client)
+  // No-op stubs for compatibility
   const startPickup = useMutation({
-    mutationFn: async (rideId: string) => {
-      const { error } = await supabase
-        .from('corridas')
-        .update({ status: 'a_caminho' as any, tracking_ativo: true } as any)
-        .eq('id', rideId);
-      if (error) throw error;
-    },
+    mutationFn: async (_rideId: string) => {},
     onSuccess: invalidateAll,
   });
 
-  // Transition to "em_corrida" (client in car, driving to destination)
   const startTrip = useMutation({
-    mutationFn: async (rideId: string) => {
-      const { error } = await supabase
-        .from('corridas')
-        .update({ status: 'em_corrida' as any, tracking_ativo: true } as any)
-        .eq('id', rideId);
-      if (error) throw error;
-    },
+    mutationFn: async (_rideId: string) => {},
     onSuccess: invalidateAll,
   });
 

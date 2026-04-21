@@ -84,7 +84,7 @@ const AdminStatsDashboard: React.FC<AdminStatsProps> = ({ rides, users }) => {
 
     // Rides by status
     const byStatus = {
-      nova: 0, aguardando_motorista: 0, aceita: 0, em_analise: 0, aprovada: 0, recusada: 0, nao_realizada: 0,
+      em_analise: 0, aprovada: 0, nao_realizada: 0,
     };
     filteredRides.forEach(r => { if (r.status in byStatus) byStatus[r.status as keyof typeof byStatus]++; });
 
@@ -170,7 +170,7 @@ const AdminStatsDashboard: React.FC<AdminStatsProps> = ({ rides, users }) => {
       dayNames,
       motoristasAtivos: motoristas.filter(m => m.ativo && m.status !== 'banido').length,
       completedCount: completedRides.length,
-      cancelledCount: byStatus.recusada + byStatus.nao_realizada,
+      cancelledCount: byStatus.nao_realizada,
     };
   }, [filteredRides, users]);
 
@@ -212,12 +212,8 @@ const AdminStatsDashboard: React.FC<AdminStatsProps> = ({ rides, users }) => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="todos">Todos Status</SelectItem>
-                <SelectItem value="nova">Nova</SelectItem>
-                <SelectItem value="aguardando_motorista">Aguardando</SelectItem>
-                <SelectItem value="aceita">Aceita</SelectItem>
                 <SelectItem value="em_analise">Em Análise</SelectItem>
                 <SelectItem value="aprovada">Aprovada</SelectItem>
-                <SelectItem value="recusada">Recusada</SelectItem>
                 <SelectItem value="nao_realizada">Não Realizada</SelectItem>
               </SelectContent>
             </Select>
@@ -330,12 +326,8 @@ const AdminStatsDashboard: React.FC<AdminStatsProps> = ({ rides, users }) => {
             </h3>
             <div className="space-y-2">
               {([
-                { key: 'nova', label: 'Novas', icon: FileText, color: 'text-purple-400', bg: 'bg-purple-500' },
-                { key: 'aguardando_motorista', label: 'Aguardando', icon: Clock, color: 'text-yellow-400', bg: 'bg-yellow-500' },
-                { key: 'aceita', label: 'Aceitas', icon: Car, color: 'text-blue-400', bg: 'bg-blue-500' },
                 { key: 'em_analise', label: 'Em Análise', icon: Eye, color: 'text-orange-400', bg: 'bg-orange-500' },
                 { key: 'aprovada', label: 'Aprovadas', icon: CheckCircle, color: 'text-green-400', bg: 'bg-green-500' },
-                { key: 'recusada', label: 'Recusadas', icon: XCircle, color: 'text-red-400', bg: 'bg-red-500' },
                 { key: 'nao_realizada', label: 'Não Realizadas', icon: AlertTriangle, color: 'text-gray-400', bg: 'bg-gray-500' },
               ] as const).map(s => (
                 <div key={s.key} className="flex items-center gap-2">

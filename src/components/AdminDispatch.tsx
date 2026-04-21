@@ -392,10 +392,10 @@ const RideDispatchCard: React.FC<{
               <Badge
                 variant="outline"
                 className={`text-[10px] py-0 ${
-                  corrida.status === 'aceita' || corrida.status === 'a_caminho' || corrida.status === 'em_corrida'
+                  corrida.status === 'aprovada'
                     ? 'bg-green-500/10 text-green-400 border-green-500/20'
-                    : corrida.status === 'aguardando_motorista'
-                    ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20'
+                    : corrida.status === 'em_analise'
+                    ? 'bg-orange-500/10 text-orange-400 border-orange-500/20'
                     : 'bg-muted'
                 }`}
               >

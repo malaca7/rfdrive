@@ -4,6 +4,13 @@ import { supabase } from '@/integrations/supabase/client';
 export type PlatformConfig = {
   id: string;
   nome_plataforma: string;
+  razao_social: string;
+  nome_fantasia: string;
+  cnpj: string;
+  inscricao_municipal: string;
+  email_empresa: string;
+  telefone_empresa: string;
+  endereco_empresa: string;
   taxa_semanal_motorista: number;
   cor_primaria: string;
   cor_secundaria: string;
@@ -30,6 +37,13 @@ export type PlatformConfig = {
 
 const DEFAULTS: Omit<PlatformConfig, 'id'> = {
   nome_plataforma: 'RF Drive',
+  razao_social: 'Escritorio RF',
+  nome_fantasia: 'RF Drive',
+  cnpj: '',
+  inscricao_municipal: '',
+  email_empresa: '',
+  telefone_empresa: '',
+  endereco_empresa: '',
   taxa_semanal_motorista: 0,
   cor_primaria: '#FFD000',
   cor_secundaria: '#0a0a0a',
@@ -73,6 +87,13 @@ export function usePlatformConfig() {
   return {
     config: data,
     nomePlataforma: data?.nome_plataforma || DEFAULTS.nome_plataforma,
+    razaoSocial: (data as any)?.razao_social || DEFAULTS.razao_social,
+    nomeFantasia: (data as any)?.nome_fantasia || DEFAULTS.nome_fantasia,
+    cnpjEmpresa: (data as any)?.cnpj || DEFAULTS.cnpj,
+    inscricaoMunicipal: (data as any)?.inscricao_municipal || DEFAULTS.inscricao_municipal,
+    emailEmpresa: (data as any)?.email_empresa || DEFAULTS.email_empresa,
+    telefoneEmpresa: (data as any)?.telefone_empresa || DEFAULTS.telefone_empresa,
+    enderecoEmpresa: (data as any)?.endereco_empresa || DEFAULTS.endereco_empresa,
     corPrimaria: (data as any)?.cor_primaria || DEFAULTS.cor_primaria,
     corSecundaria: (data as any)?.cor_secundaria || DEFAULTS.cor_secundaria,
     corTerciaria: (data as any)?.cor_terciaria || DEFAULTS.cor_terciaria,

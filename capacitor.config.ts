@@ -1,7 +1,7 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.localizzou.app',
+  appId: 'com.rfdrive.app',
   appName: 'EscritorioRF',
   webDir: 'dist',
   server: {

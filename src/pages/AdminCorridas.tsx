@@ -18,13 +18,15 @@ import { motion } from 'framer-motion';
 import {
   MapPin, Clock, CheckCircle, XCircle, Car, Shield, Loader2, MessageSquare, Phone,
   Search, Filter, Eye, AlertTriangle, DollarSign, User, Globe,
-  FileText, Pencil, Trash2, Save, TableProperties, Star, Plus,
+  FileText, Pencil, Trash2, Save, TableProperties, Star, Plus, ChevronDown,
+  Tag, Route, Map, Zap, CheckSquare, Square, Users,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { buscarPrecoTabela } from '@/lib/tabela-preco';
 import { useAllLocations } from '@/hooks/usePrecoTabela';
 import { normalizeText } from '@/lib/tabela-preco';
 import { getConfigTarifas, type ConfigTarifas, findActiveTimeRules, applyTimeAdjustment, type RegraHorario } from '@/lib/pricing-engine';
+import { logPlatformActivity } from '@/lib/activity-log';
 
 type Solicitacao = {
   id: string;
@@ -43,6 +45,7 @@ type Solicitacao = {
   confianca_ia: number | null;
   created_at: string;
   concluida_at: string | null;
+  preco_detalhes: Record<string, unknown> | null;
   cliente?: { nome: string; telefone: string; tipo: string } | null;
   motorista?: { nome: string; telefone: string } | null;
   avaliacao_cliente?: { nota: number; comentario: string | null } | null;
@@ -59,29 +62,34 @@ type Aprovacao = {
 };
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
-  nova: { label: 'Nova', color: 'bg-purple-500/20 text-purple-400 border-purple-500/30', icon: <FileText className="w-3 h-3" /> },
-  aguardando_motorista: { label: 'Aguardando Motorista', color: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30', icon: <Clock className="w-3 h-3" /> },
-  aceita: { label: 'Aceita', color: 'bg-blue-500/20 text-blue-400 border-blue-500/30', icon: <Car className="w-3 h-3" /> },
   em_analise: { label: 'Em Análise', color: 'bg-orange-500/20 text-orange-400 border-orange-500/30', icon: <Eye className="w-3 h-3" /> },
   aprovada: { label: 'Aprovada', color: 'bg-green-500/20 text-green-400 border-green-500/30', icon: <CheckCircle className="w-3 h-3" /> },
   nao_realizada: { label: 'Não Realizada', color: 'bg-gray-500/20 text-gray-400 border-gray-500/30', icon: <AlertTriangle className="w-3 h-3" /> },
-  recusada: { label: 'Recusada', color: 'bg-red-500/20 text-red-400 border-red-500/30', icon: <XCircle className="w-3 h-3" /> },
-  finalizada: { label: 'Finalizada', color: 'bg-green-500/20 text-green-400 border-green-500/30', icon: <CheckCircle className="w-3 h-3" /> },
 };
-const ALL_STATUSES = ['nova', 'aguardando_motorista', 'aceita', 'em_analise', 'aprovada', 'nao_realizada', 'recusada', 'finalizada'] as const;
+const ALL_STATUSES = ['em_analise', 'aprovada', 'nao_realizada'] as const;
 
 type PeriodFilter = 'todos' | 'semana' | 'semana_passada' | 'mes' | 'personalizado';
 
 function getWeekRange(): [Date, Date] {
   const now = new Date();
-  const start = new Date(now); start.setDate(now.getDate() - now.getDay()); start.setHours(0, 0, 0, 0);
-  const end = new Date(now); end.setHours(23, 59, 59, 999);
+  const day = now.getDay();
+  const offset = day === 0 ? -6 : 1 - day;
+  const start = new Date(now);
+  start.setDate(now.getDate() + offset);
+  start.setHours(0, 0, 0, 0);
+  const end = new Date(start);
+  end.setDate(start.getDate() + 6);
+  end.setHours(23, 59, 59, 999);
   return [start, end];
 }
 function getLastWeekRange(): [Date, Date] {
-  const now = new Date();
-  const end = new Date(now); end.setDate(now.getDate() - now.getDay() - 1); end.setHours(23, 59, 59, 999);
-  const start = new Date(end); start.setDate(end.getDate() - 6); start.setHours(0, 0, 0, 0);
+  const [thisStart] = getWeekRange();
+  const end = new Date(thisStart);
+  end.setDate(end.getDate() - 1);
+  end.setHours(23, 59, 59, 999);
+  const start = new Date(end);
+  start.setDate(end.getDate() - 6);
+  start.setHours(0, 0, 0, 0);
   return [start, end];
 }
 function getMonthRange(): [Date, Date] {
@@ -119,6 +127,17 @@ const AdminCorridas: React.FC = () => {
   const [customStart, setCustomStart] = useState('');
   const [customEnd, setCustomEnd] = useState('');
   const [motoristaFilter, setMotoristaFilter] = useState<string>('all');
+
+  const normalize = (s?: string | null) => (s || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim();
+
+  const getEffectiveStatus = (ride: Solicitacao): string => {
+    if (normalize(ride.status) === 'aprovada' && !ride.aprovado_admin) return 'em_analise';
+    return normalize(ride.status);
+  };
 
   const dateRange = useMemo((): [Date, Date] | null => {
     switch (period) {
@@ -159,6 +178,8 @@ const AdminCorridas: React.FC = () => {
   const [usarDataAtual, setUsarDataAtual] = useState(true);
   const [showCreateOrigemSugg, setShowCreateOrigemSugg] = useState(false);
   const [showCreateDestinoSugg, setShowCreateDestinoSugg] = useState(false);
+  const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
+  const [selectedForBulk, setSelectedForBulk] = useState<Set<string>>(new Set());
   const allLocations = useAllLocations();
 
   const filteredCreateOrigens = useMemo(() => {
@@ -300,6 +321,14 @@ const AdminCorridas: React.FC = () => {
         rideUpdates.observacoes = observacao;
       }
       await resilientUpdate('corridas', rideUpdates, 'id', rideId);
+      await logPlatformActivity({
+        userId: adminUser.id,
+        action: 'aprovar_corrida',
+        category: 'admin',
+        entity: 'corridas',
+        entityId: rideId,
+        details: { status_admin: statusAdmin, observacao: observacao || null },
+      });
       // 2. Insert audit trail (non-blocking)
       try {
         const { error: apError } = await supabase.from('aprovacoes').insert({ solicitacao_id: rideId, admin_id: adminUser.id, status_admin: statusAdmin, observacao: observacao || '' });
@@ -315,6 +344,14 @@ const AdminCorridas: React.FC = () => {
   const updateRideMutation = useMutation({
     mutationFn: async ({ rideId, updates }: { rideId: string; updates: Record<string, unknown> }) => {
       await resilientUpdate('corridas', updates, 'id', rideId);
+      await logPlatformActivity({
+        userId: adminUser?.id,
+        action: 'editar_corrida',
+        category: 'admin',
+        entity: 'corridas',
+        entityId: rideId,
+        details: updates,
+      });
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['admin-rides'] }); toast({ title: 'Viagem atualizada!' }); setShowEditRideDialog(false); setSelectedRide(null); },
     onError: (e: any) => { toast({ title: 'Erro ao atualizar viagem', description: e?.message || 'Erro desconhecido', variant: 'destructive' }); },
@@ -327,6 +364,13 @@ const AdminCorridas: React.FC = () => {
       await supabase.from('historico_precos').delete().eq('corrida_id', id);
       const { error } = await supabase.from('corridas').delete().eq('id', id);
       if (error) throw error;
+      await logPlatformActivity({
+        userId: adminUser?.id,
+        action: 'excluir_corrida',
+        category: 'admin',
+        entity: 'corridas',
+        entityId: id,
+      });
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['admin-rides'] }); toast({ title: 'Viagem excluída!' }); setShowDeleteConfirm(false); setDeleteTarget(null); },
     onError: (err: any) => { toast({ title: 'Erro ao excluir', description: err?.message, variant: 'destructive' }); },
@@ -378,6 +422,28 @@ const AdminCorridas: React.FC = () => {
     onError: (err: any) => { toast({ title: 'Erro ao registrar viagem', description: err?.message, variant: 'destructive' }); },
   });
 
+  const bulkApproveMutation = useMutation({
+    mutationFn: async (rideIds: string[]) => {
+      for (const rideId of rideIds) {
+        await resilientUpdate('corridas', { status: 'aprovada', aprovado_admin: true }, 'id', rideId);
+        await logPlatformActivity({
+          userId: adminUser?.id,
+          action: 'aprovar_corrida_em_lote',
+          category: 'admin',
+          entity: 'corridas',
+          entityId: rideId,
+          details: { status_admin: 'aprovada', lote: true, total_lote: rideIds.length },
+        });
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-rides'] });
+      toast({ title: `${selectedForBulk.size} viagens aprovadas!` });
+      setSelectedForBulk(new Set());
+    },
+    onError: (e: any) => { toast({ title: 'Erro ao aprovar em lote', description: e?.message, variant: 'destructive' }); },
+  });
+
   // ── Helpers ──
   const openApprovalDialog = (ride: Solicitacao, action: string) => { setSelectedRide(ride); setApprovalAction(action); setApprovalObs(''); setShowApprovalDialog(true); };
   const handleDirectApprove = (ride: Solicitacao) => { approvalMutation.mutate({ rideId: ride.id, statusAdmin: 'aprovada', observacao: '' }); };
@@ -413,9 +479,11 @@ const AdminCorridas: React.FC = () => {
 
   // ── Filtering ──
   const filteredRides = rides?.filter((r) => {
-    const matchStatus = statusFilter === 'all' || r.status === statusFilter;
-    const matchSearch = !searchTerm || [r.origem_texto, r.destino_texto, r.motorista?.nome]
-      .some(f => f?.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').includes(searchTerm.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')));
+    const effectiveStatus = getEffectiveStatus(r);
+    const matchStatus = statusFilter === 'all' || effectiveStatus === normalize(statusFilter);
+    const q = normalize(searchTerm);
+    const matchSearch = !q || [r.origem_texto, r.destino_texto, r.motorista?.nome, r.motorista?.telefone, r.cliente?.nome, r.cliente?.telefone]
+      .some(f => normalize(f).includes(q));
     const matchMotorista = motoristaFilter === 'all' || r.motorista_id === motoristaFilter;
     const matchPeriod = !dateRange || (() => {
       const d = new Date(r.concluida_at || r.created_at);
@@ -424,11 +492,17 @@ const AdminCorridas: React.FC = () => {
     return matchStatus && matchSearch && matchMotorista && matchPeriod;
   })?.sort((a, b) => new Date(b.concluida_at || b.created_at).getTime() - new Date(a.concluida_at || a.created_at).getTime());
 
+  const availableStatuses = useMemo(() => {
+    const fromData = Array.from(new Set((rides || []).map(r => getEffectiveStatus(r)).filter(Boolean)));
+    const merged = Array.from(new Set([...ALL_STATUSES, ...fromData]));
+    return merged;
+  }, [rides]);
+
   const stats = {
     total: rides?.length || 0,
-    emAnalise: rides?.filter(r => r.status === 'em_analise').length || 0,
-    aprovadas: rides?.filter(r => r.status === 'aprovada').length || 0,
-    recusadas: rides?.filter(r => r.status === 'recusada').length || 0,
+    emAnalise: rides?.filter(r => getEffectiveStatus(r) === 'em_analise').length || 0,
+    aprovadas: rides?.filter(r => getEffectiveStatus(r) === 'aprovada').length || 0,
+    recusadas: rides?.filter(r => getEffectiveStatus(r) === 'nao_realizada').length || 0,
   };
 
   return (
@@ -451,7 +525,7 @@ const AdminCorridas: React.FC = () => {
           { label: 'Total', value: stats.total, color: 'text-foreground', bg: 'bg-muted/30' },
           { label: 'Em Análise', value: stats.emAnalise, color: 'text-orange-400', bg: 'bg-orange-500/8' },
           { label: 'Aprovadas', value: stats.aprovadas, color: 'text-green-400', bg: 'bg-green-500/8' },
-          { label: 'Recusadas', value: stats.recusadas, color: 'text-red-400', bg: 'bg-red-500/8' },
+          { label: 'Não Realizadas', value: stats.recusadas, color: 'text-gray-400', bg: 'bg-gray-500/8' },
         ].map(s => (
           <Card key={s.label} className="card-hover">
             <CardContent className="py-3 px-4 flex items-center gap-3">
@@ -478,7 +552,7 @@ const AdminCorridas: React.FC = () => {
             <SelectTrigger className="w-full sm:w-56"><Filter className="w-4 h-4 mr-2" /><SelectValue placeholder="Filtrar por status" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos os Status</SelectItem>
-              {ALL_STATUSES.map(s => <SelectItem key={s} value={s}>{STATUS_CONFIG[s]?.label || s}</SelectItem>)}
+                {availableStatuses.map(s => <SelectItem key={s} value={s}>{STATUS_CONFIG[s]?.label || s}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
@@ -516,64 +590,292 @@ const AdminCorridas: React.FC = () => {
         <Card><CardContent className="py-12 text-center"><Car className="w-12 h-12 text-muted-foreground mx-auto mb-3" /><p className="text-muted-foreground">Nenhuma viagem encontrada</p></CardContent></Card>
       ) : (
         <div className="space-y-2.5">
+          {/* Bulk approve bar */}
+          {(() => {
+            const emAnaliseIds = filteredRides.filter(r => getEffectiveStatus(r) === 'em_analise').map(r => r.id);
+            const allSelected = emAnaliseIds.length > 0 && emAnaliseIds.every(id => selectedForBulk.has(id));
+            return emAnaliseIds.length > 0 && (
+              <div className="flex items-center gap-2 bg-orange-500/10 border border-orange-500/20 rounded-xl px-3 py-2">
+                <button
+                  onClick={() => {
+                    if (allSelected) setSelectedForBulk(new Set());
+                    else setSelectedForBulk(new Set(emAnaliseIds));
+                  }}
+                  className="flex items-center gap-1.5 text-xs font-medium text-orange-400 hover:text-orange-300 transition-colors"
+                >
+                  {allSelected ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
+                  {allSelected ? 'Desmarcar todas' : `Selecionar ${emAnaliseIds.length} em análise`}
+                </button>
+                {selectedForBulk.size > 0 && (
+                  <Button
+                    size="sm"
+                    className="ml-auto gap-1.5 bg-green-600 hover:bg-green-700 text-white h-7 text-xs"
+                    disabled={bulkApproveMutation.isPending}
+                    onClick={() => bulkApproveMutation.mutate(Array.from(selectedForBulk))}
+                  >
+                    {bulkApproveMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckCircle className="w-3 h-3" />}
+                    Aprovar {selectedForBulk.size} viagen{selectedForBulk.size !== 1 ? 's' : ''}
+                  </Button>
+                )}
+              </div>
+            );
+          })()}
+
           {filteredRides.map((ride, i) => {
-            const cfg = STATUS_CONFIG[ride.status] || STATUS_CONFIG.nova;
-            const needsAction = ride.status === 'em_analise';
+            const effectiveStatus = getEffectiveStatus(ride);
+            const cfg = STATUS_CONFIG[effectiveStatus] || STATUS_CONFIG.em_analise;
+            const needsAction = effectiveStatus === 'em_analise';
+            const isExpanded = expandedCards.has(ride.id);
+            const isBulkSelected = selectedForBulk.has(ride.id);
+            const toggleExpand = () => setExpandedCards(prev => {
+              const next = new Set(prev);
+              if (next.has(ride.id)) next.delete(ride.id);
+              else next.add(ride.id);
+              return next;
+            });
+            const toggleBulkSelect = (e: React.MouseEvent) => {
+              e.stopPropagation();
+              setSelectedForBulk(prev => {
+                const next = new Set(prev);
+                if (next.has(ride.id)) next.delete(ride.id);
+                else next.add(ride.id);
+                return next;
+              });
+            };
+            const pd = ride.preco_detalhes as any;
+            const safeText = (value: unknown): string => {
+              if (value == null) return '';
+              if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') return String(value);
+              try {
+                return JSON.stringify(value);
+              } catch {
+                return '';
+              }
+            };
+            const tarifaTipo = pd?.tipo_tarifa || ((ride as any).preco_regra_aplicada === 'mesmo_bairro'
+              ? 'Tarifa mesmo bairro'
+              : (ride as any).preco_regra_aplicada === 'estimado'
+                ? 'Tarifa estimada'
+                : 'Tarifa tabelada');
+            const valorBase = Number(pd?.valor_base ?? pd?.preco_base ?? ride.valor_estimado ?? ride.valor ?? 0);
+            const ajusteValor = Number(pd?.ajuste_valor ?? 0);
+            const bagagemValor = Number(pd?.taxa_bagagem ?? ((ride as any).tem_bagagem ? 0 : 0));
+            const animalValor = Number(pd?.taxa_animal ?? 0);
+            const carro6Valor = Number(pd?.carro_6 ?? 0);
+            const paradaValor = Number(pd?.parada_valor ?? 0);
+            const esperaValor = Number(pd?.tempo_espera_valor ?? 0);
+            const totalValor = Number(ride.valor ?? ride.valor_estimado ?? 0);
+
+            const extrasIcons: { icon: React.ReactNode; label: string; color: string; value?: string }[] = [];
+            if (pd?.ajuste_horario || pd?.regra_horario) extrasIcons.push({ icon: <Zap className="w-2.5 h-2.5" />, label: safeText(pd?.regra_horario) || 'Ajuste horário', color: 'text-purple-400', value: safeText(pd?.ajuste_horario) || undefined });
+            if (pd?.taxa_bagagem || (ride as any).tem_bagagem) extrasIcons.push({ icon: <Tag className="w-2.5 h-2.5" />, label: 'Bagagem', color: 'text-orange-400', value: bagagemValor > 0 ? `+R$ ${bagagemValor.toFixed(2).replace('.', ',')}` : undefined });
+            if (animalValor > 0) extrasIcons.push({ icon: <AlertTriangle className="w-2.5 h-2.5" />, label: 'Animal', color: 'text-emerald-400', value: `+R$ ${animalValor.toFixed(2).replace('.', ',')}` });
+            if (pd?.carro_6_lugares || carro6Valor > 0) extrasIcons.push({ icon: <Users className="w-2.5 h-2.5" />, label: 'Carro 6 lugares', color: 'text-cyan-400', value: carro6Valor > 0 ? `+R$ ${carro6Valor.toFixed(2).replace('.', ',')}` : undefined });
+            if (paradaValor > 0) extrasIcons.push({ icon: <Route className="w-2.5 h-2.5" />, label: pd?.parada_tipo ? `Parada (${safeText(pd.parada_tipo)})` : 'Parada', color: 'text-red-400', value: `+R$ ${paradaValor.toFixed(2).replace('.', ',')}` });
+            if (esperaValor > 0) extrasIcons.push({ icon: <Clock className="w-2.5 h-2.5" />, label: `Espera${pd?.tempo_espera_minutos ? ` (${pd.tempo_espera_minutos} min)` : ''}`, color: 'text-amber-400', value: `+R$ ${esperaValor.toFixed(2).replace('.', ',')}` });
+            const rideDate = new Date(ride.concluida_at || ride.created_at);
+            const dateFmt = rideDate.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+            const horaFmt = rideDate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
             return (
               <motion.div key={ride.id} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.015, duration: 0.25 }}>
-                <Card className={`card-hover ${needsAction ? 'border-orange-500/20 bg-orange-500/5' : ''}`}>
-                  <CardContent className="py-3.5 px-4">
-                    <div className="flex flex-col gap-2.5">
-                      <div className="flex items-center justify-between flex-wrap gap-2">
-                        <div className="flex items-center gap-2">
-                          <Badge variant="outline" className={`text-[10px] gap-1 ${cfg.color}`}>{cfg.icon}{cfg.label}</Badge>
-                        </div>
-                        <span className="text-xs text-muted-foreground">{new Date(ride.concluida_at || ride.created_at).toLocaleString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
-                      </div>
-                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6">
+                <Card className={`card-hover ${needsAction ? 'border-orange-500/20 bg-orange-500/5' : ''} ${isBulkSelected ? 'ring-2 ring-green-500/40' : ''}`}>
+                  <CardContent className="py-2.5 px-3">
+                    <div className="flex flex-col gap-1">
+                      {/* ── Linha 1: Status + Data/Hora ── */}
+                      <div className="flex items-center gap-2 cursor-pointer" onClick={toggleExpand}>
+                        {needsAction && (
+                          <button onClick={toggleBulkSelect} className="shrink-0">
+                            {isBulkSelected
+                              ? <CheckSquare className="w-4 h-4 text-green-400" />
+                              : <Square className="w-4 h-4 text-muted-foreground/40 hover:text-muted-foreground" />}
+                          </button>
+                        )}
+                        {!isExpanded && (
+                          <Badge variant="outline" className={`text-[10px] px-2 py-0 h-5 gap-1 ${cfg.color}`}>
+                            {cfg.icon} {cfg.label}
+                          </Badge>
+                        )}
                         {ride.motorista && (
-                          <div className="flex items-center gap-2">
-                            <Car className="w-3.5 h-3.5 text-accent" />
-                            <span className="text-sm">{ride.motorista.nome}</span>
-                          </div>
+                          <span className="flex items-center gap-1 text-[11px] font-medium text-accent truncate">
+                            <Car className="w-3 h-3 shrink-0" />
+                            <span className="truncate">{ride.motorista.nome}</span>
+                          </span>
+                        )}
+                        <span className="ml-auto text-[10px] text-muted-foreground whitespace-nowrap shrink-0 flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          {dateFmt} {horaFmt}
+                        </span>
+                        <ChevronDown className={`w-4 h-4 text-muted-foreground shrink-0 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                      </div>
+
+                      {/* ── Linha 2: Rota + Regiões ── */}
+                      <div className="flex items-center gap-1.5 cursor-pointer" onClick={toggleExpand}>
+                        <div className="w-1.5 h-1.5 rounded-full bg-green-500 shrink-0" />
+                        <span className="text-[11px] text-foreground/80 truncate max-w-[40%]">{ride.origem_texto}</span>
+                        <ChevronDown className="w-3 h-3 text-muted-foreground/40 shrink-0 -rotate-90" />
+                        <div className="w-1.5 h-1.5 rounded-full bg-accent shrink-0" />
+                        <span className="text-[11px] text-foreground/80 truncate max-w-[40%]">{ride.destino_texto}</span>
+                        {pd?.origem_loc && (
+                          <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 text-muted-foreground/60 shrink-0 hidden sm:inline-flex">{pd.origem_loc}</Badge>
+                        )}
+                        {pd?.destino_loc && pd.destino_loc !== pd.origem_loc && (
+                          <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 text-muted-foreground/60 shrink-0 hidden sm:inline-flex">{pd.destino_loc}</Badge>
                         )}
                       </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
-                        <div className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-green-500/80 shrink-0" /><span className="text-[13px] text-foreground/80">{ride.origem_texto}</span></div>
-                        <div className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-accent/80 shrink-0" /><span className="text-[13px] text-foreground/80">{ride.destino_texto}</span></div>
+
+                      {/* ── Linha 3: Valor + Taxas ── */}
+                      <div className="flex items-center gap-2 cursor-pointer" onClick={toggleExpand}>
+                        {ride.valor != null && (
+                          <span className="text-[12px] text-green-400 font-bold whitespace-nowrap flex items-center gap-0.5">
+                            <DollarSign className="w-3 h-3" />
+                            R$ {Number(ride.valor).toFixed(2).replace('.', ',')}
+                          </span>
+                        )}
+                        {!isExpanded && extrasIcons.length > 0 && (
+                          <div className="flex items-center gap-1.5">
+                            {extrasIcons.map((t, ti) => (
+                              <span key={ti} className={`flex items-center gap-0.5 text-[10px] ${t.color}`} title={`${t.label}${t.value ? ` (${t.value})` : ''}`}>
+                                {t.icon}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                        {needsAction && (
+                          <Button
+                            size="sm"
+                            className="ml-auto gap-1 bg-green-600 hover:bg-green-700 text-white h-6 text-[10px] px-2"
+                            onClick={(e) => { e.stopPropagation(); handleDirectApprove(ride); }}
+                            disabled={approvalMutation.isPending}
+                          >
+                            <CheckCircle className="w-3 h-3" /> Aprovar
+                          </Button>
+                        )}
                       </div>
-                      {(ride.valor != null || ride.valor_estimado != null) && (
-                        <div className="flex items-center gap-4 text-xs flex-wrap">
-                          {ride.valor != null && <span className="flex items-center gap-1 text-green-400 font-semibold"><DollarSign className="w-3 h-3" />R$ {Number(ride.valor).toFixed(2).replace('.', ',')}</span>}
-                          {ride.valor_estimado != null && <span className="flex items-center gap-1 text-muted-foreground">Est: R$ {Number(ride.valor_estimado).toFixed(2).replace('.', ',')}</span>}
-                        </div>
-                      )}
-                      {(ride.avaliacao_cliente || ride.avaliacao_motorista) && (
-                        <div className="flex items-center gap-4 text-xs flex-wrap">
-                          {ride.avaliacao_cliente && (
-                            <span className="flex items-center gap-1.5">
-                              <User className="w-3 h-3 text-blue-400" /><span className="text-muted-foreground">Cliente:</span>
-                              <span className="flex items-center gap-0.5">{[1,2,3,4,5].map(s => <Star key={s} className={`w-3 h-3 ${s <= ride.avaliacao_cliente!.nota ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground/30'}`} />)}</span>
-                            </span>
+
+                      {/* ── Conteúdo expandido ── */}
+                      {isExpanded && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: 'auto' }}
+                          exit={{ opacity: 0, height: 0 }}
+                          className="space-y-2 pt-1.5 border-t border-border/20"
+                        >
+                          {/* Status selector (só no expandido) */}
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] text-muted-foreground font-medium">Status:</span>
+                            <Select
+                              value={effectiveStatus}
+                              onValueChange={(newStatus) => {
+                                if (newStatus === 'nao_realizada') {
+                                  openApprovalDialog(ride, 'nao_realizada');
+                                } else {
+                                  approvalMutation.mutate({ rideId: ride.id, statusAdmin: newStatus, observacao: '' });
+                                }
+                              }}
+                            >
+                              <SelectTrigger
+                                className={`h-6 w-auto min-w-0 gap-1 text-[10px] font-medium border px-2 rounded-full ${cfg.color}`}
+                              >
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {ALL_STATUSES.map(s => {
+                                  const sc = STATUS_CONFIG[s];
+                                  return (
+                                    <SelectItem key={s} value={s}>
+                                      <span className={`flex items-center gap-1.5 ${sc.color.split(' ').find(c => c.startsWith('text-')) || ''}`}>
+                                        {sc.icon} {sc.label}
+                                      </span>
+                                    </SelectItem>
+                                  );
+                                })}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          {/* Detalhamento de valor (somente conteúdo adicional) */}
+                          <div className="bg-muted/30 rounded-lg px-2.5 py-2 space-y-1.5">
+                            <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide">Detalhamento de valor</p>
+                            <div className="flex items-center justify-between text-[11px]">
+                              <span className="text-muted-foreground">{tarifaTipo}</span>
+                              <span className="font-medium">R$ {valorBase.toFixed(2).replace('.', ',')}</span>
+                            </div>
+                            {pd?.origem_tabela && pd?.destino_tabela && (
+                              <div className="flex items-center justify-between text-[10px] text-muted-foreground/80">
+                                <span>Referência tabela</span>
+                                <span>{safeText(pd.origem_tabela)} → {safeText(pd.destino_tabela)}</span>
+                              </div>
+                            )}
+                            {(pd?.ajuste_horario || pd?.regra_horario) && (
+                              <div className="flex items-center justify-between text-[11px]">
+                                <span className="text-purple-400">Ajuste horário{pd?.regra_horario ? ` (${safeText(pd.regra_horario)})` : ''}</span>
+                                <span className="font-medium text-purple-400">{ajusteValor > 0 ? `+R$ ${ajusteValor.toFixed(2).replace('.', ',')}` : (safeText(pd?.ajuste_horario) || 'Aplicado')}</span>
+                              </div>
+                            )}
+                            {(pd?.taxa_bagagem || (ride as any).tem_bagagem) && (
+                              <div className="flex items-center justify-between text-[11px]">
+                                <span className="text-orange-400">Taxa Feira/Bagagem</span>
+                                <span className="font-medium text-orange-400">{bagagemValor > 0 ? `+R$ ${bagagemValor.toFixed(2).replace('.', ',')}` : 'Inclusa'}</span>
+                              </div>
+                            )}
+                            {animalValor > 0 && (
+                              <div className="flex items-center justify-between text-[11px]">
+                                <span className="text-emerald-400">Taxa Animal{pd?.porte_animal ? ` (${safeText(pd.porte_animal)})` : ''}</span>
+                                <span className="font-medium text-emerald-400">+R$ {animalValor.toFixed(2).replace('.', ',')}</span>
+                              </div>
+                            )}
+                            {(pd?.carro_6_lugares || carro6Valor > 0) && (
+                              <div className="flex items-center justify-between text-[11px]">
+                                <span className="text-cyan-400">Carro 6 Lugares</span>
+                                <span className="font-medium text-cyan-400">{carro6Valor > 0 ? `+R$ ${carro6Valor.toFixed(2).replace('.', ',')}` : 'Aplicado'}</span>
+                              </div>
+                            )}
+                            {paradaValor > 0 && (
+                              <div className="flex items-center justify-between text-[11px]">
+                                <span className="text-red-400">{pd?.parada_tipo ? `Parada (${safeText(pd.parada_tipo)})` : 'Parada'}</span>
+                                <span className="font-medium text-red-400">+R$ {paradaValor.toFixed(2).replace('.', ',')}</span>
+                              </div>
+                            )}
+                            {esperaValor > 0 && (
+                              <div className="flex items-center justify-between text-[11px]">
+                                <span className="text-amber-400">Tempo de espera{pd?.tempo_espera_minutos ? ` (${pd.tempo_espera_minutos} min)` : ''}</span>
+                                <span className="font-medium text-amber-400">+R$ {esperaValor.toFixed(2).replace('.', ',')}</span>
+                              </div>
+                            )}
+                            <div className="pt-2 mt-1 border-t border-border/30">
+                              <div className="flex items-end justify-between">
+                                <span className="text-xs text-muted-foreground font-medium">Valor total</span>
+                                <span className="text-2xl font-extrabold text-green-400">R$ {totalValor.toFixed(2).replace('.', ',')}</span>
+                              </div>
+                            </div>
+                          </div>
+                          {/* Avaliações */}
+                          {(ride.avaliacao_cliente || ride.avaliacao_motorista) && (
+                            <div className="flex items-center gap-4 text-xs flex-wrap">
+                              {ride.avaliacao_cliente && (
+                                <span className="flex items-center gap-1.5">
+                                  <User className="w-3 h-3 text-blue-400" /><span className="text-muted-foreground">Cliente:</span>
+                                  <span className="flex items-center gap-0.5">{[1,2,3,4,5].map(s => <Star key={s} className={`w-3 h-3 ${s <= ride.avaliacao_cliente!.nota ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground/30'}`} />)}</span>
+                                </span>
+                              )}
+                              {ride.avaliacao_motorista && (
+                                <span className="flex items-center gap-1.5">
+                                  <Car className="w-3 h-3 text-accent" /><span className="text-muted-foreground">Motorista:</span>
+                                  <span className="flex items-center gap-0.5">{[1,2,3,4,5].map(s => <Star key={s} className={`w-3 h-3 ${s <= ride.avaliacao_motorista!.nota ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground/30'}`} />)}</span>
+                                </span>
+                              )}
+                            </div>
                           )}
-                          {ride.avaliacao_motorista && (
-                            <span className="flex items-center gap-1.5">
-                              <Car className="w-3 h-3 text-accent" /><span className="text-muted-foreground">Motorista:</span>
-                              <span className="flex items-center gap-0.5">{[1,2,3,4,5].map(s => <Star key={s} className={`w-3 h-3 ${s <= ride.avaliacao_motorista!.nota ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground/30'}`} />)}</span>
-                            </span>
-                          )}
-                        </div>
+                          {/* Ações */}
+                          <div className="flex items-center gap-1 flex-wrap pt-1 border-t border-border/20">
+                            <Button size="sm" variant="ghost" className="text-[10px] gap-1 h-6 px-1.5 text-muted-foreground/70 hover:text-foreground" onClick={() => openDetailDialog(ride)}><Eye className="w-3 h-3" /> Detalhes</Button>
+                            <Button size="sm" variant="ghost" className="text-[10px] gap-1 h-6 px-1.5 text-muted-foreground/70 hover:text-foreground" onClick={() => openEditRideDialog(ride)}><Pencil className="w-3 h-3" /> Editar</Button>
+                            <Button size="sm" variant="ghost" className="text-[10px] gap-1 h-6 px-1.5 text-red-400/70 hover:text-red-400 hover:bg-red-500/10 ml-auto" onClick={() => { setDeleteTarget({ id: ride.id, label: `Viagem de ${ride.cliente?.nome || 'cliente'}` }); setShowDeleteConfirm(true); }}>
+                              <Trash2 className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        </motion.div>
                       )}
-                      <div className="flex items-center gap-1.5 flex-wrap pt-1 border-t border-border/20">
-                        <Button size="sm" variant="ghost" className="text-[11px] gap-1 h-7 px-2 text-muted-foreground/70 hover:text-foreground" onClick={() => openDetailDialog(ride)}><Eye className="w-3 h-3" /> Detalhes</Button>
-                        <Button size="sm" variant="ghost" className="text-[11px] gap-1 h-7 px-2 text-muted-foreground/70 hover:text-foreground" onClick={() => openEditRideDialog(ride)}><Pencil className="w-3 h-3" /> Editar</Button>
-                        <Button size="sm" variant="ghost" className="text-[11px] gap-1 h-7 px-2 text-green-400/70 hover:text-green-400 hover:bg-green-500/10" onClick={() => handleDirectApprove(ride)}><CheckCircle className="w-3 h-3" /> Aprovar</Button>
-                        <Button size="sm" variant="ghost" className="text-[11px] gap-1 h-7 px-2 text-yellow-400/70 hover:text-yellow-400 hover:bg-yellow-500/10" onClick={() => openApprovalDialog(ride, 'nao_realizada')}><AlertTriangle className="w-3 h-3" /> Não Realizada</Button>
-                        <Button size="sm" variant="ghost" className="text-[11px] gap-1 h-7 px-2 text-red-400/70 hover:text-red-400 hover:bg-red-500/10" onClick={() => openApprovalDialog(ride, 'recusada')}><XCircle className="w-3 h-3" /> Recusar</Button>
-                        <Button size="sm" variant="ghost" className="text-[11px] gap-1 h-7 px-2 text-red-400/70 hover:text-red-400 hover:bg-red-500/10 ml-auto" onClick={() => { setDeleteTarget({ id: ride.id, label: `Viagem de ${ride.cliente?.nome || 'cliente'}` }); setShowDeleteConfirm(true); }}>
-                          <Trash2 className="w-3 h-3" />
-                        </Button>
-                      </div>
                     </div>
                   </CardContent>
                 </Card>
@@ -590,8 +892,7 @@ const AdminCorridas: React.FC = () => {
             <DialogTitle className="flex items-center gap-2">
               {approvalAction === 'aprovada' && <CheckCircle className="w-5 h-5 text-green-400" />}
               {approvalAction === 'nao_realizada' && <AlertTriangle className="w-5 h-5 text-yellow-400" />}
-              {approvalAction === 'recusada' && <XCircle className="w-5 h-5 text-red-400" />}
-              {approvalAction === 'aprovada' ? 'Aprovar Solicitação' : approvalAction === 'nao_realizada' ? 'Marcar como Não Realizada' : 'Recusar Solicitação'}
+              {approvalAction === 'aprovada' ? 'Aprovar Solicitação' : 'Marcar como Não Realizada'}
             </DialogTitle>
             <DialogDescription>A observação é opcional para manter o histórico de auditoria.</DialogDescription>
           </DialogHeader>
@@ -672,9 +973,6 @@ const AdminCorridas: React.FC = () => {
             <div className="space-y-4 py-2 max-h-[60vh] overflow-y-auto">
               <div className="flex items-center gap-2"><span className="text-xs text-muted-foreground">Status:</span><Badge variant="outline" className={STATUS_CONFIG[selectedRide.status]?.color || ''}>{STATUS_CONFIG[selectedRide.status]?.label || selectedRide.status}</Badge></div>
               <Separator />
-              <div><p className="text-xs text-muted-foreground mb-2 font-medium">CLIENTE</p>
-                <div className="bg-muted/50 rounded-lg p-3 space-y-1"><p className="text-sm font-medium">{selectedRide.cliente?.nome}</p><p className="text-xs text-muted-foreground flex items-center gap-1"><Phone className="w-3 h-3" /> {selectedRide.cliente?.telefone}</p></div>
-              </div>
               {selectedRide.motorista && (
                 <div><p className="text-xs text-muted-foreground mb-2 font-medium">MOTORISTA</p>
                   <div className="bg-muted/50 rounded-lg p-3 space-y-1"><p className="text-sm font-medium">{selectedRide.motorista.nome}</p><p className="text-xs text-muted-foreground flex items-center gap-1"><Phone className="w-3 h-3" /> {selectedRide.motorista.telefone}</p></div>
@@ -691,6 +989,42 @@ const AdminCorridas: React.FC = () => {
                   <div className="bg-muted/50 rounded-lg p-3 flex gap-6">
                     {selectedRide.valor != null && <div><p className="text-[10px] text-muted-foreground">Valor Final</p><p className="text-lg font-bold text-green-400">R$ {Number(selectedRide.valor).toFixed(2).replace('.', ',')}</p></div>}
                     {selectedRide.valor_estimado != null && <div><p className="text-[10px] text-muted-foreground">Estimado</p><p className="text-lg font-bold text-muted-foreground">R$ {Number(selectedRide.valor_estimado).toFixed(2).replace('.', ',')}</p></div>}
+                  </div>
+                </div>
+              )}
+              {selectedRide.preco_detalhes && typeof selectedRide.preco_detalhes === 'object' && Object.keys(selectedRide.preco_detalhes).length > 0 && (
+                <div><p className="text-xs text-muted-foreground mb-2 font-medium">DETALHAMENTO DE PREÇO</p>
+                  <div className="bg-muted/50 rounded-lg p-3 space-y-1.5">
+                    {(selectedRide.preco_detalhes as any).preco_base != null && (
+                      <div className="flex justify-between text-xs"><span className="flex items-center gap-1.5 text-muted-foreground"><DollarSign className="w-3.5 h-3.5 text-green-400" />Preço base</span><span className="font-medium">R$ {Number((selectedRide.preco_detalhes as any).preco_base).toFixed(2).replace('.', ',')}</span></div>
+                    )}
+                    {(selectedRide.preco_detalhes as any).preco_base_antes_ajuste != null && (
+                      <div className="flex justify-between text-xs"><span className="flex items-center gap-1.5 text-muted-foreground"><Tag className="w-3.5 h-3.5 text-muted-foreground/60" />Base antes do ajuste</span><span className="font-medium">R$ {Number((selectedRide.preco_detalhes as any).preco_base_antes_ajuste).toFixed(2).replace('.', ',')}</span></div>
+                    )}
+                    {(selectedRide.preco_detalhes as any).ajuste_horario && (
+                      <div className="flex justify-between text-xs"><span className="flex items-center gap-1.5 text-muted-foreground"><Clock className="w-3.5 h-3.5 text-amber-400" />Ajuste horário</span><span className="font-medium text-amber-400">{(selectedRide.preco_detalhes as any).ajuste_horario}</span></div>
+                    )}
+                    {(selectedRide.preco_detalhes as any).regra_horario && (
+                      <div className="flex justify-between text-xs"><span className="flex items-center gap-1.5 text-muted-foreground"><Zap className="w-3.5 h-3.5" style={{ color: (selectedRide.preco_detalhes as any).cor_regra || undefined }} />Regra</span><Badge variant="outline" className="text-[10px] h-5" style={{ borderColor: (selectedRide.preco_detalhes as any).cor_regra || undefined, color: (selectedRide.preco_detalhes as any).cor_regra || undefined }}>{(selectedRide.preco_detalhes as any).regra_horario}</Badge></div>
+                    )}
+                    {(selectedRide.preco_detalhes as any).origem_loc && (
+                      <div className="flex justify-between text-xs"><span className="flex items-center gap-1.5 text-muted-foreground"><MapPin className="w-3.5 h-3.5 text-green-400" />Origem (localidade)</span><span>{(selectedRide.preco_detalhes as any).origem_loc}</span></div>
+                    )}
+                    {(selectedRide.preco_detalhes as any).destino_loc && (
+                      <div className="flex justify-between text-xs"><span className="flex items-center gap-1.5 text-muted-foreground"><MapPin className="w-3.5 h-3.5 text-accent" />Destino (localidade)</span><span>{(selectedRide.preco_detalhes as any).destino_loc}</span></div>
+                    )}
+                    {(selectedRide.preco_detalhes as any).origem_tabela && (
+                      <div className="flex justify-between text-xs"><span className="flex items-center gap-1.5 text-muted-foreground"><Route className="w-3.5 h-3.5 text-green-400/60" />Origem (tabela)</span><span>{(selectedRide.preco_detalhes as any).origem_tabela}</span></div>
+                    )}
+                    {(selectedRide.preco_detalhes as any).destino_tabela && (
+                      <div className="flex justify-between text-xs"><span className="flex items-center gap-1.5 text-muted-foreground"><Route className="w-3.5 h-3.5 text-accent/60" />Destino (tabela)</span><span>{(selectedRide.preco_detalhes as any).destino_tabela}</span></div>
+                    )}
+                    {(selectedRide.preco_detalhes as any).regiao && (
+                      <div className="flex justify-between text-xs"><span className="flex items-center gap-1.5 text-muted-foreground"><Map className="w-3.5 h-3.5 text-blue-400" />Região</span><span>{(selectedRide.preco_detalhes as any).regiao}</span></div>
+                    )}
+                    {(selectedRide.preco_detalhes as any).fallback && (
+                      <div className="flex justify-between text-xs"><span className="flex items-center gap-1.5 text-muted-foreground"><AlertTriangle className="w-3.5 h-3.5 text-yellow-400" />Fallback</span><span className="text-yellow-400">Sim</span></div>
+                    )}
                   </div>
                 </div>
               )}

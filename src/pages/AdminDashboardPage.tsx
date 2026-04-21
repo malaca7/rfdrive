@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import AdminLayout from '@/components/AdminLayout';
 import { motion } from 'framer-motion';
 import {
@@ -14,6 +15,7 @@ import {
   BarChart3, Loader2, Target, Zap, Clock, MapPin, ArrowUpRight, ArrowDownRight,
 } from 'lucide-react';
 import { getAnimalAvatarUrl } from '@/lib/animal-avatars';
+import { useAuth } from '@/contexts/AuthContext';
 
 type Ride = {
   id: string; status: string; valor: number | null; valor_estimado: number | null;
@@ -56,9 +58,11 @@ const Bar = ({ value, max, color }: { value: number; max: number; color: string 
 );
 
 const AdminDashboardPage: React.FC = () => {
+  const { profile } = useAuth();
   const [periodo, setPeriodo] = useState('esta_semana');
   const [customStart, setCustomStart] = useState('');
   const [customEnd, setCustomEnd] = useState('');
+  const [dashboardSubpage, setDashboardSubpage] = useState<'pessoal' | 'geral'>('geral');
 
   const { data: rides = [], isLoading: loadingRides } = useQuery({
     queryKey: ['admin-rides-dashboard'],
@@ -240,6 +244,19 @@ const AdminDashboardPage: React.FC = () => {
 
   const isLoading = loadingRides || loadingUsers;
 
+  const minhasStats = useMemo(() => {
+    const myId = profile?.id;
+    if (!myId) return { viagens: 0, receita: 0, emAnalise: 0 };
+    const minhas = filteredRides.filter(r => r.motorista_id === myId);
+    const aprovadas = minhas.filter(r => r.status === 'aprovada');
+    const emAnalise = minhas.filter(r => r.status === 'em_analise').length;
+    return {
+      viagens: aprovadas.length,
+      receita: aprovadas.reduce((s, r) => s + (r.valor || 0), 0),
+      emAnalise,
+    };
+  }, [filteredRides, profile?.id]);
+
   const ChangeIndicator = ({ value }: { value: number }) => {
     if (value === 0) return null;
     const positive = value > 0;
@@ -260,28 +277,60 @@ const AdminDashboardPage: React.FC = () => {
         <p className="text-xs text-muted-foreground mt-1">Análise completa de faturamento, motoristas e operação</p>
       </div>
 
-      {/* Period filter */}
-      <div className="flex flex-col sm:flex-row gap-3 mb-5">
-        <Select value={periodo} onValueChange={setPeriodo}>
-          <SelectTrigger className="w-full sm:w-52">
-            <Calendar className="w-4 h-4 mr-2" /><SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {PERIOD_OPTIONS.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
-          </SelectContent>
-        </Select>
-        {periodo === 'custom' && (
-          <div className="flex gap-2">
-            <Input type="date" value={customStart} onChange={(e) => setCustomStart(e.target.value)} className="w-40" />
-            <Input type="date" value={customEnd} onChange={(e) => setCustomEnd(e.target.value)} className="w-40" />
-          </div>
-        )}
-      </div>
+      <Tabs value={dashboardSubpage} onValueChange={(v) => setDashboardSubpage(v as 'pessoal' | 'geral')} className="space-y-4">
+        <TabsList className="w-full max-w-[320px] grid grid-cols-2 h-10">
+          <TabsTrigger value="pessoal" className="text-xs font-semibold">Pessoal</TabsTrigger>
+          <TabsTrigger value="geral" className="text-xs font-semibold">Geral</TabsTrigger>
+        </TabsList>
 
-      {isLoading ? (
-        <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-accent" /></div>
-      ) : (
-        <div className="space-y-4">
+        <TabsContent value="pessoal" className="space-y-3">
+          <Card>
+            <CardContent className="py-4">
+              <div className="flex items-center gap-3">
+                <img
+                  src={profile?.avatar_url || getAnimalAvatarUrl(profile?.id || profile?.nome || 'admin')}
+                  alt=""
+                  className="w-14 h-14 rounded-xl object-cover border border-border"
+                />
+                <div>
+                  <p className="text-sm font-bold">{profile?.nome || 'Usuário'}</p>
+                  <p className="text-xs text-muted-foreground">{profile?.telefone || '-'}</p>
+                  <Badge variant="outline" className="mt-1 text-[10px]">{profile?.tipo || 'admin'}</Badge>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <div className="grid grid-cols-3 gap-2">
+            <Card className="bg-accent/5"><CardContent className="py-3 px-3 text-center"><p className="text-lg font-extrabold text-accent">{minhasStats.viagens}</p><p className="text-[10px] text-muted-foreground">Minhas Aprovadas</p></CardContent></Card>
+            <Card className="bg-green-500/5"><CardContent className="py-3 px-3 text-center"><p className="text-lg font-extrabold text-green-400">R$ {minhasStats.receita.toFixed(0)}</p><p className="text-[10px] text-muted-foreground">Minha Receita</p></CardContent></Card>
+            <Card className="bg-yellow-500/5"><CardContent className="py-3 px-3 text-center"><p className="text-lg font-extrabold text-yellow-400">{minhasStats.emAnalise}</p><p className="text-[10px] text-muted-foreground">Em Análise</p></CardContent></Card>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="geral" className="space-y-4">
+          {/* Period filter */}
+          <div className="flex flex-col sm:flex-row gap-3 mb-5">
+            <Select value={periodo} onValueChange={setPeriodo}>
+              <SelectTrigger className="w-full sm:w-52">
+                <Calendar className="w-4 h-4 mr-2" /><SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {PERIOD_OPTIONS.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            {periodo === 'custom' && (
+              <div className="flex gap-2">
+                <Input type="date" value={customStart} onChange={(e) => setCustomStart(e.target.value)} className="w-40" />
+                <Input type="date" value={customEnd} onChange={(e) => setCustomEnd(e.target.value)} className="w-40" />
+              </div>
+            )}
+          </div>
+
+          {isLoading ? (
+            <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-accent" /></div>
+          ) : (
+            <div className="space-y-4">
 
           {/* ═══ KPI CARDS ═══ */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -673,8 +722,10 @@ const AdminDashboardPage: React.FC = () => {
             </Card>
           </div>
 
-        </div>
-      )}
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
     </AdminLayout>
   );
 };

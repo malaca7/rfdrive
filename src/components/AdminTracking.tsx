@@ -33,9 +33,9 @@ interface DriverRow {
 }
 
 const statusLabels: Record<string, { label: string; color: string; bg: string }> = {
-  aceita: { label: 'Aceita', color: 'text-green-400', bg: 'bg-green-500/15 border-green-500/30' },
-  a_caminho: { label: 'Indo buscar', color: 'text-blue-400', bg: 'bg-blue-500/15 border-blue-500/30' },
-  em_corrida: { label: 'Em corrida', color: 'text-emerald-400', bg: 'bg-emerald-500/15 border-emerald-500/30' },
+  em_analise: { label: 'Em análise', color: 'text-orange-400', bg: 'bg-orange-500/15 border-orange-500/30' },
+  aprovada: { label: 'Aprovada', color: 'text-green-400', bg: 'bg-green-500/15 border-green-500/30' },
+  nao_realizada: { label: 'Não realizada', color: 'text-gray-400', bg: 'bg-gray-500/15 border-gray-500/30' },
 };
 
 function timeAgo(dateStr: string): string {
@@ -70,7 +70,7 @@ const AdminTracking: React.FC = () => {
       const { data: activeRides } = await supabase
         .from('corridas')
         .select('id, motorista_id, status, origem_texto, destino_texto, tracking_ativo, cliente_id')
-        .in('status', ['aceita', 'a_caminho', 'em_corrida'] as any[]);
+        .in('status', ['em_analise'] as any[]);
 
       // Get client names for active rides
       const clientIds = [...new Set((activeRides || []).map(r => r.cliente_id).filter(Boolean))];
@@ -147,7 +147,7 @@ const AdminTracking: React.FC = () => {
             Corridas em andamento
           </h3>
           {emCorrida.map((d, i) => {
-            const st = statusLabels[d.activeRide!.status] || statusLabels.aceita;
+            const st = statusLabels[d.activeRide!.status] || statusLabels.em_analise;
             return (
               <motion.div key={d.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }}>
                 <Card className={`border ${st.bg}`}>

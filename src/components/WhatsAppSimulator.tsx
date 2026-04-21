@@ -68,21 +68,17 @@ const WhatsAppSimulator: React.FC = () => {
 
       if (data?.latestRide) {
         const ride = data.latestRide;
-        if (ride.status === 'nova') {
+        if (ride.status === 'em_analise') {
           botResponse =
-            `🚗 *Confirme seu pedido:*\n\n` +
+            `📋 *Corrida em análise:*\n\n` +
             `📍 Embarque: *${ride.origem_texto}*\n` +
             `🏁 Destino: *${ride.destino_texto}*\n` +
             (ride.horario_estimado ? `🕐 Horário: *${ride.horario_estimado}*\n` : '') +
-            `\n*1* ✅ Confirmar\n*2* ✏️ Corrigir\n*3* ❌ Cancelar`;
-        } else if (ride.status === 'aguardando_motorista') {
-          botResponse =
-            `✅ *Corrida confirmada!*\n\n` +
-            `📍 De: ${ride.origem_texto}\n` +
-            `🏁 Para: ${ride.destino_texto}\n\n` +
-            `Aguardando um motorista aceitar sua corrida. 🚗`;
-        } else if (ride.status === 'recusada') {
-          botResponse = '❌ Corrida cancelada. Quando precisar, é só mandar uma mensagem! 😊';
+            `\nSua corrida está sendo analisada. Aguarde! 🚗`;
+        } else if (ride.status === 'aprovada') {
+          botResponse = '✅ Corrida aprovada! Boa viagem! 🚗';
+        } else if (ride.status === 'nao_realizada') {
+          botResponse = '❌ Corrida não realizada. Quando precisar, é só mandar uma mensagem! 😊';
         } else {
           botResponse = `📌 Corrida atualizada. Status: ${ride.status}`;
         }

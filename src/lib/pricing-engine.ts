@@ -45,10 +45,16 @@ export interface ConfigTarifas {
   tarifa_minima: number;
   tarifa_base_km: number;
   taxa_bagagem: number;
+  valor_minuto_espera: number;
   tarifa_mesmo_bairro: number;
   bandeirada: number;
   taxa_carro_6_tipo: 'percentual' | 'fixo';
   taxa_carro_6_valor: number;
+  taxa_parada_trajeto?: number;
+  taxa_parada_comum?: number;
+  taxa_parada_desvio?: number;
+  taxa_animal_pequeno?: number;
+  taxa_animal_medio?: number;
   ativo: boolean;
 }
 

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "76569541849",
+    "project_id": "rfdrive-fd805",
+    "storage_bucket": "rfdrive-fd805.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:76569541849:android:9f69694d6d0c69c6e012c8",
+        "android_client_info": {
+          "package_name": "com.rfdrive.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCg4yQfvmsK9C4vSMfyE7axt014jQ60HGI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

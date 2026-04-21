@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, Suspense, lazy } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
@@ -6,6 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import AppShell from '@/components/AppShell';
 import { motion } from 'framer-motion';
 import {
@@ -15,22 +16,29 @@ import {
   Crown, Rocket, CalendarCheck, CalendarDays, Medal, Gem, Banknote, Timer, Gauge, Map,
 } from 'lucide-react';
 
+const MotoristaDashboardGeralContent = lazy(() =>
+  import('./MotoristaDashboardAll').then(m => ({ default: m.MotoristaDashboardGeralContent }))
+);
+
 type PeriodFilter = 'semana' | 'semana_passada' | 'mes' | 'personalizado';
 
 function getWeekRange(): [Date, Date] {
   const now = new Date();
+  const day = now.getDay();
+  const offset = day === 0 ? -6 : 1 - day;
   const start = new Date(now);
-  start.setDate(now.getDate() - now.getDay());
+  start.setDate(now.getDate() + offset);
   start.setHours(0, 0, 0, 0);
-  const end = new Date(now);
+  const end = new Date(start);
+  end.setDate(start.getDate() + 6);
   end.setHours(23, 59, 59, 999);
   return [start, end];
 }
 
 function getLastWeekRange(): [Date, Date] {
-  const now = new Date();
-  const end = new Date(now);
-  end.setDate(now.getDate() - now.getDay() - 1);
+  const [thisStart] = getWeekRange();
+  const end = new Date(thisStart);
+  end.setDate(end.getDate() - 1);
   end.setHours(23, 59, 59, 999);
   const start = new Date(end);
   start.setDate(end.getDate() - 6);
@@ -139,6 +147,7 @@ const MotoristaDashboard: React.FC = () => {
         .from('corridas')
         .select('id, origem_texto, destino_texto, valor, status, concluida_at, created_at')
         .eq('motorista_id', user!.id)
+        .eq('status', 'aprovada')
         .gte('created_at', dateRange[0].toISOString())
         .lte('created_at', dateRange[1].toISOString())
         .order('created_at', { ascending: false });
@@ -155,7 +164,7 @@ const MotoristaDashboard: React.FC = () => {
         .from('corridas')
         .select('id', { count: 'exact', head: true })
         .eq('motorista_id', user!.id)
-        .in('status', ['aprovada', 'finalizada', 'em_analise']);
+        .eq('status', 'aprovada');
       if (error) throw error;
       return count || 0;
     },
@@ -183,7 +192,7 @@ const MotoristaDashboard: React.FC = () => {
         .from('corridas')
         .select('id', { count: 'exact', head: true })
         .eq('motorista_id', user!.id)
-        .in('status', ['aprovada', 'finalizada', 'em_analise'])
+        .eq('status', 'aprovada')
         .gte('concluida_at', weekRange[0].toISOString())
         .lte('concluida_at', weekRange[1].toISOString());
       if (error) throw error;
@@ -200,7 +209,7 @@ const MotoristaDashboard: React.FC = () => {
         .from('corridas')
         .select('id', { count: 'exact', head: true })
         .eq('motorista_id', user!.id)
-        .in('status', ['aprovada', 'finalizada', 'em_analise'])
+        .eq('status', 'aprovada')
         .gte('created_at', monthRange[0].toISOString())
         .lte('created_at', monthRange[1].toISOString());
       if (error) throw error;
@@ -216,7 +225,7 @@ const MotoristaDashboard: React.FC = () => {
         .from('corridas')
         .select('valor')
         .eq('motorista_id', user!.id)
-        .in('status', ['aprovada', 'finalizada', 'em_analise']);
+        .eq('status', 'aprovada');
       if (error) throw error;
       return data?.reduce((sum, r) => sum + (r.valor || 0), 0) || 0;
     },
@@ -258,9 +267,9 @@ const MotoristaDashboard: React.FC = () => {
     enabled: !!user,
   });
 
-  const viagensAprovadas = completedRides?.filter(r => r.status === 'aprovada' || r.status === 'finalizada' || r.status === 'em_analise').length || 0;
-  const viagensPendentes = completedRides?.filter(r => r.status === 'em_analise').length || 0;
-  const receitaTotal = completedRides?.filter(r => r.status === 'aprovada' || r.status === 'finalizada' || r.status === 'em_analise').reduce((sum, r) => sum + (r.valor || 0), 0) || 0;
+  const viagensAprovadas = completedRides?.length || 0;
+  const viagensPendentes = 0;
+  const receitaTotal = completedRides?.reduce((sum, r) => sum + (r.valor || 0), 0) || 0;
 
   const now = new Date();
   const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -277,7 +286,7 @@ const MotoristaDashboard: React.FC = () => {
 
   const topRoutes = useMemo(() => {
     const routeMap: Record<string, { origem: string; destino: string; count: number }> = {};
-    completedRides?.filter(r => r.status === 'aprovada' || r.status === 'finalizada' || r.status === 'em_analise').forEach(r => {
+    completedRides?.forEach(r => {
       if (r.origem_texto && r.destino_texto) {
         const key = `${r.origem_texto}→${r.destino_texto}`;
         if (!routeMap[key]) routeMap[key] = { origem: r.origem_texto, destino: r.destino_texto, count: 0 };
@@ -307,6 +316,12 @@ const MotoristaDashboard: React.FC = () => {
   return (
     <AppShell>
       <div className="w-full px-[4%] py-[3%] max-w-2xl mx-auto">
+        <Tabs defaultValue="pessoal" className="w-full">
+          <TabsList className="w-full grid grid-cols-2 mb-[4%]">
+            <TabsTrigger value="pessoal">Pessoal</TabsTrigger>
+            <TabsTrigger value="geral">Geral</TabsTrigger>
+          </TabsList>
+          <TabsContent value="pessoal">
         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-[4%]">
           <h1 className="text-[clamp(1.5rem,5vw,2rem)] font-extrabold leading-tight">
             Olá, <span className="text-gradient">{profile?.nome || 'Motorista'}</span>
@@ -508,14 +523,14 @@ const MotoristaDashboard: React.FC = () => {
                       Corridas por Dia
                     </h3>
                     <div className="flex items-end gap-1.5 h-24 px-1">
-                      {ridesByDay.map((count, i) => (
-                        <div key={i} className="flex-1 flex flex-col items-center gap-1">
-                          <span className="text-[10px] font-bold text-muted-foreground">{count}</span>
+                      {[1,2,3,4,5,6,0].map((dayIdx) => (
+                        <div key={dayIdx} className="flex-1 flex flex-col items-center gap-1">
+                          <span className="text-[10px] font-bold text-muted-foreground">{ridesByDay[dayIdx]}</span>
                           <div
-                            className={`w-full rounded-t-sm transition-all ${i === melhorDiaIdx ? 'bg-accent' : 'bg-accent/50'}`}
-                            style={{ height: `${maxDay > 0 ? (count / maxDay) * 64 : 0}px`, minHeight: count > 0 ? '4px' : '0px' }}
+                            className={`w-full rounded-t-sm transition-all ${dayIdx === melhorDiaIdx ? 'bg-accent' : 'bg-accent/50'}`}
+                            style={{ height: `${maxDay > 0 ? (ridesByDay[dayIdx] / maxDay) * 64 : 0}px`, minHeight: ridesByDay[dayIdx] > 0 ? '4px' : '0px' }}
                           />
-                          <span className={`text-[9px] ${i === melhorDiaIdx ? 'text-accent font-bold' : 'text-muted-foreground'}`}>{dayNames[i]}</span>
+                          <span className={`text-[9px] ${dayIdx === melhorDiaIdx ? 'text-accent font-bold' : 'text-muted-foreground'}`}>{dayNames[dayIdx]}</span>
                         </div>
                       ))}
                     </div>
@@ -609,6 +624,13 @@ const MotoristaDashboard: React.FC = () => {
             )}
           </>
         )}
+          </TabsContent>
+          <TabsContent value="geral">
+            <Suspense fallback={<div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>}>
+              <MotoristaDashboardGeralContent />
+            </Suspense>
+          </TabsContent>
+        </Tabs>
       </div>
     </AppShell>
   );

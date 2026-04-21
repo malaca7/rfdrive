@@ -2,6 +2,7 @@ import React from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
+import { installGlobalLogInterceptors, logSystemEvent } from "@/lib/logging";
 
 class ErrorBoundary extends React.Component<
   { children: React.ReactNode },
@@ -9,6 +10,15 @@ class ErrorBoundary extends React.Component<
 > {
   state = { error: null as Error | null };
   static getDerivedStateFromError(error: Error) {
+    void logSystemEvent({
+      action: 'react_render_error',
+      entity: 'react',
+      details: { message: error.message },
+      level: 'error',
+      errorMessage: error.message,
+      stackTrace: error.stack || null,
+      source: 'ErrorBoundary',
+    });
     return { error };
   }
   render() {
@@ -24,6 +34,8 @@ class ErrorBoundary extends React.Component<
     return this.props.children;
   }
 }
+
+installGlobalLogInterceptors();
 
 // Mark app as loaded so the timeout diagnostic in index.html won't fire
 (window as any).__appLoaded = true;

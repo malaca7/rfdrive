@@ -13,8 +13,10 @@ import {
 import { motion } from 'framer-motion';
 import {
   Car, Users, Shield, Loader2, Phone, Search, Filter, CheckCircle,
-  User, Ban, Star, Pencil, UserPlus, XCircle, MapPin, Activity,
+  User, Ban, Star, Pencil, UserPlus, XCircle, MapPin, Activity, KeyRound,
 } from 'lucide-react';
+import { logPlatformActivity } from '@/lib/activity-log';
+import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 
 // ── Vehicle options ──
@@ -84,6 +86,8 @@ interface AdminMotoristasProps {
 
 const AdminMotoristas: React.FC<AdminMotoristasProps> = ({ users, rides, loading }) => {
   const { toast } = useToast();
+  const { user } = useAuth();
+  const [resettingPassword, setResettingPassword] = useState(false);
   const queryClient = useQueryClient();
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -248,6 +252,42 @@ const AdminMotoristas: React.FC<AdminMotoristasProps> = ({ users, rides, loading
       veiculo_placa: driver.veiculo_placa || '',
     });
     setShowEditDialog(true);
+  };
+
+  const handleResetPassword = async () => {
+    if (!selectedDriver) return;
+    setResettingPassword(true);
+    try {
+      // Get platform default password
+      const { data: configData } = await supabase
+        .from('config_plataforma')
+        .select('senha_padrao')
+        .limit(1)
+        .single();
+      const defaultPassword = (configData as any)?.senha_padrao || '123456';
+
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      const resp = await supabase.functions.invoke('reset-password', {
+        body: { userId: selectedDriver.id, newPassword: defaultPassword },
+      });
+      if (resp.error) throw resp.error;
+      if (resp.data?.error) throw new Error(resp.data.error);
+
+      await logPlatformActivity({
+        userId: user?.id || '',
+        action: 'senha_redefinida',
+        category: 'usuarios',
+        entity: 'users',
+        entityId: selectedDriver.id,
+        details: { motorista: selectedDriver.nome },
+      });
+      toast({ title: 'Senha redefinida', description: `Senha de ${selectedDriver.nome} redefinida para o padrão da plataforma.` });
+    } catch (err: any) {
+      toast({ title: 'Erro ao redefinir senha', description: err.message || 'Tente novamente.', variant: 'destructive' });
+    } finally {
+      setResettingPassword(false);
+    }
   };
 
   const handleSave = () => {
@@ -615,7 +655,12 @@ const AdminMotoristas: React.FC<AdminMotoristasProps> = ({ users, rides, loading
             </div>
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button variant="outline" size="sm" className="gap-1.5 text-amber-500 border-amber-500/30 hover:bg-amber-500/10" onClick={handleResetPassword} disabled={resettingPassword}>
+              {resettingPassword ? <Loader2 className="w-4 h-4 animate-spin" /> : <KeyRound className="w-4 h-4" />}
+              Redefinir Senha
+            </Button>
+            <div className="flex-1" />
             <Button variant="outline" onClick={() => setShowEditDialog(false)}>Cancelar</Button>
             <Button onClick={handleSave} disabled={updateMutation.isPending} className="gap-1.5">
               {updateMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}

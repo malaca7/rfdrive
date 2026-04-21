@@ -8,7 +8,7 @@ const AdminPricing = React.lazy(() => import('@/components/AdminPricing'));
 const PRECO_NAV = [
   { path: '/admin/precos/config/tarifas', label: 'Tarifas', icon: <Tag className="w-4 h-4" /> },
   { path: '/admin/precos/config/horarios', label: 'Horários', icon: <Clock className="w-4 h-4" /> },
-  { path: '/admin/precos/tabela', label: 'Tabela RF', icon: <TableProperties className="w-4 h-4" /> },
+  { path: '/admin/precos/tabela', label: 'Tabela', icon: <TableProperties className="w-4 h-4" /> },
 ];
 
 const AdminPrecosLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {

@@ -131,16 +131,12 @@ const VEHICLE_COLORS = [
 ];
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
-  nova: { label: 'Nova', color: 'bg-purple-500/20 text-purple-400 border-purple-500/30', icon: <FileText className="w-3 h-3" /> },
-  aguardando_motorista: { label: 'Aguardando Motorista', color: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30', icon: <Clock className="w-3 h-3" /> },
-  aceita: { label: 'Aceita', color: 'bg-blue-500/20 text-blue-400 border-blue-500/30', icon: <Car className="w-3 h-3" /> },
   em_analise: { label: 'Em Análise', color: 'bg-orange-500/20 text-orange-400 border-orange-500/30', icon: <Eye className="w-3 h-3" /> },
   aprovada: { label: 'Aprovada', color: 'bg-green-500/20 text-green-400 border-green-500/30', icon: <CheckCircle className="w-3 h-3" /> },
   nao_realizada: { label: 'Não Realizada', color: 'bg-gray-500/20 text-gray-400 border-gray-500/30', icon: <AlertTriangle className="w-3 h-3" /> },
-  recusada: { label: 'Recusada', color: 'bg-red-500/20 text-red-400 border-red-500/30', icon: <XCircle className="w-3 h-3" /> },
 };
 
-const ALL_STATUSES = ['nova', 'aguardando_motorista', 'aceita', 'em_analise', 'aprovada', 'nao_realizada', 'recusada'] as const;
+const ALL_STATUSES = ['em_analise', 'aprovada', 'nao_realizada'] as const;
 
 // ── Phone format: (81) 9 9613.8924 ──
 function formatPhone(value: string): string {
@@ -204,7 +200,6 @@ const AdminDashboard: React.FC = () => {
     tipo: '',
     roles: [] as string[],
     status: '',
-    senha: '',
     isAdmin: false,
     veiculo_marca: '',
     veiculo_modelo: '',
@@ -368,6 +363,38 @@ const AdminDashboard: React.FC = () => {
     },
   });
 
+  const resetPasswordMutation = useMutation({
+    mutationFn: async ({ userId, nome }: { userId: string; nome: string }) => {
+      const { data: configData } = await supabase
+        .from('config_plataforma')
+        .select('senha_padrao')
+        .limit(1)
+        .single();
+      const defaultPassword = (configData as any)?.senha_padrao || '123456';
+
+      const resp = await supabase.functions.invoke('reset-password', {
+        body: { userId, newPassword: defaultPassword },
+      });
+      if (resp.error) throw resp.error;
+      if ((resp.data as any)?.error) throw new Error((resp.data as any).error);
+
+      return { userId, nome };
+    },
+    onSuccess: async (result) => {
+      toast({
+        title: 'Senha redefinida',
+        description: `Senha de ${result.nome} redefinida para o padrão da plataforma.`,
+      });
+    },
+    onError: (e: any) => {
+      toast({
+        title: 'Erro ao redefinir senha',
+        description: e?.message || 'Tente novamente.',
+        variant: 'destructive',
+      });
+    },
+  });
+
   // ── Create user mutation ──
   const createUserMutation = useMutation({
     mutationFn: async (form: typeof createUserForm) => {
@@ -521,7 +548,6 @@ const AdminDashboard: React.FC = () => {
       tipo: 'motorista',
       roles: derivedRoles,
       status: u.status,
-      senha: '',
       isAdmin,
       veiculo_marca: u.veiculo_marca || '',
       veiculo_modelo: u.veiculo_modelo || '',
@@ -571,9 +597,6 @@ const AdminDashboard: React.FC = () => {
     if (editUserForm.status !== selectedUser.status) {
       updates.status = editUserForm.status;
       updates.ativo = editUserForm.status === 'ativo';
-    }
-    if (editUserForm.senha.trim()) {
-      updates.senha = editUserForm.senha.trim();
     }
 
     // Admin permission
@@ -641,9 +664,9 @@ const AdminDashboard: React.FC = () => {
   // ── Stats ──
   const stats = {
     total: rides?.length || 0,
-    novas: rides?.filter(r => r.status === 'nova').length || 0,
-    aguardando: rides?.filter(r => r.status === 'aguardando_motorista').length || 0,
-    aceitas: rides?.filter(r => r.status === 'aceita').length || 0,
+    novas: 0,
+    aguardando: 0,
+    aceitas: 0,
     emAnalise: rides?.filter(r => r.status === 'em_analise').length || 0,
     aprovadas: rides?.filter(r => r.status === 'aprovada').length || 0,
     motoristas: users?.filter(u => u.tipo === 'motorista').length || 0,
@@ -739,9 +762,9 @@ const AdminDashboard: React.FC = () => {
             ) : (
               <div className="space-y-3">
                 {filteredRides.map((ride, i) => {
-                  const cfg = STATUS_CONFIG[ride.status] || STATUS_CONFIG.nova;
+                  const cfg = STATUS_CONFIG[ride.status] || STATUS_CONFIG.em_analise;
                   const needsAction = ride.status === 'em_analise';
-                  const canValidate = ['aceita', 'em_analise', 'aguardando_motorista', 'nova'].includes(ride.status);
+                  const canValidate = ride.status === 'em_analise';
 
                   return (
                     <motion.div key={ride.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.02 }}>
@@ -872,13 +895,6 @@ const AdminDashboard: React.FC = () => {
                                     onClick={() => openApprovalDialog(ride, 'nao_realizada')}
                                   >
                                     <AlertTriangle className="w-3 h-3" /> Não Realizada
-                                  </Button>
-                                  <Button
-                                    size="sm" variant="outline"
-                                    className="text-xs gap-1 text-red-400 border-red-500/30 hover:bg-red-500/10"
-                                    onClick={() => openApprovalDialog(ride, 'recusada')}
-                                  >
-                                    <XCircle className="w-3 h-3" /> Recusar
                                   </Button>
                                 </>
                               )}
@@ -1371,7 +1387,7 @@ const AdminDashboard: React.FC = () => {
               Editar Motorista
             </DialogTitle>
             <DialogDescription>
-              Altere os dados do motorista. Deixe a senha em branco para manter a atual.
+              Altere os dados do motorista.
             </DialogDescription>
           </DialogHeader>
 
@@ -1415,14 +1431,21 @@ const AdminDashboard: React.FC = () => {
                 </Select>
               </div>
             </div>
-            <div>
-              <Label className="text-xs">Nova Senha (opcional)</Label>
-              <Input
-                type="password"
-                value={editUserForm.senha}
-                onChange={(e) => setEditUserForm(f => ({ ...f, senha: e.target.value }))}
-                placeholder="Deixe em branco para manter"
-              />
+            <div className="rounded-lg border border-border bg-muted/30 p-3 space-y-2">
+              <div>
+                <Label className="text-xs">Senha de Acesso</Label>
+                <p className="text-[11px] text-muted-foreground mt-1">A senha atual não é exibida por segurança.</p>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full gap-2"
+                disabled={resetPasswordMutation.isPending || !selectedUser}
+                onClick={() => selectedUser && resetPasswordMutation.mutate({ userId: selectedUser.id, nome: selectedUser.nome })}
+              >
+                {resetPasswordMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+                Resetar para senha padrão
+              </Button>
             </div>
 
             <Separator />

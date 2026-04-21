@@ -10,25 +10,29 @@ import AppShell from '@/components/AppShell';
 import { motion } from 'framer-motion';
 import {
   ClipboardList, ChevronRight, Loader2, CheckCircle, Clock, XCircle,
-  DollarSign, Filter, AlertTriangle, MessageSquare,
+  DollarSign, Filter, AlertTriangle, MessageSquare, FileText, Download,
 } from 'lucide-react';
+import { useGerarRecibo } from '@/hooks/useGerarRecibo';
 
 type PeriodFilter = 'semana' | 'semana_passada' | 'mes' | 'personalizado';
 
 function getWeekRange(): [Date, Date] {
   const now = new Date();
+  const day = now.getDay();
+  const offset = day === 0 ? -6 : 1 - day;
   const start = new Date(now);
-  start.setDate(now.getDate() - now.getDay());
+  start.setDate(now.getDate() + offset);
   start.setHours(0, 0, 0, 0);
-  const end = new Date(now);
+  const end = new Date(start);
+  end.setDate(start.getDate() + 6);
   end.setHours(23, 59, 59, 999);
   return [start, end];
 }
 
 function getLastWeekRange(): [Date, Date] {
-  const now = new Date();
-  const end = new Date(now);
-  end.setDate(now.getDate() - now.getDay() - 1);
+  const [thisStart] = getWeekRange();
+  const end = new Date(thisStart);
+  end.setDate(end.getDate() - 1);
   end.setHours(23, 59, 59, 999);
   const start = new Date(end);
   start.setDate(end.getDate() - 6);
@@ -46,6 +50,7 @@ function getMonthRange(): [Date, Date] {
 
 const MotoristaHistoricoViagens: React.FC = () => {
   const { user } = useAuth();
+  const { gerarReciboFromRide, temRecibo } = useGerarRecibo();
   const [period, setPeriod] = useState<PeriodFilter>('semana');
   const [customStart, setCustomStart] = useState('');
   const [customEnd, setCustomEnd] = useState('');
@@ -71,7 +76,7 @@ const MotoristaHistoricoViagens: React.FC = () => {
         .from('corridas')
         .select('id, origem_texto, destino_texto, valor, status, concluida_at, created_at, observacao_motorista, observacoes')
         .eq('motorista_id', user!.id)
-        .in('status', ['em_analise', 'aprovada', 'finalizada', 'recusada', 'nao_realizada'])
+        .in('status', ['em_analise', 'aprovada', 'nao_realizada'])
         .gte('created_at', dateRange[0].toISOString())
         .lte('created_at', dateRange[1].toISOString())
         .order('created_at', { ascending: false });
@@ -82,9 +87,8 @@ const MotoristaHistoricoViagens: React.FC = () => {
   });
 
   const emAnalise = viagens?.filter(v => v.status === 'em_analise') || [];
-  const aprovadas = viagens?.filter(v => v.status === 'aprovada' || v.status === 'finalizada') || [];
+  const aprovadas = viagens?.filter(v => v.status === 'aprovada') || [];
   const naoRealizadas = viagens?.filter(v => v.status === 'nao_realizada') || [];
-  const recusadas = viagens?.filter(v => v.status === 'recusada') || [];
   const receita = aprovadas.reduce((s, v) => s + (v.valor || 0), 0);
 
   const renderRideCard = (ride: any, idx: number, highlight?: string) => (
@@ -96,7 +100,6 @@ const MotoristaHistoricoViagens: React.FC = () => {
     >
       <Card className={
         highlight === 'analise' ? 'border-gray-500/30 bg-gray-500/5' :
-        highlight === 'recusada' ? 'border-red-500/30 bg-red-500/5' :
         highlight === 'nao_realizada' ? 'border-yellow-500/30 bg-yellow-500/5' :
         'border-green-500/30 bg-green-500/5'
       }>
@@ -113,6 +116,13 @@ const MotoristaHistoricoViagens: React.FC = () => {
                   R$ {ride.valor.toFixed(2).replace('.', ',')}
                 </Badge>
               )}
+              <button
+                onClick={() => gerarReciboFromRide(ride)}
+                className="p-1 rounded-md hover:bg-accent/20 text-muted-foreground hover:text-accent transition-colors"
+                title={temRecibo(ride) ? "Baixar Recibo" : "Emitir Recibo"}
+              >
+                {temRecibo(ride) ? <Download className="w-4 h-4" /> : <FileText className="w-4 h-4" />}
+              </button>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -127,10 +137,8 @@ const MotoristaHistoricoViagens: React.FC = () => {
               📝 {ride.observacao_motorista}
             </p>
           )}
-          {(highlight === 'recusada' || highlight === 'nao_realizada') && ride.observacoes && (
-            <div className={`flex items-start gap-1.5 p-2 rounded-lg ${
-              highlight === 'recusada' ? 'bg-red-500/10' : 'bg-gray-500/10'
-            }`}>
+          {highlight === 'nao_realizada' && ride.observacoes && (
+            <div className={`flex items-start gap-1.5 p-2 rounded-lg bg-gray-500/10`}>
               <MessageSquare className="w-3 h-3 mt-0.5 shrink-0 text-muted-foreground" />
               <p className="text-[11px] text-muted-foreground">
                 <span className="font-medium">Motivo:</span> {ride.observacoes}
@@ -171,12 +179,11 @@ const MotoristaHistoricoViagens: React.FC = () => {
         </motion.div>
 
         {/* Summary Stats */}
-        <div className="grid grid-cols-5 gap-2">
+        <div className="grid grid-cols-4 gap-2">
           {[
             { label: 'Aprovadas', value: aprovadas.length, color: 'text-green-400', border: 'border-green-500/20', icon: <CheckCircle className="w-3.5 h-3.5" /> },
             { label: 'Análise', value: emAnalise.length, color: 'text-orange-400', border: 'border-orange-500/20', icon: <Clock className="w-3.5 h-3.5" /> },
             { label: 'N/ Realiz.', value: naoRealizadas.length, color: 'text-gray-400', border: 'border-gray-500/20', icon: <AlertTriangle className="w-3.5 h-3.5" /> },
-            { label: 'Recusadas', value: recusadas.length, color: 'text-red-400', border: 'border-red-500/20', icon: <XCircle className="w-3.5 h-3.5" /> },
             { label: 'Receita', value: `R$${receita.toFixed(2).replace('.', ',')}`, color: 'text-accent', border: 'border-accent/20', icon: <DollarSign className="w-3.5 h-3.5" /> },
           ].map(s => (
             <motion.div key={s.label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
@@ -236,7 +243,6 @@ const MotoristaHistoricoViagens: React.FC = () => {
             {renderSection('Em Análise', <Clock className="w-4 h-4" />, emAnalise, 'analise', 'text-orange-400')}
             {renderSection('Aprovadas', <CheckCircle className="w-4 h-4" />, aprovadas, 'aprovada', 'text-green-400')}
             {renderSection('Não Realizadas', <AlertTriangle className="w-4 h-4" />, naoRealizadas, 'nao_realizada', 'text-gray-400')}
-            {renderSection('Recusadas', <XCircle className="w-4 h-4" />, recusadas, 'recusada', 'text-red-400')}
           </div>
         ) : (
           <Card>

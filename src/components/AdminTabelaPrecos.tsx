@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -6,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from '@/components/ui/dialog';
@@ -14,7 +16,8 @@ import {
   Search, Plus, Pencil, Trash2, Save, Download, Upload,
   ChevronLeft, ChevronRight, Loader2, TableProperties,
   ArrowUpDown, ArrowUp, ArrowDown, Filter, X, FileJson, Copy,
-  BarChart3, MapPin, Route, DollarSign, AlertTriangle, CheckCircle,
+  BarChart3, MapPin, Route, DollarSign, AlertTriangle, CheckCircle, Layers,
+  Replace,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -27,18 +30,99 @@ import {
 
 const PAGE_SIZE_OPTIONS = [25, 50, 100, 200];
 
+type RegiaoItem = {
+  id: string;
+  codigo: number;
+  nome: string;
+  ativo: boolean;
+};
+
 type SortKey = 'origem' | 'destino' | 'valor' | 'regiao';
 type SortDir = 'asc' | 'desc';
+
+type AutocompleteInputProps = {
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  label: string;
+  allLocations: string[];
+};
+
+const AutocompleteInput: React.FC<AutocompleteInputProps> = ({
+  value,
+  onChange,
+  placeholder,
+  label,
+  allLocations,
+}) => {
+  const [open, setOpen] = useState(false);
+
+  const suggestions = useMemo(() => {
+    if (!value.trim() || value.length < 2) return [];
+    const q = normalizeText(value);
+    return allLocations.filter((l) => normalizeText(l).includes(q)).slice(0, 8);
+  }, [value, allLocations]);
+
+  return (
+    <div className="relative">
+      <Label className="text-xs">{label}</Label>
+      <Input
+        value={value}
+        onChange={(e) => { onChange(e.target.value); setOpen(true); }}
+        onFocus={() => setOpen(true)}
+        onBlur={() => setTimeout(() => setOpen(false), 150)}
+        placeholder={placeholder}
+        autoComplete="off"
+      />
+      {open && suggestions.length > 0 && (
+        <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-popover border border-border rounded-lg shadow-lg max-h-40 overflow-y-auto">
+          {suggestions.map((s) => (
+            <button
+              key={s}
+              type="button"
+              className="w-full text-left px-3 py-1.5 text-sm hover:bg-accent/10 transition-colors"
+              onMouseDown={(e) => { e.preventDefault(); onChange(s); setOpen(false); }}
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
 
 const AdminTabelaPrecos: React.FC = () => {
   const { toast } = useToast();
   const qc = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [mainTab, setMainTab] = useState<'rotas' | 'regioes'>('regioes');
+  const [newRegiao, setNewRegiao] = useState('');
+  const [editingRegiaoId, setEditingRegiaoId] = useState<string | null>(null);
+  const [editRegiaoNome, setEditRegiaoNome] = useState('');
+  const [localSearch, setLocalSearch] = useState('');
+  const [localFilterRegiao, setLocalFilterRegiao] = useState<string>('_all');
+  const [localFilterTipo, setLocalFilterTipo] = useState<'_all' | 'origem' | 'destino' | 'ambos'>('_all');
+  const [selectedLocais, setSelectedLocais] = useState<Set<string>>(new Set());
+  const [targetRegiao, setTargetRegiao] = useState<string>('');
 
   // ── Data from Supabase ──
   const { data: tabela = [], isLoading: loadingTabela } = useQuery({
     queryKey: ['tabela-precos'],
     queryFn: fetchTabelaFromSupabase,
+  });
+
+  const { data: regioes = [], isLoading: loadingRegioes } = useQuery({
+    queryKey: ['regioes-precos'],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from('regioes_precos')
+        .select('id, codigo, nome, ativo')
+        .eq('ativo', true)
+        .order('codigo', { ascending: true });
+      if (error) throw error;
+      return (data || []) as RegiaoItem[];
+    },
   });
 
   // Sync cache on load
@@ -72,6 +156,9 @@ const AdminTabelaPrecos: React.FC = () => {
   const [showBulkDeleteDialog, setShowBulkDeleteDialog] = useState(false);
   const [showImportDialog, setShowImportDialog] = useState(false);
   const [showStatsDialog, setShowStatsDialog] = useState(false);
+  const [showBulkUpdateDialog, setShowBulkUpdateDialog] = useState(false);
+  const [bulkUpdateOldValue, setBulkUpdateOldValue] = useState('');
+  const [bulkUpdateNewValue, setBulkUpdateNewValue] = useState('');
 
   // ── Form state ──
   const [formOrigem, setFormOrigem] = useState('');
@@ -89,7 +176,7 @@ const AdminTabelaPrecos: React.FC = () => {
 
   // ── Data ──
   const origens = useMemo(() => [...new Set(tabela.map(e => e.origem))].sort((a, b) => a.localeCompare(b, 'pt-BR')), [tabela]);
-  const regioes = useMemo(() => [...new Set(tabela.map(e => e.regiao))].sort(), [tabela]);
+  const regioesTabela = useMemo(() => [...new Set(tabela.map(e => e.regiao))].sort(), [tabela]);
   const destinos = useMemo(() => {
     const base = filterOrigem !== '_all' ? tabela.filter(e => e.origem === filterOrigem) : tabela;
     return [...new Set(base.map(e => e.destino))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
@@ -101,6 +188,49 @@ const AdminTabelaPrecos: React.FC = () => {
     precoMin: tabela.length ? Math.min(...tabela.map(e => e.valor)) : 0,
     precoMax: tabela.length ? Math.max(...tabela.map(e => e.valor)) : 0,
   }), [tabela]);
+
+  const locaisUnificados = useMemo(() => {
+    const map = new Map<string, { local: string; origemCount: number; destinoCount: number; total: number; regiaoAtual: string }>();
+
+    for (const row of tabela) {
+      if (!map.has(row.origem)) {
+        map.set(row.origem, { local: row.origem, origemCount: 0, destinoCount: 0, total: 0, regiaoAtual: row.regiao || '' });
+      }
+      if (!map.has(row.destino)) {
+        map.set(row.destino, { local: row.destino, origemCount: 0, destinoCount: 0, total: 0, regiaoAtual: row.regiao || '' });
+      }
+
+      const origemItem = map.get(row.origem)!;
+      origemItem.origemCount += 1;
+      origemItem.total += 1;
+      if (!origemItem.regiaoAtual && row.regiao) origemItem.regiaoAtual = row.regiao;
+
+      const destinoItem = map.get(row.destino)!;
+      destinoItem.destinoCount += 1;
+      destinoItem.total += 1;
+      if (!destinoItem.regiaoAtual && row.regiao) destinoItem.regiaoAtual = row.regiao;
+    }
+
+    const arr = Array.from(map.values()).sort((a, b) => a.local.localeCompare(b.local, 'pt-BR'));
+
+    return arr.filter(x => {
+      if (localFilterRegiao === '_sem' && x.regiaoAtual) return false;
+      if (localFilterRegiao !== '_all' && localFilterRegiao !== '_sem' && x.regiaoAtual !== localFilterRegiao) return false;
+
+      const ehOrigem = x.origemCount > 0;
+      const ehDestino = x.destinoCount > 0;
+      if (localFilterTipo === 'origem' && !ehOrigem) return false;
+      if (localFilterTipo === 'destino' && !ehDestino) return false;
+      if (localFilterTipo === 'ambos' && !(ehOrigem && ehDestino)) return false;
+
+      if (localSearch.trim()) {
+        const q = normalizeText(localSearch);
+        if (!normalizeText(x.local).includes(q)) return false;
+      }
+
+      return true;
+    });
+  }, [tabela, localSearch, localFilterRegiao, localFilterTipo]);
 
   // ── Filtering (normalized for accent-insensitive search) ──
   const filtered = useMemo(() => {
@@ -217,6 +347,207 @@ const AdminTabelaPrecos: React.FC = () => {
     },
     onError: (e: any) => toast({ title: 'Erro na importa\u00e7\u00e3o', description: e?.message, variant: 'destructive' }),
   });
+
+  const bulkUpdateValueMutation = useMutation({
+    mutationFn: async ({ oldValue, newValue }: { oldValue: number; newValue: number }) => {
+      const matching = tabela.filter(e => e.valor === oldValue);
+      if (matching.length === 0) throw new Error('Nenhuma rota encontrada com esse valor.');
+      const ids = matching.map(e => e.id).filter((id): id is string => !!id);
+      if (ids.length === 0) throw new Error('Rotas sem ID.');
+      const { error } = await (supabase as any)
+        .from('tabela_precos')
+        .update({ valor: newValue })
+        .in('id', ids);
+      if (error) throw error;
+      return ids.length;
+    },
+    onSuccess: (count) => {
+      onMutationSuccess(`${count} rota(s) atualizada(s) com novo valor!`);
+      setShowBulkUpdateDialog(false);
+      setBulkUpdateOldValue('');
+      setBulkUpdateNewValue('');
+    },
+    onError: (e: any) => toast({ title: 'Erro ao atualizar em lote', description: e?.message, variant: 'destructive' }),
+  });
+
+  // ── Distinct values for bulk update ──
+  const distinctValues = useMemo(() => {
+    const valMap = new Map<number, number>();
+    tabela.forEach(e => valMap.set(e.valor, (valMap.get(e.valor) || 0) + 1));
+    return Array.from(valMap.entries())
+      .sort((a, b) => a[0] - b[0])
+      .map(([valor, count]) => ({ valor, count }));
+  }, [tabela]);
+
+  const bulkMatchCount = useMemo(() => {
+    const v = parseFloat(bulkUpdateOldValue);
+    if (isNaN(v)) return 0;
+    return tabela.filter(e => e.valor === v).length;
+  }, [tabela, bulkUpdateOldValue]);
+
+  const createRegiaoMutation = useMutation({
+    mutationFn: async (nome: string) => {
+      const { error } = await (supabase as any)
+        .from('regioes_precos')
+        .insert({ nome: nome.trim(), ativo: true });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['regioes-precos'] });
+      toast({ title: 'Região criada com sucesso!' });
+      setNewRegiao('');
+    },
+    onError: (e: any) => toast({ title: 'Erro ao criar região', description: e?.message, variant: 'destructive' }),
+  });
+
+  const deleteRegiaoMutation = useMutation({
+    mutationFn: async (nome: string) => {
+      const { error } = await (supabase as any)
+        .from('regioes_precos')
+        .delete()
+        .eq('nome', nome);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['regioes-precos'] });
+      toast({ title: 'Região removida!' });
+    },
+    onError: (e: any) => toast({ title: 'Erro ao remover região', description: e?.message, variant: 'destructive' }),
+  });
+
+  const updateRegiaoMutation = useMutation({
+    mutationFn: async ({ id, nomeAnterior, nomeNovo }: { id: string; nomeAnterior: string; nomeNovo: string }) => {
+      const { error: regiaoError } = await (supabase as any)
+        .from('regioes_precos')
+        .update({ nome: nomeNovo.trim() })
+        .eq('id', id);
+      if (regiaoError) throw regiaoError;
+
+      if (nomeAnterior !== nomeNovo.trim()) {
+        const { error: rotasError } = await (supabase as any)
+          .from('tabela_precos')
+          .update({ regiao: nomeNovo.trim() })
+          .eq('regiao', nomeAnterior);
+        if (rotasError) throw rotasError;
+      }
+    },
+    onSuccess: async () => {
+      setEditingRegiaoId(null);
+      setEditRegiaoNome('');
+      await syncCacheFromSupabase();
+      qc.invalidateQueries({ queryKey: ['regioes-precos'] });
+      qc.invalidateQueries({ queryKey: ['tabela-precos'] });
+      toast({ title: 'Região atualizada com sucesso!' });
+    },
+    onError: (e: any) => toast({ title: 'Erro ao editar região', description: e?.message, variant: 'destructive' }),
+  });
+
+  const assignRegiaoMutation = useMutation({
+    mutationFn: async ({ locais, regiao }: { locais: string[]; regiao: string }) => {
+      const localSet = new Set(locais);
+      const ids = tabela
+        .filter(r => localSet.has(r.origem) || localSet.has(r.destino))
+        .map(r => r.id)
+        .filter((id): id is string => !!id);
+
+      if (ids.length === 0) {
+        throw new Error('Nenhuma rota encontrada para os locais selecionados.');
+      }
+
+      const updates = ids.map(id => updateEntrySupabase(id, { regiao }));
+      await Promise.all(updates);
+    },
+    onSuccess: async () => {
+      await onMutationSuccess('Região atualizada para os locais selecionados!');
+      qc.invalidateQueries({ queryKey: ['regioes-precos'] });
+      setSelectedLocais(new Set());
+    },
+    onError: (e: any) => toast({ title: 'Erro ao atribuir região', description: e?.message, variant: 'destructive' }),
+  });
+
+  useEffect(() => {
+    const firstSelected = Array.from(selectedLocais)[0];
+    if (!firstSelected) return;
+    const localInfo = locaisUnificados.find(l => l.local === firstSelected);
+    if (localInfo?.regiaoAtual) {
+      setTargetRegiao(localInfo.regiaoAtual);
+      return;
+    }
+    if (regioes[0]?.nome) {
+      setTargetRegiao(regioes[0].nome);
+    }
+  }, [selectedLocais, locaisUnificados, regioes]);
+
+  const handleCreateRegiao = () => {
+    if (!newRegiao.trim()) {
+      toast({ title: 'Informe o nome da região', variant: 'destructive' });
+      return;
+    }
+    createRegiaoMutation.mutate(newRegiao);
+  };
+
+  const handleDeleteRegiao = (nome: string) => {
+    const emUso = tabela.some(r => r.regiao === nome);
+    if (emUso) {
+      toast({ title: 'Região em uso', description: 'Reatribua os locais antes de remover esta região.', variant: 'destructive' });
+      return;
+    }
+    deleteRegiaoMutation.mutate(nome);
+  };
+
+  const openEditRegiao = (regiao: RegiaoItem) => {
+    setEditingRegiaoId(regiao.id);
+    setEditRegiaoNome(regiao.nome);
+  };
+
+  const cancelEditRegiao = () => {
+    setEditingRegiaoId(null);
+    setEditRegiaoNome('');
+  };
+
+  const handleSaveRegiao = (regiao: RegiaoItem) => {
+    const nomeNovo = editRegiaoNome.trim();
+
+    if (!nomeNovo) {
+      toast({ title: 'Informe o nome da região', variant: 'destructive' });
+      return;
+    }
+
+    updateRegiaoMutation.mutate({
+      id: regiao.id,
+      nomeAnterior: regiao.nome,
+      nomeNovo,
+    });
+  };
+
+  const handleAssignRegiao = () => {
+    if (selectedLocais.size === 0) {
+      toast({ title: 'Selecione ao menos um local', variant: 'destructive' });
+      return;
+    }
+    if (!targetRegiao) {
+      toast({ title: 'Selecione a região de destino', variant: 'destructive' });
+      return;
+    }
+    assignRegiaoMutation.mutate({ locais: Array.from(selectedLocais), regiao: targetRegiao });
+  };
+
+  const toggleLocalSelection = (local: string) => {
+    setSelectedLocais(prev => {
+      const next = new Set(prev);
+      if (next.has(local)) next.delete(local);
+      else next.add(local);
+      return next;
+    });
+  };
+
+  const selectAllFilteredLocais = () => {
+    setSelectedLocais(new Set(locaisUnificados.map(l => l.local)));
+  };
+
+  const clearSelectedLocais = () => {
+    setSelectedLocais(new Set());
+  };
 
   // ── Add entry ──
   const handleAdd = () => {
@@ -337,45 +668,6 @@ const AdminTabelaPrecos: React.FC = () => {
     return Array.from(set).sort((a, b) => a.localeCompare(b, 'pt-BR'));
   }, [tabela]);
 
-  const AutocompleteInput = ({ value, onChange, placeholder, label }: {
-    value: string; onChange: (v: string) => void; placeholder?: string; label: string;
-  }) => {
-    const [open, setOpen] = useState(false);
-    const suggestions = useMemo(() => {
-      if (!value.trim() || value.length < 2) return [];
-      const q = normalizeText(value);
-      return allLocations.filter(l => normalizeText(l).includes(q)).slice(0, 8);
-    }, [value]);
-
-    return (
-      <div className="relative">
-        <Label className="text-xs">{label}</Label>
-        <Input
-          value={value}
-          onChange={(e) => { onChange(e.target.value); setOpen(true); }}
-          onFocus={() => setOpen(true)}
-          onBlur={() => setTimeout(() => setOpen(false), 150)}
-          placeholder={placeholder}
-          autoComplete="off"
-        />
-        {open && suggestions.length > 0 && (
-          <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-popover border border-border rounded-lg shadow-lg max-h-40 overflow-y-auto">
-            {suggestions.map(s => (
-              <button
-                key={s}
-                type="button"
-                className="w-full text-left px-3 py-1.5 text-sm hover:bg-accent/10 transition-colors"
-                onMouseDown={(e) => { e.preventDefault(); onChange(s); setOpen(false); }}
-              >
-                {s}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-    );
-  };
-
   // ══════════════════════════════════════════════════════════
   // RENDER
   // ══════════════════════════════════════════════════════════
@@ -391,6 +683,17 @@ const AdminTabelaPrecos: React.FC = () => {
 
   return (
     <div className="space-y-3">
+      <Tabs value={mainTab} onValueChange={(v) => setMainTab(v as 'rotas' | 'regioes')}>
+        <TabsList className="w-full grid grid-cols-2">
+          <TabsTrigger value="regioes" className="gap-1 text-xs">
+            <Layers className="w-3.5 h-3.5" /> Regiões
+          </TabsTrigger>
+          <TabsTrigger value="rotas" className="gap-1 text-xs">
+            <Route className="w-3.5 h-3.5" /> Rotas
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="rotas" className="space-y-3 mt-3">
       {/* ── Compact summary ── */}
       <div className="flex items-center justify-between bg-muted/30 rounded-xl px-3 sm:px-4 py-2.5">
         <div className="flex items-center gap-2 sm:gap-4 text-[10px] sm:text-xs">
@@ -464,6 +767,9 @@ const AdminTabelaPrecos: React.FC = () => {
           </Button>
           <Button size="sm" variant="outline" onClick={() => { setImportData(null); setImportFileName(''); setShowImportDialog(true); }} className="gap-1.5 h-8">
             <Upload className="w-3.5 h-3.5" /> Importar
+          </Button>
+          <Button size="sm" variant="outline" onClick={() => { setBulkUpdateOldValue(''); setBulkUpdateNewValue(''); setShowBulkUpdateDialog(true); }} className="gap-1.5 h-8">
+            <Replace className="w-3.5 h-3.5" /> Alterar Valores
           </Button>
           <span className="ml-auto text-[10px] text-muted-foreground">
             {filtered.length !== tabela.length ? `${filtered.length} de ${tabela.length}` : `${tabela.length}`} rota(s)
@@ -572,6 +878,181 @@ const AdminTabelaPrecos: React.FC = () => {
         </div>
       )}
 
+        </TabsContent>
+
+        <TabsContent value="regioes" className="space-y-3 mt-3">
+
+          {/* ── Seção 1: Criar + Listar Regiões ── */}
+          <Card>
+            <CardContent className="py-3 space-y-3">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-sm font-semibold">Regiões</p>
+                <Badge variant="outline" className="text-xs">{regioes.length} cadastrada(s)</Badge>
+              </div>
+              <div className="flex items-center gap-2">
+                <Input
+                  value={newRegiao}
+                  onChange={(e) => setNewRegiao(e.target.value)}
+                  placeholder="Nome da nova região..."
+                  className="h-8 text-xs flex-1"
+                  onKeyDown={(e) => e.key === 'Enter' && handleCreateRegiao()}
+                />
+                <Button
+                  onClick={handleCreateRegiao}
+                  disabled={createRegiaoMutation.isPending}
+                  size="sm"
+                  className="h-8 text-xs shrink-0"
+                >
+                  <Plus className="w-3.5 h-3.5 mr-1" /> Criar
+                </Button>
+              </div>
+              {(regioes.length === 0 && !loadingRegioes) ? (
+                <p className="text-xs text-muted-foreground text-center py-4">Nenhuma região cadastrada.</p>
+              ) : (
+                <div className="grid gap-1.5">
+                  {regioes.map((r) => {
+                    const uso = tabela.filter(t => t.regiao === r.nome).length;
+                    const isEditing = editingRegiaoId === r.id;
+                    return (
+                      <div key={r.id} className="flex items-center gap-2 bg-muted/30 rounded-lg px-2.5 py-1.5">
+                        <span className="text-[10px] px-1.5 py-0.5 rounded border border-border/60 text-muted-foreground bg-background/60 font-mono shrink-0">
+                          {r.codigo}
+                        </span>
+                        {isEditing ? (
+                          <Input
+                            value={editRegiaoNome}
+                            onChange={(e) => setEditRegiaoNome(e.target.value)}
+                            className="h-7 text-xs flex-1"
+                            placeholder="Nome da região"
+                            autoFocus
+                            onKeyDown={(e) => e.key === 'Enter' && handleSaveRegiao(r)}
+                          />
+                        ) : (
+                          <span className="text-xs font-medium flex-1 truncate">{r.nome}</span>
+                        )}
+                        <Badge variant="outline" className="text-[10px] shrink-0">{uso} rota(s)</Badge>
+                        <div className="flex items-center gap-0.5 shrink-0">
+                          {isEditing ? (
+                            <>
+                              <Button size="sm" variant="ghost" onClick={() => handleSaveRegiao(r)} disabled={updateRegiaoMutation.isPending} className="h-6 w-6 p-0 text-emerald-400 hover:text-emerald-300">
+                                <Save className="w-3.5 h-3.5" />
+                              </Button>
+                              <Button size="sm" variant="ghost" onClick={cancelEditRegiao} disabled={updateRegiaoMutation.isPending} className="h-6 w-6 p-0 text-muted-foreground">
+                                <X className="w-3.5 h-3.5" />
+                              </Button>
+                            </>
+                          ) : (
+                            <>
+                              <Button size="sm" variant="ghost" onClick={() => openEditRegiao(r)} disabled={deleteRegiaoMutation.isPending} className="h-6 w-6 p-0 text-blue-400 hover:text-blue-300">
+                                <Pencil className="w-3.5 h-3.5" />
+                              </Button>
+                              <Button size="sm" variant="ghost" onClick={() => handleDeleteRegiao(r.nome)} disabled={deleteRegiaoMutation.isPending} className="h-6 w-6 p-0 text-red-400 hover:text-red-300">
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </Button>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* ── Seção 2: Atribuir regiões a locais ── */}
+          <Card>
+            <CardContent className="py-3 space-y-3">
+              <div className="flex items-center justify-between gap-2">
+                <div>
+                  <p className="text-sm font-semibold">Locais e Atribuição</p>
+                  <p className="text-[11px] text-muted-foreground">Selecione locais e atribua a uma região.</p>
+                </div>
+                <Badge variant="outline" className="text-xs">{locaisUnificados.length} locais</Badge>
+              </div>
+
+              {/* Filtros */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <Input
+                  value={localSearch}
+                  onChange={(e) => setLocalSearch(e.target.value)}
+                  placeholder="Buscar local..."
+                  className="h-8 text-xs"
+                />
+                <Select value={localFilterRegiao} onValueChange={setLocalFilterRegiao}>
+                  <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Filtrar região" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="_all">Todas regiões</SelectItem>
+                    <SelectItem value="_sem">Sem região</SelectItem>
+                    {regioes.map((r) => (
+                      <SelectItem key={r.id} value={r.nome}>{r.codigo} - {r.nome}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select value={localFilterTipo} onValueChange={(v) => setLocalFilterTipo(v as '_all' | 'origem' | 'destino' | 'ambos')}>
+                  <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Tipo" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="_all">Todos tipos</SelectItem>
+                    <SelectItem value="origem">Só origem</SelectItem>
+                    <SelectItem value="destino">Só destino</SelectItem>
+                    <SelectItem value="ambos">Origem e destino</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Barra de ações em lote */}
+              <div className="flex items-center gap-2 flex-wrap bg-muted/20 rounded-lg px-2.5 py-2">
+                <Button type="button" size="sm" variant="outline" className="h-7 text-[11px]" onClick={selectAllFilteredLocais}>
+                  Selecionar todos
+                </Button>
+                <Button type="button" size="sm" variant="ghost" className="h-7 text-[11px]" onClick={clearSelectedLocais} disabled={selectedLocais.size === 0}>
+                  Limpar
+                </Button>
+                <Separator orientation="vertical" className="h-5" />
+                <Badge variant="secondary" className="text-[10px]">{selectedLocais.size} selecionado(s)</Badge>
+                <div className="flex items-center gap-2 ml-auto">
+                  <Select value={targetRegiao} onValueChange={setTargetRegiao}>
+                    <SelectTrigger className="h-7 text-[11px] w-40"><SelectValue placeholder="Região destino" /></SelectTrigger>
+                    <SelectContent>
+                      {regioes.map((r) => (
+                        <SelectItem key={r.id} value={r.nome}>{r.codigo} - {r.nome}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button onClick={handleAssignRegiao} disabled={assignRegiaoMutation.isPending || selectedLocais.size === 0} size="sm" className="h-7 text-[11px]">
+                    Aplicar
+                  </Button>
+                </div>
+              </div>
+
+              {/* Lista de locais */}
+              <div className="max-h-80 overflow-y-auto space-y-1 pr-1">
+                {locaisUnificados.map((l) => (
+                  <div
+                    key={l.local}
+                    onClick={() => toggleLocalSelection(l.local)}
+                    className={`flex items-center gap-2 px-2.5 py-1.5 rounded-md cursor-pointer transition-colors ${
+                      selectedLocais.has(l.local) ? 'bg-accent/10 border border-accent/30' : 'hover:bg-muted/30'
+                    }`}
+                  >
+                    <Checkbox
+                      checked={selectedLocais.has(l.local)}
+                      onCheckedChange={() => toggleLocalSelection(l.local)}
+                      className="shrink-0"
+                    />
+                    <span className="text-xs font-medium flex-1 truncate">{l.local}</span>
+                    <span className="text-[10px] text-muted-foreground shrink-0">{l.origemCount}O • {l.destinoCount}D</span>
+                    <Badge variant={l.regiaoAtual ? 'outline' : 'secondary'} className={`text-[10px] shrink-0 ${l.regiaoAtual ? '' : 'text-muted-foreground'}`}>
+                      {l.regiaoAtual || 'Sem região'}
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
       {/* ══════════════════════════════════════════ */}
       {/* ADD DIALOG */}
       {/* ══════════════════════════════════════════ */}
@@ -584,8 +1065,8 @@ const AdminTabelaPrecos: React.FC = () => {
             <DialogDescription>Defina a origem, destino e valor da nova rota.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
-            <AutocompleteInput label="Origem" value={formOrigem} onChange={setFormOrigem} placeholder="Ex: Centro do Cabo" />
-            <AutocompleteInput label="Destino" value={formDestino} onChange={setFormDestino} placeholder="Ex: Boa Viagem" />
+            <AutocompleteInput label="Origem" value={formOrigem} onChange={setFormOrigem} placeholder="Ex: Centro do Cabo" allLocations={allLocations} />
+            <AutocompleteInput label="Destino" value={formDestino} onChange={setFormDestino} placeholder="Ex: Boa Viagem" allLocations={allLocations} />
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label className="text-xs">Valor (R$)</Label>
@@ -622,8 +1103,8 @@ const AdminTabelaPrecos: React.FC = () => {
             <DialogDescription>Altere os dados da rota selecionada.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
-            <AutocompleteInput label="Origem" value={formOrigem} onChange={setFormOrigem} />
-            <AutocompleteInput label="Destino" value={formDestino} onChange={setFormDestino} />
+            <AutocompleteInput label="Origem" value={formOrigem} onChange={setFormOrigem} allLocations={allLocations} />
+            <AutocompleteInput label="Destino" value={formDestino} onChange={setFormDestino} allLocations={allLocations} />
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label className="text-xs">Valor (R$)</Label>
@@ -822,6 +1303,73 @@ const AdminTabelaPrecos: React.FC = () => {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowStatsDialog(false)}>Fechar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Bulk Update Values Dialog ── */}
+      <Dialog open={showBulkUpdateDialog} onOpenChange={setShowBulkUpdateDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Replace className="w-5 h-5 text-accent" />
+              Alterar Valores em Lote
+            </DialogTitle>
+            <DialogDescription>
+              Selecione um valor existente e defina o novo valor. Todas as rotas com o valor selecionado serão atualizadas.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Valor atual</Label>
+              <Select value={bulkUpdateOldValue} onValueChange={setBulkUpdateOldValue}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione um valor..." />
+                </SelectTrigger>
+                <SelectContent className="max-h-60">
+                  {distinctValues.map(({ valor, count }) => (
+                    <SelectItem key={valor} value={valor.toString()}>
+                      R$ {valor.toFixed(2)} ({count} rota{count > 1 ? 's' : ''})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {bulkMatchCount > 0 && (
+                <p className="text-xs text-muted-foreground">
+                  {bulkMatchCount} rota(s) serão atualizadas
+                </p>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label>Novo valor (R$)</Label>
+              <Input
+                type="number"
+                step="0.01"
+                min="0"
+                value={bulkUpdateNewValue}
+                onChange={e => setBulkUpdateNewValue(e.target.value)}
+                placeholder="Ex: 25.00"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowBulkUpdateDialog(false)}>Cancelar</Button>
+            <Button
+              onClick={() => {
+                const oldV = parseFloat(bulkUpdateOldValue);
+                const newV = parseFloat(bulkUpdateNewValue);
+                if (isNaN(oldV) || isNaN(newV) || newV < 0) {
+                  toast({ title: 'Valores inválidos', variant: 'destructive' });
+                  return;
+                }
+                bulkUpdateValueMutation.mutate({ oldValue: oldV, newValue: newV });
+              }}
+              disabled={!bulkUpdateOldValue || !bulkUpdateNewValue || bulkUpdateValueMutation.isPending}
+              className="gap-1.5"
+            >
+              {bulkUpdateValueMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+              Atualizar {bulkMatchCount > 0 ? `${bulkMatchCount} rota(s)` : ''}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -355,6 +355,22 @@
     to { transform: rotate(360deg); }
   }
 
+  /* ═══ Notification popup animations ═══ */
+  .notif-backdrop-enter {
+    animation: notifFadeIn 0.15s ease-out both;
+  }
+  .notif-panel-enter {
+    animation: notifSlideIn 0.2s ease-out both;
+  }
+  @keyframes notifFadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+  @keyframes notifSlideIn {
+    from { opacity: 0; transform: translateY(-8px) scale(0.97); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
   /* ═══ Bar glow effects ═══ */
   .bar-glow-bottom {
     position: relative;

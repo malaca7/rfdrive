@@ -87,7 +87,7 @@ export async function fetchEligibleDrivers(
   const { data: busyRides } = await supabase
     .from('corridas')
     .select('motorista_id')
-    .in('status', ['aceita', 'a_caminho', 'em_corrida'] as any)
+    .in('status', ['em_analise'] as any)
     .not('motorista_id', 'is', null);
 
   const busyIds = new Set((busyRides || []).map((r: any) => r.motorista_id));
@@ -345,11 +345,10 @@ export async function acceptOffer(
     .from('corridas')
     .update({
       motorista_id: motoristaId,
-      status: 'aceita' as any,
-      tracking_ativo: true,
+      status: 'em_analise' as any,
     } as any)
     .eq('id', offer.corrida_id)
-    .in('status', ['aguardando_motorista'] as any);
+    .in('status', ['em_analise'] as any);
 
   if (rideErr) {
     // Reverter aceite

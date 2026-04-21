@@ -5,6 +5,8 @@ ON CONFLICT (id) DO NOTHING;
 
 -- Drop existing policies if any (idempotent)
 DROP POLICY IF EXISTS "Uploads public read" ON storage.objects;
+DROP POLICY IF EXISTS "Uploads insert" ON storage.objects;
+DROP POLICY IF EXISTS "Uploads update" ON storage.objects;
 DROP POLICY IF EXISTS "Authenticated upload" ON storage.objects;
 DROP POLICY IF EXISTS "Authenticated update uploads" ON storage.objects;
 

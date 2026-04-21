@@ -51,7 +51,7 @@ const TIPO_COLORS: Record<string, string> = {
 // ══════════════════════════════════════════════════════════
 // COMPONENT
 // ══════════════════════════════════════════════════════════
-const AdminPricing: React.FC<{ defaultTab?: string }> = ({ defaultTab = 'tarifas' }) => {
+const AdminPricing: React.FC<{ defaultTab?: string; hideTabs?: boolean }> = ({ defaultTab = 'tarifas', hideTabs = false }) => {
   const { toast } = useToast();
   const qc = useQueryClient();
 
@@ -102,6 +102,27 @@ const AdminPricing: React.FC<{ defaultTab?: string }> = ({ defaultTab = 'tarifas
     qc.invalidateQueries({ queryKey: ['config-tarifas'] });
   };
 
+  const tarifasContent = (
+    <TarifasTab config={configTarifas ?? null} loading={loadingConfig} onRefresh={refreshAll} />
+  );
+
+  const horariosContent = regrasError ? (
+    <div className="p-6 text-center space-y-2">
+      <p className="text-destructive font-semibold">Erro ao carregar regras de horário</p>
+      <p className="text-xs text-muted-foreground">Execute a migration <code>20260413170000_fix_all_schema_cache.sql</code> no SQL Editor do Supabase</p>
+    </div>
+  ) : (
+    <HorariosTab regras={regrasHorario} loading={loadingRegras} onRefresh={refreshAll} />
+  );
+
+  if (hideTabs) {
+    return (
+      <div className="space-y-4">
+        {defaultTab === 'horarios' ? horariosContent : tarifasContent}
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
       <Tabs defaultValue={defaultTab}>
@@ -114,20 +135,8 @@ const AdminPricing: React.FC<{ defaultTab?: string }> = ({ defaultTab = 'tarifas
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="tarifas">
-          <TarifasTab config={configTarifas ?? null} loading={loadingConfig} onRefresh={refreshAll} />
-        </TabsContent>
-
-        <TabsContent value="horarios">
-          {regrasError ? (
-            <div className="p-6 text-center space-y-2">
-              <p className="text-destructive font-semibold">Erro ao carregar regras de horário</p>
-              <p className="text-xs text-muted-foreground">Execute a migration <code>20260413170000_fix_all_schema_cache.sql</code> no SQL Editor do Supabase</p>
-            </div>
-          ) : (
-            <HorariosTab regras={regrasHorario} loading={loadingRegras} onRefresh={refreshAll} />
-          )}
-        </TabsContent>
+        <TabsContent value="tarifas">{tarifasContent}</TabsContent>
+        <TabsContent value="horarios">{horariosContent}</TabsContent>
       </Tabs>
     </div>
   );
@@ -145,9 +154,15 @@ const TarifasTab: React.FC<{
   const [form, setForm] = useState({
     tarifa_minima: '',
     taxa_bagagem: '',
+    valor_minuto_espera: '',
     tarifa_mesmo_bairro: '',
     taxa_carro_6_tipo: 'fixo' as 'percentual' | 'fixo',
     taxa_carro_6_valor: '',
+    taxa_parada_trajeto: '',
+    taxa_parada_comum: '',
+    taxa_parada_desvio: '',
+    taxa_animal_pequeno: '',
+    taxa_animal_medio: '',
   });
   const [hasChanges, setHasChanges] = useState(false);
 
@@ -157,9 +172,15 @@ const TarifasTab: React.FC<{
       setForm({
         tarifa_minima: String(config.tarifa_minima ?? 0),
         taxa_bagagem: String(config.taxa_bagagem ?? 5),
+        valor_minuto_espera: String((config as any).valor_minuto_espera ?? 0.5),
         tarifa_mesmo_bairro: String(config.tarifa_mesmo_bairro ?? 10),
         taxa_carro_6_tipo: (config as any).taxa_carro_6_tipo || 'fixo',
         taxa_carro_6_valor: String((config as any).taxa_carro_6_valor ?? 0),
+        taxa_parada_trajeto: String((config as any).taxa_parada_trajeto ?? 3),
+        taxa_parada_comum: String((config as any).taxa_parada_comum ?? 5),
+        taxa_parada_desvio: String((config as any).taxa_parada_desvio ?? 7),
+        taxa_animal_pequeno: String((config as any).taxa_animal_pequeno ?? 5),
+        taxa_animal_medio: String((config as any).taxa_animal_medio ?? 7),
       });
       setHasChanges(false);
     }
@@ -175,9 +196,15 @@ const TarifasTab: React.FC<{
       const payload = {
         tarifa_minima: parseFloat(form.tarifa_minima) || 0,
         taxa_bagagem: parseFloat(form.taxa_bagagem) || 0,
+        valor_minuto_espera: parseFloat(form.valor_minuto_espera) || 0.5,
         tarifa_mesmo_bairro: parseFloat(form.tarifa_mesmo_bairro) || 10,
         taxa_carro_6_tipo: form.taxa_carro_6_tipo,
         taxa_carro_6_valor: parseFloat(form.taxa_carro_6_valor) || 0,
+        taxa_parada_trajeto: parseFloat(form.taxa_parada_trajeto) || 3,
+        taxa_parada_comum: parseFloat(form.taxa_parada_comum) || 5,
+        taxa_parada_desvio: parseFloat(form.taxa_parada_desvio) || 7,
+        taxa_animal_pequeno: parseFloat(form.taxa_animal_pequeno) || 5,
+        taxa_animal_medio: parseFloat(form.taxa_animal_medio) || 7,
         updated_at: new Date().toISOString(),
       };
 
@@ -211,16 +238,6 @@ const TarifasTab: React.FC<{
       placeholder: '0.00',
       color: 'text-green-400',
       bgColor: 'bg-green-500/10 border-green-500/20',
-    },
-    {
-      key: 'taxa_bagagem',
-      label: 'Taxa de Bagagem/Feira',
-      desc: 'Valor adicional cobrado quando o passageiro leva feira ou bagagem grande.',
-      icon: <Layers className="w-4 h-4" />,
-      prefix: 'R$',
-      placeholder: '5.00',
-      color: 'text-purple-400',
-      bgColor: 'bg-purple-500/10 border-purple-500/20',
     },
     {
       key: 'tarifa_mesmo_bairro',
@@ -273,37 +290,99 @@ const TarifasTab: React.FC<{
           </Card>
         ))}
 
-        {/* Carro 6 Lugares - card especial com tipo + valor */}
-        <Card className="border bg-cyan-500/10 border-cyan-500/20">
-          <CardContent className="py-4">
-            <div className="flex items-start gap-4">
-              <div className="mt-1 text-cyan-400"><Users className="w-4 h-4" /></div>
-              <div className="flex-1 min-w-0 space-y-3">
-                <div>
-                  <p className="text-sm font-semibold text-cyan-400">Taxa Carro 6 Lugares</p>
-                  <p className="text-[11px] text-muted-foreground mt-0.5">Adicional cobrado quando o passageiro solicita veículo com 6 lugares.</p>
+        {/* Taxas Extras */}
+        <Card className="border border-border">
+          <CardContent className="py-4 space-y-4">
+            <div className="flex items-center gap-2 pb-2 border-b border-border">
+              <Zap className="w-4 h-4 text-accent" />
+              <p className="text-sm font-semibold">Taxas Extras</p>
+              <p className="text-[11px] text-muted-foreground">Adicionais por tipo de corrida</p>
+            </div>
+
+            {/* Bagagem + Espera */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">📦 Feira / Bagagem</Label>
+                <div className="flex items-center gap-1">
+                  <span className="text-xs text-muted-foreground">R$</span>
+                  <Input type="number" step="0.01" min="0" value={form.taxa_bagagem} onChange={e => updateField('taxa_bagagem', e.target.value)} placeholder="5.00" className="text-right font-semibold h-9" />
                 </div>
-                <div className="flex items-center gap-3">
-                  <Select value={form.taxa_carro_6_tipo} onValueChange={v => { updateField('taxa_carro_6_tipo', v); }}>
-                    <SelectTrigger className="w-[140px] h-9 text-xs">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="fixo">Valor fixo (R$)</SelectItem>
-                      <SelectItem value="percentual">Percentual (%)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <div className="flex items-center gap-2 flex-1">
-                    <span className="text-xs text-muted-foreground font-medium">{form.taxa_carro_6_tipo === 'fixo' ? 'R$' : '%'}</span>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={form.taxa_carro_6_valor}
-                      onChange={e => updateField('taxa_carro_6_valor', e.target.value)}
-                      placeholder={form.taxa_carro_6_tipo === 'fixo' ? '10.00' : '20'}
-                      className="w-28 text-right font-semibold"
-                    />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">⏱️ Espera (por min)</Label>
+                <div className="flex items-center gap-1">
+                  <span className="text-xs text-muted-foreground">R$</span>
+                  <Input type="number" step="0.01" min="0" value={form.valor_minuto_espera} onChange={e => updateField('valor_minuto_espera', e.target.value)} placeholder="0.50" className="text-right font-semibold h-9" />
+                </div>
+              </div>
+            </div>
+
+            {/* Carro 6 */}
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">🚐 Carro 6 Lugares</Label>
+              <div className="flex items-center gap-2">
+                <Select value={form.taxa_carro_6_tipo} onValueChange={v => updateField('taxa_carro_6_tipo', v)}>
+                  <SelectTrigger className="w-[130px] h-9 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="fixo">Fixo (R$)</SelectItem>
+                    <SelectItem value="percentual">Percentual (%)</SelectItem>
+                  </SelectContent>
+                </Select>
+                <div className="flex items-center gap-1 flex-1">
+                  <span className="text-xs text-muted-foreground">{form.taxa_carro_6_tipo === 'fixo' ? 'R$' : '%'}</span>
+                  <Input type="number" step="0.01" min="0" value={form.taxa_carro_6_valor} onChange={e => updateField('taxa_carro_6_valor', e.target.value)} placeholder={form.taxa_carro_6_tipo === 'fixo' ? '10.00' : '20'} className="text-right font-semibold h-9" />
+                </div>
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* Paradas */}
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground">🛣️ Paradas</Label>
+              <div className="grid grid-cols-3 gap-2">
+                <div className="space-y-1">
+                  <p className="text-[10px] text-muted-foreground/70">No trajeto</p>
+                  <div className="flex items-center gap-1">
+                    <span className="text-[10px] text-muted-foreground">R$</span>
+                    <Input type="number" step="0.01" min="0" value={form.taxa_parada_trajeto} onChange={e => updateField('taxa_parada_trajeto', e.target.value)} placeholder="3.00" className="text-right font-semibold h-8 text-xs" />
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[10px] text-muted-foreground/70">Comum</p>
+                  <div className="flex items-center gap-1">
+                    <span className="text-[10px] text-muted-foreground">R$</span>
+                    <Input type="number" step="0.01" min="0" value={form.taxa_parada_comum} onChange={e => updateField('taxa_parada_comum', e.target.value)} placeholder="5.00" className="text-right font-semibold h-8 text-xs" />
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[10px] text-muted-foreground/70">c/ desvio</p>
+                  <div className="flex items-center gap-1">
+                    <span className="text-[10px] text-muted-foreground">R$</span>
+                    <Input type="number" step="0.01" min="0" value={form.taxa_parada_desvio} onChange={e => updateField('taxa_parada_desvio', e.target.value)} placeholder="7.00" className="text-right font-semibold h-8 text-xs" />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Animais */}
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground">🐾 Transporte de Animal</Label>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <p className="text-[10px] text-muted-foreground/70">Pequeno porte</p>
+                  <div className="flex items-center gap-1">
+                    <span className="text-xs text-muted-foreground">R$</span>
+                    <Input type="number" step="0.01" min="0" value={form.taxa_animal_pequeno} onChange={e => updateField('taxa_animal_pequeno', e.target.value)} placeholder="5.00" className="text-right font-semibold h-9" />
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[10px] text-muted-foreground/70">Médio porte</p>
+                  <div className="flex items-center gap-1">
+                    <span className="text-xs text-muted-foreground">R$</span>
+                    <Input type="number" step="0.01" min="0" value={form.taxa_animal_medio} onChange={e => updateField('taxa_animal_medio', e.target.value)} placeholder="7.00" className="text-right font-semibold h-9" />
                   </div>
                 </div>
               </div>

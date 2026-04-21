@@ -1,11 +1,12 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { HashRouter, Route, Routes, Navigate } from "react-router-dom";
+import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 import { useDispatchEngine } from "@/hooks/useDispatchEngine";
+import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { ThemeSync } from "@/components/ThemeSync";
 import React, { Suspense } from "react";
 import { useAppUpdate } from "@/hooks/useAppUpdate";
@@ -32,6 +33,14 @@ const MotoristaHistoricoViagens = React.lazy(() => import("./pages/MotoristaHist
 const AdminAvaliacaoLinks = React.lazy(() => import("./pages/AdminAvaliacaoLinks"));
 const AdminRecibos = React.lazy(() => import("./pages/AdminRecibos"));
 const AvaliacaoPublica = React.lazy(() => import("./pages/AvaliacaoPublica"));
+const AdminNotifications = React.lazy(() => import("./pages/AdminNotifications"));
+const DownloadApp = React.lazy(() => import("./pages/DownloadApp"));
+// CEO pages
+const CeoDashboard = React.lazy(() => import("./pages/CeoDashboard"));
+const CeoAdmins = React.lazy(() => import("./pages/CeoAdmins"));
+const CeoAdminHub = React.lazy(() => import("./pages/CeoAdminHub"));
+const CeoLogs = React.lazy(() => import("./pages/CeoLogs"));
+const CeoConfig = React.lazy(() => import("./pages/CeoConfig"));
 
 const PageLoader = () => (
   <div className="min-h-screen flex items-center justify-center bg-background">
@@ -77,16 +86,27 @@ const UpdatePrompt = () => {
 const AppRoutes = () => {
   const { user, activeScreen, loading, roles } = useAuth();
   useRealtimeSync();
+  usePushNotifications();
 
-  // Etapa 19: Dispatch engine runs when admin is logged in
-  const isAdmin = !loading && user && (user.tipo === 'admin' || roles.includes('admin'));
+  const tipoNormalized = String(user?.tipo || '').toLowerCase();
+  const rolesNormalized = roles.map(r => String(r).toLowerCase());
+
+  // Dispatch engine runs when admin/ceo is logged in
+  const isAdmin = !loading && !!user && (tipoNormalized === 'admin' || tipoNormalized === 'ceo' || rolesNormalized.includes('admin') || rolesNormalized.includes('ceo'));
   useDispatchEngine(!!isAdmin);
 
   if (loading) {
     return <PageLoader />;
   }
 
-  const effectiveScreen = isAdmin && activeScreen === 'admin' ? 'admin' : activeScreen;
+  const isCEO = !!user && (tipoNormalized === 'ceo' || rolesNormalized.includes('ceo'));
+  const effectiveScreen = isCEO && activeScreen === 'ceo' ? 'ceo'
+    : isAdmin && activeScreen === 'admin' ? 'admin'
+    : activeScreen;
+
+  const defaultDashboard = effectiveScreen === 'ceo' ? '/ceo/dashboard'
+    : effectiveScreen === 'admin' ? '/admin/dashboard'
+    : '/motorista/viagens';
 
   return (
     <Suspense fallback={<PageLoader />}>
@@ -94,28 +114,40 @@ const AppRoutes = () => {
         {/* Rotas públicas */}
         <Route path="/" element={
           user
-            ? <Navigate to={effectiveScreen === 'admin' ? '/admin/dashboard' : '/motorista/viagens'} replace />
+            ? <Navigate to={defaultDashboard} replace />
             : <AuthPage />
         } />
         <Route path="/calculadora" element={<CalculadoraDigitalRF />} />
         <Route path="/calculadora-digital-RF" element={<CalculadoraDigitalRF />} />
         <Route path="/avaliar/:token" element={<AvaliacaoPublica />} />
+        <Route path="/download" element={<DownloadApp />} />
+
+        {/* Painel CEO — apenas CEO */}
+        {!user && <Route path="/ceo/*" element={<Navigate to="/" replace />} />}
+        {user && isCEO && <Route path="/ceo" element={<Navigate to="/ceo/dashboard" replace />} />}
+        {user && isCEO && <Route path="/ceo/dashboard" element={<CeoDashboard />} />}
+        {user && isCEO && <Route path="/ceo/admins" element={<Navigate to="/ceo/admin" replace />} />}
+        {user && isCEO && <Route path="/ceo/admin" element={<CeoAdminHub />} />}
+        {user && isCEO && <Route path="/ceo/logs" element={<CeoLogs />} />}
+        {user && isCEO && <Route path="/ceo/config" element={<CeoConfig />} />}
+        {user && !isCEO && <Route path="/ceo/*" element={<Navigate to="/" replace />} />}
 
         {/* Painel admin */}
         {!user && <Route path="/admin/login" element={<Navigate to="/" replace />} />}
         {!user && <Route path="/admin/*" element={<Navigate to="/" replace />} />}
 
-        {user && effectiveScreen === 'admin' && <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />}
-        {user && effectiveScreen === 'admin' && <Route path="/admin/dashboard" element={<AdminDashboardPage />} />}
-        {user && effectiveScreen === 'admin' && <Route path="/admin/corridas" element={<AdminCorridas />} />}
-        {user && effectiveScreen === 'admin' && <Route path="/admin/usuarios" element={<AdminUsuarios />} />}
-        {user && effectiveScreen === 'admin' && <Route path="/admin/precos" element={<Navigate to="/admin/precos/tabela" replace />} />}
-        {user && effectiveScreen === 'admin' && <Route path="/admin/precos/config/tarifas" element={<AdminPrecosTarifas />} />}
-        {user && effectiveScreen === 'admin' && <Route path="/admin/precos/config/horarios" element={<AdminPrecosHorarios />} />}
-        {user && effectiveScreen === 'admin' && <Route path="/admin/precos/tabela" element={<AdminPrecosTabela />} />}
-        {user && effectiveScreen === 'admin' && <Route path="/admin/config" element={<AdminConfig />} />}
-        {user && effectiveScreen === 'admin' && <Route path="/admin/avaliacoes-links" element={<AdminAvaliacaoLinks />} />}
-        {user && effectiveScreen === 'admin' && <Route path="/admin/recibos" element={<AdminRecibos />} />}
+        {user && (effectiveScreen === 'admin' || effectiveScreen === 'ceo') && <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />}
+        {user && (effectiveScreen === 'admin' || effectiveScreen === 'ceo') && <Route path="/admin/dashboard" element={<AdminDashboardPage />} />}
+        {user && (effectiveScreen === 'admin' || effectiveScreen === 'ceo') && <Route path="/admin/corridas" element={<AdminCorridas />} />}
+        {user && (effectiveScreen === 'admin' || effectiveScreen === 'ceo') && <Route path="/admin/usuarios" element={<AdminUsuarios />} />}
+        {user && (effectiveScreen === 'admin' || effectiveScreen === 'ceo') && <Route path="/admin/precos" element={<Navigate to="/admin/precos/config/tarifas" replace />} />}
+        {user && (effectiveScreen === 'admin' || effectiveScreen === 'ceo') && <Route path="/admin/precos/config/tarifas" element={<AdminPrecosTarifas />} />}
+        {user && (effectiveScreen === 'admin' || effectiveScreen === 'ceo') && <Route path="/admin/precos/config/horarios" element={<AdminPrecosHorarios />} />}
+        {user && (effectiveScreen === 'admin' || effectiveScreen === 'ceo') && <Route path="/admin/precos/tabela" element={<AdminPrecosTabela />} />}
+        {user && (effectiveScreen === 'admin' || effectiveScreen === 'ceo') && <Route path="/admin/config" element={<AdminConfig />} />}
+        {user && (effectiveScreen === 'admin' || effectiveScreen === 'ceo') && <Route path="/admin/avaliacoes-links" element={<AdminAvaliacaoLinks />} />}
+        {user && (effectiveScreen === 'admin' || effectiveScreen === 'ceo') && <Route path="/admin/recibos" element={<AdminRecibos />} />}
+        {user && (effectiveScreen === 'admin' || effectiveScreen === 'ceo') && <Route path="/admin/notifications" element={<AdminNotifications />} />}
 
         {/* Motorista routes */}
         {user && <Route path="/motorista/dashboard" element={<MotoristaDashboard />} />}
@@ -125,14 +157,13 @@ const AppRoutes = () => {
         {user && <Route path="/motorista/editperfil" element={<MotoristaEditPerfil />} />}
         {user && <Route path="/motorista/historico" element={<MotoristaHistoricoViagens />} />}
 
-        {/* Redirect /admin for motorista to /motorista/dashboard */}
+        {/* Redirect non-admin/ceo to motorista */}
         {user && effectiveScreen === 'motorista' && <Route path="/admin" element={<Navigate to="/motorista/viagens" replace />} />}
         {user && effectiveScreen === 'cliente' && <Route path="/admin" element={<Navigate to="/motorista/viagens" replace />} />}
         {user && !effectiveScreen && <Route path="/admin" element={<Navigate to="/motorista/viagens" replace />} />}
         {user && <Route path="/admin/login" element={<Navigate to="/admin" replace />} />}
         {user && <Route path="/admin/*" element={<Navigate to="/admin" replace />} />}
 
-        {/* Compat: rota antiga /login redireciona */}
         <Route path="/login" element={<Navigate to="/" replace />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
@@ -147,11 +178,11 @@ const App = () => (
       <Toaster />
       <Sonner />
       <UpdatePrompt />
-      <HashRouter>
+      <BrowserRouter basename="/rfdrive">
         <AuthProvider>
           <AppRoutes />
         </AuthProvider>
-      </HashRouter>
+      </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
 );

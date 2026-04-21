@@ -20,6 +20,8 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { DriverBadge } from '@/components/DriverTools';
 import { getAnimalAvatarUrl } from '@/lib/animal-avatars';
+import { useAuth } from '@/contexts/AuthContext';
+import { logPlatformActivity } from '@/lib/activity-log';
 
 type UserRecord = {
   id: string;
@@ -99,6 +101,7 @@ const resilientUpdate = async (table: string, updates: Record<string, unknown>, 
 
 const AdminUsuarios: React.FC = () => {
   const { toast } = useToast();
+  const { user: actorUser } = useAuth();
   const queryClient = useQueryClient();
 
   const [userSearchTerm, setUserSearchTerm] = useState('');
@@ -108,7 +111,7 @@ const AdminUsuarios: React.FC = () => {
   const [showEditUserDialog, setShowEditUserDialog] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserRecord | null>(null);
   const [editUserForm, setEditUserForm] = useState({
-    nome: '', telefone: '', tipo: '', roles: [] as string[], status: '', senha: '', isAdmin: false,
+    nome: '', telefone: '', tipo: '', roles: [] as string[], status: '', isAdmin: false,
     veiculo_marca: '', veiculo_modelo: '', veiculo_cor: '', veiculo_placa: '',
   });
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -150,9 +153,58 @@ const AdminUsuarios: React.FC = () => {
   const updateUserMutation = useMutation({
     mutationFn: async ({ userId, updates }: { userId: string; updates: Record<string, unknown> }) => {
       await resilientUpdate('users', updates, 'id', userId);
+      await logPlatformActivity({
+        userId: actorUser?.id,
+        action: 'editar_usuario',
+        category: 'admin',
+        entity: 'users',
+        entityId: userId,
+        details: updates,
+      });
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['admin-users'] }); toast({ title: 'Usuário atualizado!' }); setShowEditUserDialog(false); setSelectedUser(null); },
     onError: (e: any) => { toast({ title: 'Erro ao atualizar', description: e?.message, variant: 'destructive' }); },
+  });
+
+  const resetPasswordMutation = useMutation({
+    mutationFn: async ({ userId, nome }: { userId: string; nome: string }) => {
+      const { data: configData } = await supabase
+        .from('config_plataforma')
+        .select('senha_padrao')
+        .limit(1)
+        .single();
+
+      const defaultPassword = (configData as any)?.senha_padrao || '123456';
+      const resp = await supabase.functions.invoke('reset-password', {
+        body: { userId, newPassword: defaultPassword },
+      });
+      if (resp.error) throw resp.error;
+      if ((resp.data as any)?.error) throw new Error((resp.data as any).error);
+
+      await logPlatformActivity({
+        userId: actorUser?.id,
+        action: 'senha_redefinida',
+        category: 'admin',
+        entity: 'users',
+        entityId: userId,
+        details: { motorista: nome },
+      });
+
+      return { nome };
+    },
+    onSuccess: (result) => {
+      toast({
+        title: 'Senha redefinida',
+        description: `Senha de ${result.nome} redefinida para o padrão da plataforma.`,
+      });
+    },
+    onError: (e: any) => {
+      toast({
+        title: 'Erro ao redefinir senha',
+        description: e?.message || 'Tente novamente.',
+        variant: 'destructive',
+      });
+    },
   });
 
   const createUserMutation = useMutation({
@@ -173,6 +225,21 @@ const AdminUsuarios: React.FC = () => {
       if (form.veiculo_placa) newUser.veiculo_placa = form.veiculo_placa;
       const { error } = await supabase.from('users').insert(newUser);
       if (error) throw error;
+
+      const { data: created } = await supabase
+        .from('users')
+        .select('id')
+        .eq('telefone', phoneDigits)
+        .maybeSingle();
+
+      await logPlatformActivity({
+        userId: actorUser?.id,
+        action: 'criar_usuario',
+        category: 'admin',
+        entity: 'users',
+        entityId: created?.id || null,
+        details: { tipo, isAdmin: form.isAdmin },
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-users'] });
@@ -200,6 +267,13 @@ const AdminUsuarios: React.FC = () => {
       await supabase.from('corridas').update({ motorista_id: null }).eq('motorista_id', id);
       const { error } = await supabase.from('users').delete().eq('id', id);
       if (error) throw error;
+      await logPlatformActivity({
+        userId: actorUser?.id,
+        action: 'excluir_usuario',
+        category: 'admin',
+        entity: 'users',
+        entityId: id,
+      });
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['admin-users'] }); queryClient.invalidateQueries({ queryKey: ['admin-rides'] }); toast({ title: 'Excluído com sucesso!' }); setShowDeleteConfirm(false); setDeleteTarget(null); },
     onError: (err: any) => { toast({ title: 'Erro ao excluir', description: err?.message, variant: 'destructive' }); },
@@ -246,7 +320,7 @@ const AdminUsuarios: React.FC = () => {
     const isAdmin = derivedRoles.includes('admin');
     setEditUserForm({
       nome: u.nome, telefone: formatPhone(u.telefone), tipo: 'motorista', roles: derivedRoles,
-      status: u.status, senha: u.senha || '', isAdmin,
+      status: u.status, isAdmin,
       veiculo_marca: u.veiculo_marca || '', veiculo_modelo: u.veiculo_modelo || '', veiculo_cor: u.veiculo_cor || '', veiculo_placa: u.veiculo_placa ? formatPlate(u.veiculo_placa) : '',
     });
     setShowEditUserDialog(true);
@@ -259,7 +333,6 @@ const AdminUsuarios: React.FC = () => {
     const phoneDigits = editUserForm.telefone.replace(/\D/g, '');
     if (phoneDigits !== selectedUser.telefone) updates.telefone = phoneDigits;
     if (editUserForm.status !== selectedUser.status) { updates.status = editUserForm.status; updates.ativo = editUserForm.status === 'ativo'; }
-    if (editUserForm.senha.trim() && editUserForm.senha.trim() !== selectedUser.senha) updates.senha = editUserForm.senha.trim();
     const newRoles = editUserForm.isAdmin ? ['motorista', 'admin'] : ['motorista'];
     const newTipo = editUserForm.isAdmin ? 'admin' : 'motorista';
     const currentRoles = selectedUser.roles || [selectedUser.tipo];
@@ -273,17 +346,26 @@ const AdminUsuarios: React.FC = () => {
   };
 
   // ── Filtering ──
+  const isCeoUser = (u: UserRecord) => {
+    const tipo = String(u.tipo || '').toLowerCase();
+    const roles = (u.roles || []).map(r => String(r).toLowerCase());
+    return tipo === 'ceo' || roles.includes('ceo');
+  };
+
   const filteredUsers = users?.filter((u) => {
+    if (isCeoUser(u)) return false;
     const matchType = userTypeFilter === 'all' || (userTypeFilter === 'ativo' && u.status === 'ativo') || (userTypeFilter === 'banido' && u.status === 'banido') || (userTypeFilter === 'admin' && (u.roles?.includes('admin') || u.tipo === 'admin'));
     const matchSearch = !userSearchTerm || u.nome?.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').includes(userSearchTerm.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')) || u.telefone?.includes(userSearchTerm);
     return matchType && matchSearch;
   });
 
+  const visibleUsers = users?.filter(u => !isCeoUser(u)) || [];
+
   const stats = {
-    total: users?.length || 0,
-    ativos: users?.filter(u => u.status === 'ativo').length || 0,
-    admins: users?.filter(u => u.roles?.includes('admin') || u.tipo === 'admin').length || 0,
-    inativos: users?.filter(u => u.status === 'banido').length || 0,
+    total: visibleUsers.length,
+    ativos: visibleUsers.filter(u => u.status === 'ativo').length,
+    admins: visibleUsers.filter(u => u.roles?.includes('admin') || u.tipo === 'admin').length,
+    inativos: visibleUsers.filter(u => u.status === 'banido').length,
   };
 
   return (
@@ -391,7 +473,22 @@ const AdminUsuarios: React.FC = () => {
                 <Select value={editUserForm.status} onValueChange={(v) => setEditUserForm(f => ({ ...f, status: v }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="ativo">✅ Ativo</SelectItem><SelectItem value="banido">❌ Inativo</SelectItem></SelectContent></Select>
               </div>
             </div>
-            <div><Label className="text-xs">Senha</Label><Input type="text" value={editUserForm.senha} onChange={(e) => setEditUserForm(f => ({ ...f, senha: e.target.value }))} placeholder="Senha do motorista" autoComplete="off" /></div>
+            <div className="rounded-lg border border-border bg-muted/30 p-3 space-y-2">
+              <div>
+                <Label className="text-xs">Senha de Acesso</Label>
+                <p className="text-[11px] text-muted-foreground mt-1">A senha atual não é exibida por segurança.</p>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full gap-2"
+                disabled={resetPasswordMutation.isPending || !selectedUser}
+                onClick={() => selectedUser && resetPasswordMutation.mutate({ userId: selectedUser.id, nome: selectedUser.nome })}
+              >
+                {resetPasswordMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+                Resetar para senha padrão
+              </Button>
+            </div>
             <Separator /><p className="text-xs text-muted-foreground font-medium">DADOS DO VEÍCULO</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div><Label className="text-xs">Marca</Label><Select value={editUserForm.veiculo_marca} onValueChange={(v) => setEditUserForm(f => ({ ...f, veiculo_marca: v, veiculo_modelo: '' }))}><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger><SelectContent>{VEHICLE_BRANDS.map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}</SelectContent></Select></div>
@@ -505,7 +602,7 @@ const BadgePreview: React.FC<{ user: UserRecord }> = ({ user }) => {
   const { data: completedCount } = useQuery({
     queryKey: ['admin-badge-count', user.id],
     queryFn: async () => {
-      const { count, error } = await supabase.from('corridas').select('id', { count: 'exact', head: true }).eq('motorista_id', user.id).in('status', ['aprovada', 'finalizada']);
+      const { count, error } = await supabase.from('corridas').select('id', { count: 'exact', head: true }).eq('motorista_id', user.id).in('status', ['aprovada']);
       if (error) throw error;
       return count || 0;
     },

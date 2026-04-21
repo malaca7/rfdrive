@@ -2,11 +2,13 @@ import React, { useState, useRef, useEffect } from 'react';
 import { flushSync } from 'react-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Navigation, LogOut, User, Shield, Truck, BarChart3, Calculator, IdCard, UserCog, ClipboardList, Trophy, Sun, Moon, ChevronUp } from 'lucide-react';
+import { Navigation, LogOut, User, Shield, Truck, BarChart3, Calculator, IdCard, UserCog, ClipboardList, Trophy, Sun, Moon, ChevronUp, Crown } from 'lucide-react';
 import { usePlatformConfig } from '@/hooks/usePlatformConfig';
 import { useTheme } from '@/hooks/useTheme';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getAnimalAvatarUrl } from '@/lib/animal-avatars';
+import { getHighestRole, ROLE_LABELS, ROLE_TEXT_CLASS } from '@/lib/rbac';
+import NotificationBell from '@/components/NotificationBell';
 
 const SCREEN_CONFIG: Record<string, { label: string; icon: React.ReactNode; activeClass: string; dotColor: string }> = {
   motorista: {
@@ -26,7 +28,6 @@ const SCREEN_CONFIG: Record<string, { label: string; icon: React.ReactNode; acti
 const MOTORISTA_NAV = [
   { path: '/motorista/viagens', label: 'Registrar', icon: Calculator, color: 'from-emerald-500 to-green-400' },
   { path: '/motorista/dashboard', label: 'Dashboard', icon: BarChart3, color: 'from-blue-500 to-cyan-400' },
-  { path: '/motorista/dashboardall', label: 'Geral', icon: Trophy, color: 'from-amber-500 to-yellow-400' },
   { path: '/motorista/historico', label: 'Viagens', icon: ClipboardList, color: 'from-violet-500 to-purple-400' },
   { path: '/motorista/credencial', label: 'Credencial', icon: IdCard, color: 'from-pink-500 to-rose-400' },
   { path: '/motorista/editperfil', label: 'Perfil', icon: UserCog, color: 'from-slate-400 to-zinc-300' },
@@ -41,8 +42,16 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [showSwitcher, setShowSwitcher] = useState(false);
   const switcherRef = useRef<HTMLDivElement>(null);
 
-  // Verificar se usuário é admin via tipo ou roles
-  const isAdmin = user?.tipo === 'admin' || roles.includes('admin');
+  // Verificar se usuário é admin/ceo via tipo ou roles (case-insensitive)
+  const tipoNormalized = String(user?.tipo || '').toLowerCase();
+  const rolesNormalized = roles.map(r => String(r).toLowerCase());
+  const isCEO = tipoNormalized === 'ceo' || rolesNormalized.includes('ceo');
+  const isAdmin = tipoNormalized === 'admin' || rolesNormalized.includes('admin') || isCEO;
+  const highestRole = getHighestRole([...rolesNormalized, tipoNormalized].filter(Boolean));
+  const HighestRoleIcon = highestRole === 'ceo' ? Crown
+    : highestRole === 'admin' ? Shield
+    : highestRole === 'motorista' ? Truck
+    : User;
 
   // Check if we're in a motorista route
   const isMotoristaRoute = location.pathname.startsWith('/motorista/');
@@ -85,15 +94,17 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           <div className="flex items-center gap-2.5">
             <div className="text-right mr-1">
               <p className="text-[15px] font-semibold truncate max-w-[140px] text-foreground">{(profile?.nome || '').split(' ')[0]}</p>
-              {activeScreen && (
-                <p className="text-[11px] font-medium text-muted-foreground capitalize">{activeScreen}</p>
-              )}
+              <p className={`text-[11px] font-semibold flex items-center justify-end gap-1 ${ROLE_TEXT_CLASS[highestRole]}`}>
+                <HighestRoleIcon className="w-3.5 h-3.5" />
+                {ROLE_LABELS[highestRole]}
+              </p>
             </div>
             {profile?.avatar_url ? (
               <img src={profile.avatar_url} alt="" className="w-10 h-10 rounded-2xl object-cover border-2 border-border shadow-md" />
             ) : (
               <img src={getAnimalAvatarUrl(profile?.id || profile?.nome || '?')} alt="" className="w-10 h-10 rounded-2xl object-cover border-2 border-border shadow-md" />
             )}
+            <NotificationBell />
             <button
               onClick={toggleTheme}
               className="w-10 h-10 rounded-2xl flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all"
@@ -157,6 +168,17 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                   </div>
                   Admin
                 </button>
+                {isCEO && (
+                  <button
+                    onClick={() => { flushSync(() => setActiveScreen('ceo')); navigate('/ceo/dashboard'); setShowSwitcher(false); }}
+                    className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium transition-all hover:bg-yellow-500/15 text-yellow-400 hover:text-yellow-300"
+                  >
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-yellow-500/20 border border-yellow-400/40">
+                      <Crown className="w-4 h-4" />
+                    </div>
+                    CEO
+                  </button>
+                )}
               </motion.div>
             )}
           </AnimatePresence>

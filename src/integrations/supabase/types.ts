@@ -68,7 +68,7 @@ export type Database = {
           origem_texto: string
           destino_texto: string
           horario_estimado: string | null
-          status: "nova" | "aguardando_motorista" | "aceita" | "a_caminho" | "em_corrida" | "em_analise" | "aprovada" | "nao_realizada" | "recusada" | "finalizada"
+          status: "em_analise" | "aprovada" | "nao_realizada"
           aprovado_admin: boolean
           valor: number | null
           observacao_motorista: string | null
@@ -96,7 +96,7 @@ export type Database = {
           origem_texto: string
           destino_texto: string
           horario_estimado?: string | null
-          status?: "nova" | "aguardando_motorista" | "aceita" | "a_caminho" | "em_corrida" | "em_analise" | "aprovada" | "nao_realizada" | "recusada" | "finalizada"
+          status?: "em_analise" | "aprovada" | "nao_realizada"
           aprovado_admin?: boolean
           valor?: number | null
           observacao_motorista?: string | null
@@ -124,7 +124,7 @@ export type Database = {
           origem_texto?: string
           destino_texto?: string
           horario_estimado?: string | null
-          status?: "nova" | "aguardando_motorista" | "aceita" | "a_caminho" | "em_corrida" | "em_analise" | "aprovada" | "nao_realizada" | "recusada" | "finalizada"
+          status?: "em_analise" | "aprovada" | "nao_realizada"
           aprovado_admin?: boolean
           valor?: number | null
           observacao_motorista?: string | null
@@ -201,6 +201,48 @@ export type Database = {
           nota?: number
           comentario?: string | null
           created_at?: string
+        }
+        Relationships: []
+      }
+      app_releases: {
+        Row: {
+          id: string
+          created_at: string
+          published_at: string
+          uploaded_by: string | null
+          version_name: string
+          file_name: string
+          storage_path: string
+          public_url: string
+          mime_type: string | null
+          size_bytes: number | null
+          is_current: boolean
+        }
+        Insert: {
+          id?: string
+          created_at?: string
+          published_at?: string
+          uploaded_by?: string | null
+          version_name: string
+          file_name: string
+          storage_path: string
+          public_url: string
+          mime_type?: string | null
+          size_bytes?: number | null
+          is_current?: boolean
+        }
+        Update: {
+          id?: string
+          created_at?: string
+          published_at?: string
+          uploaded_by?: string | null
+          version_name?: string
+          file_name?: string
+          storage_path?: string
+          public_url?: string
+          mime_type?: string | null
+          size_bytes?: number | null
+          is_current?: boolean
         }
         Relationships: []
       }

@@ -23,7 +23,7 @@ import {
   MapPin, Navigation, Clock, CheckCircle, Car, Loader2,
   Edit3, DollarSign, MessageSquare, User, Phone, AlertTriangle,
   ChevronRight, X, Check, History, Star, TableProperties, Ban, RotateCcw,
-  Calculator, IdCard, Power, MapPinned, ArrowRight, Flag,
+  Calculator, IdCard, Power, MapPinned, ArrowRight, Flag, FileText, Download,
 } from 'lucide-react';
 import StarRating from '@/components/StarRating';
 import { TripCalculator, DriverBadge } from '@/components/DriverTools';
@@ -35,6 +35,7 @@ import { useDriverLocation } from '@/hooks/useDriverLocation';
 import { useRideTracking } from '@/hooks/useRideTracking';
 import { useDriverOffers } from '@/hooks/useDriverOffers';
 import { DriverOffersList } from '@/components/DriverOfferCard';
+import { useGerarRecibo } from '@/hooks/useGerarRecibo';
 
 type Corrida = {
   id: string;
@@ -43,7 +44,7 @@ type Corrida = {
   origem_texto: string;
   destino_texto: string;
   horario_estimado: string | null;
-  status: 'nova' | 'aguardando_motorista' | 'aceita' | 'a_caminho' | 'em_corrida' | 'em_analise' | 'aprovada' | 'nao_realizada' | 'recusada' | 'finalizada';
+  status: 'em_analise' | 'aprovada' | 'nao_realizada';
   valor: number | null;
   distancia_km: number | null;
   valor_estimado: number | null;
@@ -63,6 +64,7 @@ type Corrida = {
 const DriverDashboard: React.FC = () => {
   const { user, profile } = useAuth();
   const { toast } = useToast();
+  const { gerarReciboFromRide, temRecibo } = useGerarRecibo();
   const queryClient = useQueryClient();
 
   const [activeTab, setActiveTab] = useState('calcular');
@@ -124,30 +126,23 @@ const DriverDashboard: React.FC = () => {
       const { data, error } = await supabase
         .from('corridas')
         .select('*')
-        .eq('status', 'aguardando_motorista')
+        .eq('motorista_id', user!.id)
+        .eq('status', 'em_analise')
         .order('created_at', { ascending: false });
       if (error) throw error;
       return (data || []) as Corrida[];
     },
     staleTime: 0,
     refetchInterval: 1000,
+    enabled: !!user,
   });
 
   const { data: activeRides } = useQuery({
     queryKey: ['my-active-rides', user?.id],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('corridas')
-        .select('*')
-        .eq('motorista_id', user!.id)
-        .in('status', ['aceita', 'a_caminho', 'em_corrida'])
-        .order('created_at', { ascending: false });
-      if (error) throw error;
-      return (data || []) as Corrida[];
+      return [] as Corrida[];
     },
     enabled: !!user,
-    staleTime: 0,
-    refetchInterval: 1000,
   });
 
   const { data: completedRides } = useQuery({
@@ -157,7 +152,7 @@ const DriverDashboard: React.FC = () => {
         .from('corridas')
         .select('*')
         .eq('motorista_id', user!.id)
-        .in('status', ['em_analise', 'aprovada', 'finalizada'])
+        .in('status', ['em_analise', 'aprovada'])
         .order('concluida_at', { ascending: false })
         .limit(20);
       if (error) throw error;
@@ -226,9 +221,9 @@ const DriverDashboard: React.FC = () => {
     mutationFn: async (rideId: string) => {
       const { error } = await supabase
         .from('corridas')
-        .update({ motorista_id: user!.id, status: 'aceita' as const })
+        .update({ motorista_id: user!.id, status: 'em_analise' as const })
         .eq('id', rideId)
-        .eq('status', 'aguardando_motorista');
+        .eq('status', 'em_analise');
       if (error) throw error;
     },
     onSuccess: () => {
@@ -271,7 +266,7 @@ const DriverDashboard: React.FC = () => {
     mutationFn: async (rideId: string) => {
       const { error } = await supabase
         .from('corridas')
-        .update({ status: 'aguardando_motorista' as const, motorista_id: null })
+        .update({ status: 'nao_realizada' as const, motorista_id: null })
         .eq('id', rideId);
       if (error) throw error;
     },
@@ -489,12 +484,8 @@ const DriverDashboard: React.FC = () => {
         <CardContent className="py-4 space-y-4">
           {/* Status header */}
           <div className="flex items-center justify-end">
-            <Badge className={
-              ride.status === 'a_caminho' ? 'bg-blue-500/20 text-blue-400 border-blue-500/30' :
-              ride.status === 'em_corrida' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' :
-              'bg-green-500/20 text-green-400 border-green-500/30'
-            }>
-              {ride.status === 'aceita' ? 'Aceita' : ride.status === 'a_caminho' ? 'Indo buscar' : ride.status === 'em_corrida' ? 'Em corrida' : 'Em andamento'}
+            <Badge className="bg-orange-500/20 text-orange-400 border-orange-500/30">
+              Em análise
             </Badge>
           </div>
 
@@ -561,27 +552,6 @@ const DriverDashboard: React.FC = () => {
           )}
 
           {/* Tracking Status Flow */}
-          {ride.status === 'aceita' && (
-            <Button
-              className="w-full gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold h-11"
-              onClick={() => rideTracking.startPickup.mutate(ride.id)}
-              disabled={rideTracking.startPickup.isPending}
-            >
-              {rideTracking.startPickup.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Navigation className="w-4 h-4" />}
-              Estou a caminho do cliente
-            </Button>
-          )}
-          {ride.status === 'a_caminho' && (
-            <Button
-              className="w-full gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold h-11"
-              onClick={() => rideTracking.startTrip.mutate(ride.id)}
-              disabled={rideTracking.startTrip.isPending}
-            >
-              {rideTracking.startTrip.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Flag className="w-4 h-4" />}
-              Cliente embarcou — Iniciar corrida
-            </Button>
-          )}
-
           {/* Actions */}
           <div className="grid grid-cols-2 gap-2">
             <Button
@@ -646,6 +616,13 @@ const DriverDashboard: React.FC = () => {
               </Badge>
             )}
             <Badge variant="outline">{ride.status === 'aprovada' ? 'Aprovada ✅' : 'Em Análise'}</Badge>
+            <button
+              onClick={() => gerarReciboFromRide(ride)}
+              className="p-1 rounded-md hover:bg-accent/20 text-muted-foreground hover:text-accent transition-colors"
+              title={temRecibo(ride) ? "Baixar Recibo" : "Emitir Recibo"}
+            >
+              {temRecibo(ride) ? <Download className="w-4 h-4" /> : <FileText className="w-4 h-4" />}
+            </button>
           </div>
         </div>
         <div className="flex items-center gap-2">

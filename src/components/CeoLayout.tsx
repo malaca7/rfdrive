@@ -1,0 +1,189 @@
+import React, { useState, useRef, useEffect } from 'react';
+import { flushSync } from 'react-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { Crown, BarChart3, Users, Settings, ChevronUp, LogOut, Sun, Moon, Navigation, Truck, Activity, Shield, User } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { usePlatformConfig } from '@/hooks/usePlatformConfig';
+import { useTheme } from '@/hooks/useTheme';
+import { motion, AnimatePresence } from 'framer-motion';
+import { getAnimalAvatarUrl } from '@/lib/animal-avatars';
+import { getHighestRole, ROLE_LABELS, ROLE_TEXT_CLASS } from '@/lib/rbac';
+import NotificationBell from '@/components/NotificationBell';
+
+const CEO_NAV = [
+  { path: '/ceo/dashboard', label: 'Visão Geral', icon: BarChart3, color: 'from-yellow-500 to-amber-400' },
+  { path: '/ceo/admin', label: 'Admin', icon: Users, color: 'from-orange-500 to-amber-400' },
+  { path: '/ceo/logs', label: 'Logs', icon: Activity, color: 'from-amber-500 to-orange-500' },
+  { path: '/ceo/config', label: 'Plataforma', icon: Settings, color: 'from-amber-600 to-yellow-500' },
+];
+
+const CeoLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { profile, signOut, setActiveScreen, roles, user } = useAuth();
+  const highestRole = getHighestRole([
+    ...roles.map(r => String(r).toLowerCase()),
+    String(user?.tipo || '').toLowerCase(),
+  ].filter(Boolean));
+  const HighestRoleIcon = highestRole === 'ceo' ? Crown
+    : highestRole === 'admin' ? Shield
+    : highestRole === 'motorista' ? Truck
+    : User;
+  const { nomePlataforma, logoUrl } = usePlatformConfig();
+  const { theme, toggleTheme } = useTheme();
+  const [showSwitcher, setShowSwitcher] = useState(false);
+  const switcherRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!showSwitcher) return;
+    const handler = (e: MouseEvent) => {
+      if (switcherRef.current && !switcherRef.current.contains(e.target as Node)) {
+        setShowSwitcher(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showSwitcher]);
+
+  return (
+    <div className="h-[100dvh] w-full flex flex-col bg-background overflow-hidden">
+      {/* ── Top Bar CEO — golden theme ── */}
+      <header className="shrink-0 z-50 bg-bar backdrop-blur-2xl border-b border-yellow-400/20 safe-top shadow-lg shadow-yellow-900/10 dark:shadow-yellow-900/20">
+        <div className="w-full px-[4%] h-14 sm:h-16 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-gradient-to-br from-yellow-500 to-amber-400 flex items-center justify-center shadow-lg shadow-yellow-500/30 overflow-hidden shrink-0">
+              {logoUrl ? <img src={logoUrl} alt="" className="w-full h-full object-cover" /> : <Crown className="w-4 h-4 sm:w-5 sm:h-5 text-white" />}
+            </div>
+            <span className="font-extrabold text-base sm:text-xl tracking-tight text-foreground truncate">{nomePlataforma}</span>
+          </div>
+          <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+            <div className="text-right mr-0.5 sm:mr-1 hidden sm:block">
+              <p className="text-[15px] font-semibold truncate max-w-[140px] text-foreground">{(profile?.nome || '').split(' ')[0]}</p>
+              <p className={`text-[11px] font-semibold flex items-center gap-1 justify-end ${ROLE_TEXT_CLASS[highestRole]}`}>
+                <HighestRoleIcon className="w-3.5 h-3.5" /> {ROLE_LABELS[highestRole]}
+              </p>
+            </div>
+            {profile?.avatar_url ? (
+              <img src={profile.avatar_url} alt="" className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl object-cover border-2 border-yellow-400/40 shadow-md" />
+            ) : (
+              <img src={getAnimalAvatarUrl(profile?.id || profile?.nome || '?')} alt="" className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl object-cover border-2 border-yellow-400/40 shadow-md" />
+            )}
+            <NotificationBell />
+            <button
+              onClick={toggleTheme}
+              className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all"
+              title={theme === 'dark' ? 'Modo claro' : 'Modo escuro'}
+            >
+              {theme === 'dark' ? <Sun className="w-4 h-4 sm:w-5 sm:h-5" /> : <Moon className="w-4 h-4 sm:w-5 sm:h-5" />}
+            </button>
+            <button
+              onClick={() => { signOut(); navigate('/'); }}
+              className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl flex items-center justify-center text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-all"
+            >
+              <LogOut className="w-4 h-4 sm:w-5 sm:h-5" />
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <div className="flex-1 flex overflow-hidden relative">
+        <main className="flex-1 overflow-y-auto overflow-x-hidden overscroll-contain">
+          <div className="w-full px-[3%] py-[3%] max-w-5xl mx-auto page-enter">
+            {children}
+          </div>
+        </main>
+      </div>
+
+      {/* ── Bottom Navigation ── */}
+      <nav className="shrink-0 z-40 safe-bottom bar-glow-top">
+        <div className="mx-3 mb-2 bg-bar backdrop-blur-2xl rounded-2xl border border-yellow-400/20 shadow-2xl shadow-black/20 dark:shadow-black/50 relative" ref={switcherRef}>
+          {/* Switcher popup */}
+          <AnimatePresence>
+            {showSwitcher && (
+              <motion.div
+                initial={{ opacity: 0, y: 8, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 8, scale: 0.95 }}
+                transition={{ duration: 0.15 }}
+                className="absolute bottom-full mb-2 right-3 bg-bar backdrop-blur-2xl rounded-xl border border-border/40 shadow-2xl shadow-black/30 p-1.5 min-w-[160px] z-50"
+              >
+                <button
+                  onClick={() => { flushSync(() => setActiveScreen('motorista')); navigate('/motorista/viagens'); setShowSwitcher(false); }}
+                  className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium transition-all hover:bg-muted/40 text-foreground/70 hover:text-foreground"
+                >
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-muted/30">
+                    <Truck className="w-4 h-4" />
+                  </div>
+                  Motorista
+                </button>
+                <button
+                  onClick={() => { flushSync(() => setActiveScreen('admin')); navigate('/admin/dashboard'); setShowSwitcher(false); }}
+                  className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium transition-all hover:bg-muted/40 text-foreground/70 hover:text-foreground"
+                >
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-muted/30">
+                    <Shield className="w-4 h-4" />
+                  </div>
+                  Admin
+                </button>
+                <button
+                  onClick={() => { setShowSwitcher(false); }}
+                  className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium transition-all bg-yellow-500/15 text-yellow-400"
+                >
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-yellow-500/20 border border-yellow-400/40">
+                    <Crown className="w-4 h-4" />
+                  </div>
+                  CEO
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <div className="flex items-stretch justify-around h-[66px] px-1">
+            {CEO_NAV.map(item => {
+              const isActive = location.pathname.startsWith(item.path);
+              const Icon = item.icon;
+              return (
+                <button
+                  key={item.path}
+                  onClick={() => navigate(item.path)}
+                  className="relative flex flex-col items-center justify-center gap-1 flex-1 tap-highlight"
+                  title={item.label}
+                >
+                  <motion.div
+                    animate={{ scale: isActive ? 1.15 : 1, y: isActive ? -2 : 0 }}
+                    transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+                    className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${
+                      isActive ? `bg-gradient-to-br ${item.color} shadow-lg shadow-white/15` : 'text-foreground'
+                    }`}
+                  >
+                    <Icon className={`w-5 h-5 ${isActive ? 'text-white' : ''}`} />
+                  </motion.div>
+                  <span className={`text-[10px] font-bold tracking-wide ${isActive ? 'text-foreground' : 'text-foreground/70'}`}>
+                    {item.label}
+                  </span>
+                </button>
+              );
+            })}
+            <div className="w-px self-stretch my-2.5 bg-border mx-0.5" />
+            <button
+              onClick={() => setShowSwitcher(!showSwitcher)}
+              className="relative flex flex-col items-center justify-center gap-0.5 w-12 shrink-0 tap-highlight"
+              title="Trocar painel"
+            >
+              <motion.div
+                animate={{ rotate: showSwitcher ? 180 : 0 }}
+                transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+                className="w-8 h-8 rounded-lg flex items-center justify-center bg-gradient-to-br from-yellow-500/20 to-amber-500/20 border border-yellow-400/40 text-yellow-400 hover:from-yellow-500/30 hover:to-amber-500/30 hover:border-yellow-400/60 transition-all"
+              >
+                <ChevronUp className="w-4 h-4" />
+              </motion.div>
+              <span className="text-[8px] font-bold tracking-wide text-yellow-400">Painel</span>
+            </button>
+          </div>
+        </div>
+      </nav>
+    </div>
+  );
+};
+
+export default CeoLayout;

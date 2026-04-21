@@ -53,7 +53,7 @@ const MotoristaCredencial: React.FC = () => {
         .from('corridas')
         .select('id', { count: 'exact', head: true })
         .eq('motorista_id', user!.id)
-        .in('status', ['aprovada', 'finalizada']);
+        .in('status', ['aprovada']);
       if (error) throw error;
       return count || 0;
     },

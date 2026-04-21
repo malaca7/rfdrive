@@ -35,6 +35,7 @@ const RideRequestForm: React.FC = () => {
   const [errorMsg, setErrorMsg] = useState('');
   const [observacaoCliente, setObservacaoCliente] = useState('');
   const [temBagagem, setTemBagagem] = useState(false);
+  const [porteAnimal, setPorteAnimal] = useState<'none' | 'pequeno' | 'medio'>('none');
   const destinoRef = useRef<HTMLInputElement>(null);
   const [showOrigemSuggestions, setShowOrigemSuggestions] = useState(false);
   const [showDestinoSuggestions, setShowDestinoSuggestions] = useState(false);
@@ -194,6 +195,12 @@ const RideRequestForm: React.FC = () => {
         valor_estimado = (valor_estimado || 0) + taxaBagagem;
       }
 
+      // Adicionar taxa de animal
+      const taxaAnimal = porteAnimal === 'pequeno' ? 5 : porteAnimal === 'medio' ? 7 : 0;
+      if (taxaAnimal > 0) {
+        valor_estimado = (valor_estimado || 0) + taxaAnimal;
+      }
+
       // Aplicar tarifa mínima global
       const tarifaMinima = configTarifas?.tarifa_minima ?? 0;
       if (tarifaMinima > 0 && valor_estimado != null && valor_estimado < tarifaMinima) {
@@ -250,6 +257,7 @@ const RideRequestForm: React.FC = () => {
       setDestino('');
       setObservacaoCliente('');
       setTemBagagem(false);
+      setPorteAnimal('none');
       setErrorMsg('');
     } catch (_e) {
       const msg = _e instanceof Error ? _e.message : 'Erro desconhecido';
@@ -369,6 +377,37 @@ const RideRequestForm: React.FC = () => {
             </label>
           </div>
 
+          {/* Animal fee */}
+          <div className="p-3 bg-muted/30 border border-border rounded-2xl space-y-2">
+            <p className="text-sm font-medium">Levando Animal?</p>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setPorteAnimal(porteAnimal === 'pequeno' ? 'none' : 'pequeno')}
+                className={`flex-1 py-2 px-3 rounded-xl text-xs font-medium transition-all ${
+                  porteAnimal === 'pequeno'
+                    ? 'bg-emerald-500/15 border border-emerald-500/30 text-emerald-400'
+                    : 'bg-muted/30 border border-transparent text-muted-foreground'
+                }`}
+              >
+                🐕 Pequeno Porte
+                <span className="block text-[10px] mt-0.5">+R$ 5,00</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setPorteAnimal(porteAnimal === 'medio' ? 'none' : 'medio')}
+                className={`flex-1 py-2 px-3 rounded-xl text-xs font-medium transition-all ${
+                  porteAnimal === 'medio'
+                    ? 'bg-emerald-500/15 border border-emerald-500/30 text-emerald-400'
+                    : 'bg-muted/30 border border-transparent text-muted-foreground'
+                }`}
+              >
+                🐕‍🦺 Médio Porte
+                <span className="block text-[10px] mt-0.5">+R$ 7,00</span>
+              </button>
+            </div>
+          </div>
+
           {/* -- Price preview: dinâmico > tabela RF -- */}
           <AnimatePresence>
             {(precoDinamico || precoTabela) && (
@@ -454,13 +493,25 @@ const RideRequestForm: React.FC = () => {
                         </div>
                         <div className="text-right">
                           <p className="text-[10px] text-muted-foreground">
-                            {precoTabela.estimado ? 'Média via Centro do Cabo' : precoTabela.match_exato ? 'Correspondência exata' : 'Melhor correspondência'}
+                            {precoTabela.estimado ? 'Calculado por IA (rota sem ligacao direta)' : precoTabela.match_exato ? 'Correspondência exata' : 'Melhor correspondência'}
                           </p>
                           <p className="text-[10px] text-muted-foreground truncate max-w-[160px]">
                             {precoTabela.origem_tabela} → {precoTabela.destino_tabela}
                           </p>
+                          <p className="text-[10px] text-muted-foreground">
+                            {precoTabela.origem_regiao || '—'} → {precoTabela.destino_regiao || '—'}
+                          </p>
                         </div>
                       </div>
+                      {precoTabela.estimado && (
+                        <div className="flex items-start gap-2 bg-amber-500/10 border border-amber-500/30 rounded-lg px-3 py-2">
+                          <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
+                          <div>
+                            <p className="text-xs text-amber-300 font-semibold">Valor calculado pela IA do sistema</p>
+                            <p className="text-[11px] text-amber-200/90">Se o preço nao condizer com a realidade, verifique com um administrador.</p>
+                          </div>
+                        </div>
+                      )}
                       {dynamicAdj && (() => {
                         const _cor = dynamicAdj.regra.cor || '#8b5cf6';
                         return (

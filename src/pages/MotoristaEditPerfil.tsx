@@ -16,7 +16,8 @@ import AppShell from '@/components/AppShell';
 import { motion } from 'framer-motion';
 import {
   Camera, Loader2, Save, User, Phone, Lock, Car,
-  ZoomIn, ZoomOut,
+  ZoomIn, ZoomOut, Eye, EyeOff, Calendar, AtSign, ShieldCheck,
+  ChevronDown, ChevronUp, CheckCircle2, XCircle,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { VEHICLE_BRANDS, VEHICLE_MODELS, VEHICLE_COLORS } from '@/lib/vehicle-data';
@@ -70,7 +71,7 @@ const MotoristaEditPerfil: React.FC = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('users')
-        .select('id, nome, telefone, tipo, status, veiculo_marca, veiculo_modelo, veiculo_cor, veiculo_placa, avatar_url, veiculo_foto')
+        .select('id, nome, telefone, tipo, status, veiculo_marca, veiculo_modelo, veiculo_cor, veiculo_placa, avatar_url, veiculo_foto, apelido, data_nascimento')
         .eq('id', user!.id)
         .single();
       if (error) throw error;
@@ -81,8 +82,15 @@ const MotoristaEditPerfil: React.FC = () => {
 
   // ── Form state ──
   const [nome, setNome] = useState('');
+  const [apelido, setApelido] = useState('');
+  const [dataNascimento, setDataNascimento] = useState('');
   const [telefone, setTelefone] = useState('');
-  const [senha, setSenha] = useState('');
+  // Password change
+  const [novaSenha, setNovaSenha] = useState('');
+  const [confirmarSenha, setConfirmarSenha] = useState('');
+  const [showNovaSenha, setShowNovaSenha] = useState(false);
+  const [showConfirmarSenha, setShowConfirmarSenha] = useState(false);
+  const [showPasswordSection, setShowPasswordSection] = useState(false);
   const [marca, setMarca] = useState('');
   const [modelo, setModelo] = useState('');
   const [cor, setCor] = useState('');
@@ -107,6 +115,8 @@ const MotoristaEditPerfil: React.FC = () => {
   // Initialize form from profile
   if (fullProfile && !initialized) {
     setNome(fullProfile.nome || '');
+    setApelido((fullProfile as any).apelido || '');
+    setDataNascimento((fullProfile as any).data_nascimento || '');
     setTelefone(formatPhone(fullProfile.telefone || ''));
     setMarca(fullProfile.veiculo_marca || '');
     setModelo(fullProfile.veiculo_modelo || '');
@@ -172,19 +182,26 @@ const MotoristaEditPerfil: React.FC = () => {
   const saveMutation = useMutation({
     mutationFn: async () => {
       if (!user) throw new Error('Não autenticado');
+      if (novaSenha.trim() && novaSenha !== confirmarSenha) {
+        throw new Error('As senhas não coincidem');
+      }
       const updates: Record<string, unknown> = {
         nome: nome.trim(),
         telefone: telefone.replace(/\D/g, ''),
+        apelido: apelido.trim() || null,
+        data_nascimento: dataNascimento || null,
       };
-      if (senha.trim()) {
-        updates.senha = senha.trim();
+      if (novaSenha.trim()) {
+        updates.senha = novaSenha.trim();
       }
       const { error } = await supabase.from('users').update(updates).eq('id', user.id);
       if (error) throw error;
     },
     onSuccess: () => {
       toast({ title: 'Perfil atualizado!' });
-      setSenha('');
+      setNovaSenha('');
+      setConfirmarSenha('');
+      setShowPasswordSection(false);
       updateProfile({ nome: nome.trim(), telefone: telefone.replace(/\D/g, '') });
       queryClient.invalidateQueries({ queryKey: ['driver-full-profile'] });
     },
@@ -192,6 +209,23 @@ const MotoristaEditPerfil: React.FC = () => {
       toast({ title: 'Erro ao salvar', description: err.message, variant: 'destructive' });
     },
   });
+
+  const getPasswordStrength = (pass: string) => {
+    if (pass.length === 0) return { level: 0, label: '', bars: 0 };
+    if (pass.length < 6) return { level: 1, label: 'Muito fraca', bars: 1, color: 'bg-red-500' };
+    const hasUpper = /[A-Z]/.test(pass);
+    const hasLower = /[a-z]/.test(pass);
+    const hasNumber = /[0-9]/.test(pass);
+    const hasSpecial = /[^A-Za-z0-9]/.test(pass);
+    const variety = [hasUpper, hasLower, hasNumber, hasSpecial].filter(Boolean).length;
+    if (pass.length >= 8 && variety >= 3) return { level: 4, label: 'Forte', bars: 4, color: 'bg-green-500' };
+    if (pass.length >= 8 && variety >= 2) return { level: 3, label: 'Boa', bars: 3, color: 'bg-blue-500' };
+    return { level: 2, label: 'Fraca', bars: 2, color: 'bg-amber-500' };
+  };
+
+  const passwordStrength = getPasswordStrength(novaSenha);
+  const passwordsMatch = novaSenha.length > 0 && confirmarSenha.length > 0 && novaSenha === confirmarSenha;
+  const passwordsMismatch = confirmarSenha.length > 0 && novaSenha !== confirmarSenha;
 
   if (isLoading) {
     return (
@@ -254,6 +288,19 @@ const MotoristaEditPerfil: React.FC = () => {
                 <Input value={nome} onChange={e => setNome(e.target.value)} placeholder="Seu nome completo" />
               </div>
               <div>
+                <Label className="text-xs flex items-center gap-1"><AtSign className="w-3 h-3" /> Apelido (opcional)</Label>
+                <Input value={apelido} onChange={e => setApelido(e.target.value)} placeholder="Como prefere ser chamado" />
+              </div>
+              <div>
+                <Label className="text-xs flex items-center gap-1"><Calendar className="w-3 h-3" /> Data de Nascimento</Label>
+                <Input
+                  type="date"
+                  value={dataNascimento}
+                  onChange={e => setDataNascimento(e.target.value)}
+                  className="block"
+                />
+              </div>
+              <div>
                 <Label className="text-xs">Telefone</Label>
                 <Input
                   value={telefone}
@@ -261,18 +308,113 @@ const MotoristaEditPerfil: React.FC = () => {
                   placeholder="(81) 9 9613.8924"
                 />
               </div>
-              <div>
-                <Label className="text-xs flex items-center gap-1">
-                  <Lock className="w-3 h-3" /> Nova Senha (opcional)
-                </Label>
-                <Input
-                  type="password"
-                  value={senha}
-                  onChange={e => setSenha(e.target.value)}
-                  placeholder="Deixe em branco para manter"
-                />
-              </div>
             </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* Password change */}
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }}>
+          <Card className="rounded-2xl overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setShowPasswordSection(v => !v)}
+              className="w-full px-[4%] py-4 flex items-center justify-between hover:bg-muted/10 transition-colors"
+            >
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4 text-accent" />
+                <div className="text-left">
+                  <p className="text-sm font-semibold">Alterar Senha</p>
+                  <p className="text-[11px] text-muted-foreground">Defina uma nova senha de acesso</p>
+                </div>
+              </div>
+              {showPasswordSection
+                ? <ChevronUp className="w-4 h-4 text-muted-foreground" />
+                : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
+            </button>
+
+            {showPasswordSection && (
+              <CardContent className="pt-0 pb-5 px-[4%] space-y-4 border-t border-border/30">
+                {/* Nova senha */}
+                <div className="space-y-1.5 pt-4">
+                  <Label className="text-xs flex items-center gap-1"><Lock className="w-3 h-3" /> Nova Senha</Label>
+                  <div className="relative">
+                    <Input
+                      type={showNovaSenha ? 'text' : 'password'}
+                      value={novaSenha}
+                      onChange={e => setNovaSenha(e.target.value)}
+                      placeholder="Mínimo 6 caracteres"
+                      className="pr-10"
+                      autoComplete="new-password"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowNovaSenha(v => !v)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      {showNovaSenha ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                  {/* Strength bar */}
+                  {novaSenha.length > 0 && (
+                    <div className="space-y-1">
+                      <div className="flex gap-1">
+                        {[1, 2, 3, 4].map(i => (
+                          <div
+                            key={i}
+                            className={`h-1.5 flex-1 rounded-full transition-all ${i <= passwordStrength.bars ? passwordStrength.color : 'bg-muted/40'}`}
+                          />
+                        ))}
+                      </div>
+                      <p className={`text-[10px] font-medium ${
+                        passwordStrength.bars >= 4 ? 'text-green-400' :
+                        passwordStrength.bars === 3 ? 'text-blue-400' :
+                        passwordStrength.bars === 2 ? 'text-amber-400' : 'text-red-400'
+                      }`}>
+                        {passwordStrength.label}
+                        {passwordStrength.bars >= 3 && ' · Use letras maiúsculas, números e símbolos para uma senha mais segura'}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Confirmar senha */}
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Confirmar Nova Senha</Label>
+                  <div className="relative">
+                    <Input
+                      type={showConfirmarSenha ? 'text' : 'password'}
+                      value={confirmarSenha}
+                      onChange={e => setConfirmarSenha(e.target.value)}
+                      placeholder="Repita a nova senha"
+                      className={`pr-10 ${passwordsMismatch ? 'border-red-500/50' : passwordsMatch ? 'border-green-500/50' : ''}`}
+                      autoComplete="new-password"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmarSenha(v => !v)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      {showConfirmarSenha ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                  {passwordsMatch && (
+                    <p className="text-[11px] text-green-400 flex items-center gap-1">
+                      <CheckCircle2 className="w-3 h-3" /> Senhas conferem
+                    </p>
+                  )}
+                  {passwordsMismatch && (
+                    <p className="text-[11px] text-red-400 flex items-center gap-1">
+                      <XCircle className="w-3 h-3" /> As senhas não coincidem
+                    </p>
+                  )}
+                </div>
+
+                <div className="text-[10px] text-muted-foreground/60 bg-muted/20 rounded-lg px-3 py-2 flex items-start gap-1.5">
+                  <Lock className="w-3 h-3 mt-0.5 shrink-0" />
+                  Deixe em branco se não deseja alterar a senha atual. As alterações serão salvas ao clicar em "Salvar Alterações".
+                </div>
+              </CardContent>
+            )}
           </Card>
         </motion.div>
 

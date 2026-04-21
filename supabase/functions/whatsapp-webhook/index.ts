@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getRequestContext, logEvent } from "../_shared/logging.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -125,7 +126,7 @@ async function getConversationState(phone: string): Promise<ConversationState> {
     .from("corridas")
     .select("id, status, origem_texto, destino_texto")
     .eq("whatsapp_message_id", `pending_${phone}`)
-    .eq("status", "nova")
+    .eq("status", "em_analise")
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -170,7 +171,7 @@ async function handleMessage(phone: string, text: string, messageId: string) {
     .from("corridas")
     .select("*")
     .eq("cliente_id", user.id)
-    .eq("status", "nova")
+    .eq("status", "em_analise")
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -248,7 +249,7 @@ async function handleMessage(phone: string, text: string, messageId: string) {
     return;
   }
 
-  // Create ride as "nova" (awaiting confirmation)
+  // Create ride as "em_analise"
   const { data: newRide, error: insertError } = await supabase
     .from("corridas")
     .insert({
@@ -256,7 +257,7 @@ async function handleMessage(phone: string, text: string, messageId: string) {
       origem_texto: parsed.origem,
       destino_texto: parsed.destino,
       horario_estimado: parsed.horario || null,
-      status: "nova",
+      status: "em_analise",
       whatsapp_message_id: messageId,
       confianca_ia: parsed.origem && parsed.destino ? 0.9 : 0.5,
     })
@@ -287,6 +288,8 @@ async function handleMessage(phone: string, text: string, messageId: string) {
 // ── Server ──
 
 serve(async (req) => {
+  const reqCtx = getRequestContext(req);
+
   // CORS preflight
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -302,6 +305,14 @@ serve(async (req) => {
 
     if (mode === "subscribe" && token === WHATSAPP_VERIFY_TOKEN) {
       console.log("Webhook verified!");
+      await logEvent({
+        type: 'activity',
+        action: 'whatsapp_webhook_verified',
+        entity: 'whatsapp_webhook',
+        details: { mode },
+        ip: reqCtx.ip,
+        userAgent: reqCtx.userAgent,
+      });
       return new Response(challenge, { status: 200 });
     }
     return new Response("Forbidden", { status: 403 });
@@ -321,6 +332,19 @@ serve(async (req) => {
           for (const msg of messages) {
             const phone = msg.from;
             const messageId = msg.id;
+
+            await logEvent({
+              type: 'activity',
+              action: 'whatsapp_message_received',
+              entity: 'whatsapp_message',
+              entityId: messageId,
+              details: {
+                type: msg.type,
+                from: phone,
+              },
+              ip: reqCtx.ip,
+              userAgent: reqCtx.userAgent,
+            });
 
             if (msg.type === "text") {
               await handleMessage(phone, msg.text.body, messageId);
@@ -375,6 +399,20 @@ serve(async (req) => {
     );
   } catch (e) {
     console.error("Webhook error:", e);
+    await logEvent({
+      type: 'system',
+      action: 'whatsapp_webhook_error',
+      entity: 'whatsapp_webhook',
+      details: {
+        url: req.url,
+        method: req.method,
+      },
+      ip: reqCtx.ip,
+      userAgent: reqCtx.userAgent,
+      level: 'error',
+      errorMessage: e instanceof Error ? e.message : 'Unknown error',
+      stackTrace: e instanceof Error ? e.stack || null : null,
+    });
     return new Response(
       JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
