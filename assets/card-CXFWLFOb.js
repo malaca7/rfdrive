@@ -1,0 +1,1 @@
+import{j as t}from"./vendor-query-CPPo5fWD.js";const r=({className:s,...a})=>t.jsx("div",{className:s,...a}),d=({className:s,...a})=>t.jsx("div",{className:s,...a}),n=({className:s,...a})=>t.jsx("h3",{className:s,...a}),i=({className:s,...a})=>t.jsx("p",{className:s,...a}),x=({className:s,...a})=>t.jsx("div",{className:s,...a});export{r as C,d as a,n as b,i as c,x as d};
