@@ -1,0 +1,1 @@
+import{r as e,R as n}from"./vendor-query-DOMgs_sB.js";import{H as s}from"./index-8LkoxmvE.js";var u=n[" useId ".trim().toString()]||(()=>{}),i=0;function x(t){const[r,o]=e.useState(u());return s(()=>{o(a=>a??String(i++))},[t]),t||(r?`radix-${r}`:"")}var c=e.createContext(void 0);function v(t){const r=e.useContext(c);return t||r||"ltr"}export{v as a,x as u};
