@@ -7,11 +7,33 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" />
+    <link rel="icon" type="image/png" id="favicon" href="./favicon.png" />
     <title>RF Drive</title>
     <meta name="description" content="RF Drive - Seu transporte inteligente" />
     <meta name="author" content="RF Drive" />
+    <script>
+      // Load platform logo from API
+      (function() {
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', '/php/api.php', true);
+        xhr.setRequestHeader('Content-Type', 'application/json');
+        xhr.onload = function() {
+          if (xhr.status === 200) {
+            try {
+              var data = JSON.parse(xhr.responseText);
+              if (data && data.length > 0 && data[0].logo_url) {
+                var favicon = document.getElementById('favicon');
+                if (favicon) favicon.href = data[0].logo_url;
+                document.title = data[0].nome_plataforma || 'RF Drive';
+              }
+            } catch(e) {}
+          }
+        };
+        xhr.send(JSON.stringify({action:'select',table:'config_plataforma',columns:'logo_url,nome_plataforma',limit:1}));
+      })();
+    </script>
     <script>
       // Must be in <head> BEFORE module scripts to catch load failures
       window.__appLoaded = false;
@@ -28,12 +50,12 @@
           if (el) el.innerHTML = '<div style="padding:24px;font:14px monospace;color:#ff6b6b;background:#111;min-height:100vh;word-break:break-all;"><h2 style="color:#fff">Erro (Promise)</h2><p>'+(e.reason&&e.reason.message?e.reason.message:String(e.reason))+'</p>'+(e.reason&&e.reason.stack?'<pre style="white-space:pre-wrap">'+e.reason.stack+'</pre>':'')+'</div>';
         });
       });
-      // Timeout: se o app não carregar em 8s, mostrar diagnóstico
       setTimeout(function() {
         if (window.__appLoaded) return;
+        console.warn("System: App failed to load within 8s timeout");
         var el = document.getElementById('root');
-        if (el && (!el.children.length || el.innerHTML.trim() === '')) {
-          el.innerHTML = '<div style="padding:24px;font:14px monospace;color:#ffa500;background:#111;min-height:100vh;"><h2 style="color:#fff">App não carregou</h2><p>O JavaScript pode não estar sendo executado.</p><p>UserAgent: '+navigator.userAgent+'</p><p>URL: '+location.href+'</p><p>Protocol: '+location.protocol+'</p></div>';
+        if (el) {
+          el.innerHTML = '<div style="padding:24px;font:14px monospace;color:#ffa500;background:#111;min-height:100vh;"><h2 style="color:#fff">App não carregou</h2><p>O JavaScript pode não estar sendo executado ou os arquivos não foram encontrados.</p><p>Verifique o console (F12) para erros de 404 ou CORS.</p><p>URL: '+location.href+'</p></div>';
         }
       }, 8000);
     </script>
@@ -41,16 +63,15 @@
     <meta property="og:title" content="RF Drive" />
     <meta property="og:description" content="RF Drive - Seu transporte inteligente" />
     <meta property="og:type" content="website" />
-    <meta property="og:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
+    <meta property="og:image" content="/logo.png" />
 
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:site" content="@Lovable" />
-    <meta name="twitter:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
-    <script type="module" src="/rfdrive/assets/index-DX_1gOgK.js"></script>
-    <link rel="modulepreload" href="/rfdrive/assets/vendor-query-DOMgs_sB.js">
-    <link rel="modulepreload" href="/rfdrive/assets/vendor-react-sEMTA_Z6.js">
-    <link rel="modulepreload" href="/rfdrive/assets/vendor-supabase-DR231lfe.js">
-    <link rel="stylesheet" href="/rfdrive/assets/index-CS0M7qFT.css">
+    <meta name="twitter:site" content="@RFDrive" />
+    <meta name="twitter:image" content="/logo.png" />
+    <script type="module" crossorigin src="./assets/index-D3RJHcVg.js"></script>
+    <link rel="modulepreload" crossorigin href="./assets/vendor-query-DOMgs_sB.js">
+    <link rel="modulepreload" crossorigin href="./assets/vendor-react-sEMTA_Z6.js">
+    <link rel="stylesheet" crossorigin href="./assets/index-CJsoS9vj.css">
   </head>
 
   <body>
