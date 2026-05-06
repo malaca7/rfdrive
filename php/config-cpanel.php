@@ -2,8 +2,8 @@
 /**
  * Configuração de conexão com o banco de dados MySQL - cPanel
  */
-ini_set('display_errors', 0);
-ini_set('display_startup_errors', 0);
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
 // Habilitar CORS para permitir que o React acessa a API
@@ -23,7 +23,6 @@ define('DB_HOST', 'localhost');
 define('DB_NAME', 'malacaco_rfdrive');
 define('DB_USER', 'root');
 define('DB_PASS', '');
-
 
 $conn = new mysqli(DB_HOST, DB_USER, DB_PASS, DB_NAME);
 if ($conn->connect_error) {

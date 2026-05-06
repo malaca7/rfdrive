@@ -3,60 +3,75 @@ require_once 'config.php';
 
 /**
  * API Principal para operações de Banco de Dados
- * Aceita requisições POST com JSON contendo:
- * {
- *   "table": "nome_da_tabela",
- *   "action": "select|insert|update|delete",
- *   "data": { ... },
- *   "filters": { "coluna": "valor" }
- * }
+ * Usando mysqli ao invés de PDO
  */
 
-$input = json_decode(file_get_contents("php://input"), true);
-
-if (!$input || !isset($input['table']) || !isset($input['action'])) {
-    sendResponse(["error" => "Requisição inválida"], 400);
+// Processar requisição
+$rawInput = file_get_contents('php://input');
+if (empty($rawInput)) {
+    $rawInput = file_get_contents('php://stdin');
+}
+$input = json_decode($rawInput, true);
+if (!$input || !isset($input['action']) || !isset($input['table'])) {
+    sendResponse(["error" => "Dados inválidos", "debug" => $rawInput], 400);
 }
 
-$table = preg_replace('/[^a-zA-Z0-9_]/', '', $input['table']);
-$action = $input['action'];
+try {
+    $action = $input['action'];
+    $table = preg_replace('/[^a-zA-Z0-9_]/', '', $input['table']);
 
-switch ($action) {
-    case 'select':
-        handleSelect($conn, $table, $input);
-        break;
-    case 'insert':
-        handleInsert($conn, $table, $input);
-        break;
-    case 'update':
-        handleUpdate($conn, $table, $input);
-        break;
-    case 'delete':
-        handleDelete($conn, $table, $input);
-        break;
-    case 'upsert':
-        handleUpsert($conn, $table, $input);
-        break;
-    case 'function':
-        handleFunction($conn, $input);
-        break;
-    default:
-        sendResponse(["error" => "Ação desconhecida"], 400);
+    switch ($action) {
+        case 'select':
+            handleSelect($conn, $table, $input);
+            break;
+        case 'insert':
+            handleInsert($conn, $table, $input);
+            break;
+        case 'update':
+            handleUpdate($conn, $table, $input);
+            break;
+        case 'delete':
+            handleDelete($conn, $table, $input);
+            break;
+        case 'upsert':
+            handleUpsert($conn, $table, $input);
+            break;
+        case 'function':
+            handleFunction($conn, $input);
+            break;
+        default:
+            sendResponse(["error" => "Ação não suportada"], 400);
+    }
+} catch (Exception $e) {
+    sendResponse(["error" => "Exceção no servidor: " . $e->getMessage()], 500);
+} catch (Error $e) {
+    sendResponse(["error" => "Erro fatal no servidor: " . $e->getMessage()], 500);
 }
+
+$conn->close();
 
 function handleFunction($conn, $input) {
     $name = $input['name'];
-    $body = $input['body'];
+    $body = $input['body'] ?? [];
 
+    // Funções especiais implementadas manualmente
     if ($name === 'reset-password') {
         $userId = $body['userId'];
         $newPassword = $body['newPassword'];
-        
-        $stmt = $conn->prepare("UPDATE `users` SET `senha` = :pass WHERE `id` = :id");
-        $stmt->execute([':pass' => $newPassword, ':id' => $userId]);
-        
+
+        $stmt = $conn->prepare("UPDATE `users` SET `senha` = ? WHERE `id` = ?");
+        $stmt->bind_param("ss", $newPassword, $userId);
+        $stmt->execute();
+
         sendResponse(["success" => true]);
-    } else {
+    } 
+    //mark_expired_eval_links
+    elseif ($name === 'mark_expired_eval_links') {
+        $stmt = $conn->prepare("UPDATE evaluation_links SET status = 'expirada', updated_at = NOW() WHERE status = 'ativa' AND expira_em < NOW()");
+        $stmt->execute();
+        sendResponse(["success" => true, "affected" => $stmt->affected_rows]);
+    }
+    else {
         sendResponse(["error" => "Função '$name' não implementada"], 404);
     }
 }
@@ -65,48 +80,86 @@ function handleUpsert($conn, $table, $input) {
     if (!isset($input['data'])) sendResponse(["error" => "Dados ausentes"], 400);
     $rows = is_array($input['data']) && isset($input['data'][0]) ? $input['data'] : [$input['data']];
     foreach ($rows as $data) {
+        // Gerar UUID se não fornecido
+        if (!isset($data['id'])) {
+            $data['id'] = sprintf('%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
+                mt_rand(0, 0xffff), mt_rand(0, 0xffff),
+                mt_rand(0, 0xffff),
+                mt_rand(0, 0x0fff) | 0x4000,
+                mt_rand(0, 0x3fff) | 0x8000,
+                mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff)
+            );
+        }
+
+        foreach ($data as $key => &$val) {
+            if (is_array($val) || is_object($val)) $val = json_encode($val, JSON_UNESCAPED_UNICODE);
+            elseif (is_bool($val)) $val = $val ? 1 : 0;
+        }
         $columns = array_keys($data);
-        $placeholders = array_map(function($col) { return ":$col"; }, $columns);
+        $placeholders = array_map(function($col) { return "?"; }, $columns);
         $updates = array_map(function($col) { return "`$col` = VALUES(`$col`)"; }, $columns);
         $sql = "INSERT INTO `$table` (`" . implode("`, `", $columns) . "`) VALUES (" . implode(", ", $placeholders) . ") ON DUPLICATE KEY UPDATE " . implode(", ", $updates);
         $stmt = $conn->prepare($sql);
-        foreach ($data as $col => $val) { $stmt->bindValue(":$col", $val); }
+        $types = str_repeat("s", count($data));
+        $values = array_values($data);
+        $stmt->bind_param($types, ...$values);
         $stmt->execute();
     }
     sendResponse(["success" => true]);
 }
 
-function handleSelect($conn, $table, $input) {
-    $sql = "SELECT * FROM `$table`";
-    $params = [];
+function buildWhereClause($filters) {
     $where = [];
-    
-    if (isset($input['filters']) && is_array($input['filters'])) {
-        foreach ($input['filters'] as $col => $val) {
-            $pureCol = preg_replace('/[^a-zA-Z0-9_]/', '', str_replace('_gte', '', $col));
-            
-            // Especial para telefone: tenta busca flexível
+    $params = [];
+    $types = "";
+
+    if (isset($filters) && is_array($filters)) {
+        foreach ($filters as $col => $val) {
+            $pureCol = preg_replace('/[^a-zA-Z0-9_]/', '', str_replace(['_gte', '_lte', '_ne', '_in'], '', $col));
+
             if ($pureCol === 'telefone') {
                 $valDigits = preg_replace('/\D/', '', $val);
-                $where[] = "(REPLACE(REPLACE(REPLACE(REPLACE(`$pureCol`, '(', ''), ')', ''), '-', ''), ' ', '') = :$pureCol OR `$pureCol` = :{$pureCol}_orig)";
-                $params[":$pureCol"] = $valDigits;
-                $params[":{$pureCol}_orig"] = $val;
+                $where[] = "(REPLACE(REPLACE(REPLACE(REPLACE(`$pureCol`, '(', ''), ')', ''), '-', ''), ' ', '') = ? OR `$pureCol` = ?)";
+                $params[] = $valDigits;
+                $params[] = $val;
+                $types .= "ss";
             } else if (strpos($col, '_gte') !== false) {
-                $where[] = "`$pureCol` >= :$pureCol";
-                $params[":$pureCol"] = $val;
+                $where[] = "`$pureCol` >= ?";
+                $params[] = $val;
+                $types .= "s";
+            } else if (strpos($col, '_lte') !== false) {
+                $where[] = "`$pureCol` <= ?";
+                $params[] = $val;
+                $types .= "s";
+            } else if (strpos($col, '_ne') !== false) {
+                $where[] = "`$pureCol` != ?";
+                $params[] = $val;
+                $types .= "s";
+            } else if (strpos($col, '_in') !== false) {
+                if (is_array($val) && !empty($val)) {
+                    $placeholders = array_map(function() { return "?"; }, $val);
+                    $where[] = "`$pureCol` IN (" . implode(", ", $placeholders) . ")";
+                    $params = array_merge($params, $val);
+                    $types .= str_repeat("s", count($val));
+                }
             } else {
-                $where[] = "`$pureCol` = :$pureCol";
-                $params[":$pureCol"] = $val;
+                $where[] = "`$pureCol` = ?";
+                $params[] = $val;
+                $types .= "s";
             }
         }
     }
-    
+
+    return [$where, $params, $types];
+}
+
+function handleSelect($conn, $table, $input) {
+    $sql = "SELECT * FROM `$table`";
+    list($where, $params, $types) = buildWhereClause($input['filters'] ?? []);
+
     if (!empty($where)) {
         $sql .= " WHERE " . implode(" AND ", $where);
     }
-
-    // Log para depuração (opcional, pode remover depois)
-    // file_put_contents("debug.log", date('Y-m-d H:i:s') . " SQL: $sql | Params: " . json_encode($params) . "\n", FILE_APPEND);
 
     if (isset($input['order'])) {
         $col = preg_replace('/[^a-zA-Z0-9_]/', '', $input['order']['column']);
@@ -119,72 +172,106 @@ function handleSelect($conn, $table, $input) {
     }
 
     $stmt = $conn->prepare($sql);
-    $stmt->execute($params);
-    sendResponse($stmt->fetchAll());
+    if (!empty($params)) {
+        $stmt->bind_param($types, ...$params);
+    }
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $rows = $result->fetch_all(MYSQLI_ASSOC);
+    sendResponse($rows);
 }
 
 function handleInsert($conn, $table, $input) {
     if (!isset($input['data'])) sendResponse(["error" => "Dados ausentes"], 400);
+
+    $data = $input['data'];
     
-    $columns = array_keys($input['data']);
-    $placeholders = array_map(function($col) { return ":$col"; }, $columns);
-    
+    // Gerar UUID se não fornecido e se a tabela espera um ID string (maioria no sistema)
+    if (!isset($data['id'])) {
+        $data['id'] = sprintf('%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
+            mt_rand(0, 0xffff), mt_rand(0, 0xffff),
+            mt_rand(0, 0xffff),
+            mt_rand(0, 0x0fff) | 0x4000,
+            mt_rand(0, 0x3fff) | 0x8000,
+            mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff)
+        );
+    }
+
+    foreach ($data as $key => &$val) {
+        if (is_array($val) || is_object($val)) $val = json_encode($val, JSON_UNESCAPED_UNICODE);
+        elseif (is_bool($val)) $val = $val ? 1 : 0;
+    }
+
+    $columns = array_keys($data);
+    $placeholders = array_map(function($col) { return "?"; }, $columns);
+
     $sql = "INSERT INTO `$table` (`" . implode("`, `", $columns) . "`) VALUES (" . implode(", ", $placeholders) . ")";
-    
+
     $stmt = $conn->prepare($sql);
-    foreach ($input['data'] as $col => $val) {
-        $stmt->bindValue(":$col", $val);
+    if (!$stmt) sendResponse(["error" => "Erro ao preparar SQL: " . $conn->error], 500);
+
+    $types = str_repeat("s", count($data));
+    $values = array_values($data);
+    $stmt->bind_param($types, ...$values);
+    
+    if (!$stmt->execute()) {
+        sendResponse(["error" => "Erro ao executar SQL: " . $stmt->error], 500);
     }
     
-    $stmt->execute();
-    sendResponse(["success" => true, "id" => $conn->lastInsertId()]);
+    sendResponse(["success" => true, "id" => $data['id']]);
 }
 
 function handleUpdate($conn, $table, $input) {
     if (!isset($input['data']) || !isset($input['filters'])) sendResponse(["error" => "Dados ou filtros ausentes"], 400);
-    
+
+    $data = $input['data'];
+    foreach ($data as $key => &$val) {
+        if (is_array($val) || is_object($val)) $val = json_encode($val, JSON_UNESCAPED_UNICODE);
+        elseif (is_bool($val)) $val = $val ? 1 : 0;
+    }
+
     $sets = [];
-    foreach ($input['data'] as $col => $val) {
+    $setValues = [];
+    $setTypes = "";
+    foreach ($data as $col => $val) {
         $col = preg_replace('/[^a-zA-Z0-9_]/', '', $col);
-        $sets[] = "`$col` = :data_$col";
+        $sets[] = "`$col` = ?";
+        $setValues[] = $val;
+        $setTypes .= "s";
     }
-    
-    $where = [];
-    foreach ($input['filters'] as $col => $val) {
-        $col = preg_replace('/[^a-zA-Z0-9_]/', '', $col);
-        $where[] = "`$col` = :filter_$col";
-    }
-    
+
+    list($where, $whereValues, $whereTypes) = buildWhereClause($input['filters']);
+
+    if (empty($where)) sendResponse(["error" => "Filtros de update vazios"], 400);
+
     $sql = "UPDATE `$table` SET " . implode(", ", $sets) . " WHERE " . implode(" AND ", $where);
-    
+
     $stmt = $conn->prepare($sql);
-    foreach ($input['data'] as $col => $val) {
-        $stmt->bindValue(":data_$col", $val);
+    $allValues = array_merge($setValues, $whereValues);
+    $allTypes = $setTypes . $whereTypes;
+    $stmt->bind_param($allTypes, ...$allValues);
+    if (!$stmt->execute()) {
+        sendResponse(["error" => "Erro ao atualizar registro: " . $stmt->error], 500);
     }
-    foreach ($input['filters'] as $col => $val) {
-        $stmt->bindValue(":filter_$col", $val);
-    }
-    
-    $stmt->execute();
-    sendResponse(["success" => true]);
+
+    sendResponse(["success" => true, "affected" => $stmt->affected_rows]);
 }
 
 function handleDelete($conn, $table, $input) {
     if (!isset($input['filters'])) sendResponse(["error" => "Filtros ausentes"], 400);
+
+    list($where, $params, $types) = buildWhereClause($input['filters']);
     
-    $where = [];
-    foreach ($input['filters'] as $col => $val) {
-        $col = preg_replace('/[^a-zA-Z0-9_]/', '', $col);
-        $where[] = "`$col` = :$col";
-    }
-    
+    if (empty($where)) sendResponse(["error" => "Filtros de delete vazios"], 400);
+
     $sql = "DELETE FROM `$table` WHERE " . implode(" AND ", $where);
-    
     $stmt = $conn->prepare($sql);
-    foreach ($input['filters'] as $col => $val) {
-        $stmt->bindValue(":$col", $val);
+    if (!empty($params)) {
+        $stmt->bind_param($types, ...$params);
     }
-    
-    $stmt->execute();
-    sendResponse(["success" => true]);
+    if (!$stmt->execute()) {
+        sendResponse(["error" => "Erro ao excluir registro: " . $stmt->error], 500);
+    }
+
+    sendResponse(["success" => true, "affected" => $stmt->affected_rows]);
 }
