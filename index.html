@@ -26,6 +26,15 @@
               if (data && data.length > 0 && data[0].logo_url) {
                 var favicon = document.getElementById('favicon');
                 if (favicon) favicon.href = data[0].logo_url;
+                
+                var appleIcon = document.querySelector('link[rel="apple-touch-icon"]');
+                if (!appleIcon) {
+                  appleIcon = document.createElement('link');
+                  appleIcon.rel = 'apple-touch-icon';
+                  document.head.appendChild(appleIcon);
+                }
+                appleIcon.href = data[0].logo_url;
+                
                 document.title = data[0].nome_plataforma || 'RF Drive';
               }
             } catch(e) {}
@@ -68,11 +77,11 @@
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@RFDrive" />
     <meta name="twitter:image" content="/logo.png" />
-    <script type="module" crossorigin src="./assets/index-DVjw5Qjz.js"></script>
+    <script type="module" crossorigin src="./assets/index-pAmLio89.js"></script>
     <link rel="modulepreload" crossorigin href="./assets/vendor-query-DOMgs_sB.js">
     <link rel="modulepreload" crossorigin href="./assets/vendor-react-sEMTA_Z6.js">
     <link rel="modulepreload" crossorigin href="./assets/vendor-motion-DitTBlRw.js">
-    <link rel="stylesheet" crossorigin href="./assets/index-Bwj0s1hN.css">
+    <link rel="stylesheet" crossorigin href="./assets/index-7DPptk5O.css">
   </head>
 
   <body>
