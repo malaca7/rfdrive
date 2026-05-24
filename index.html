@@ -10,6 +10,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" />
     <link rel="icon" type="image/png" id="favicon" href="./favicon.png" />
+    <meta name="apple-mobile-web-app-title" id="appTitle" content="RF Drive" />
     <title>RF Drive</title>
     <meta name="description" content="RF Drive - Seu transporte inteligente" />
     <meta name="author" content="RF Drive" />
@@ -35,6 +36,8 @@
                 }
                 appleIcon.href = data[0].logo_url;
                 
+                var appTitle = document.getElementById('appTitle');
+                if (appTitle) appTitle.content = data[0].nome_plataforma || 'RF Drive';
                 document.title = data[0].nome_plataforma || 'RF Drive';
               }
             } catch(e) {}
@@ -77,12 +80,12 @@
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@RFDrive" />
     <meta name="twitter:image" content="/logo.png" />
-    <script type="module" crossorigin src="./assets/index-Bz-2jTLO.js"></script>
+    <script type="module" crossorigin src="./assets/index-qMtAY51j.js"></script>
     <link rel="modulepreload" crossorigin href="./assets/rolldown-runtime-Cyuzqnbw.js">
     <link rel="modulepreload" crossorigin href="./assets/vendor-motion-BYAx8iAT.js">
     <link rel="modulepreload" crossorigin href="./assets/vendor-others-DQCeGjGP.js">
     <link rel="modulepreload" crossorigin href="./assets/vendor-react-DFjRE-_N.js">
-    <link rel="stylesheet" crossorigin href="./assets/index-BOkzGA_5.css">
+    <link rel="stylesheet" crossorigin href="./assets/index-B1BKfcE1.css">
   </head>
 
   <body>
