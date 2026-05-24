@@ -1,0 +1,1 @@
+var e={versionCode:2,versionName:`1.1`,apkUrl:`https://malaca.com.br/rfdrive/escritoriorf.apk`};export{e as t};
