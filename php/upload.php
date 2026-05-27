@@ -94,8 +94,9 @@ if (!in_array($fileExt, $allowed)) {
 }
 
 if (move_uploaded_file($file['tmp_name'], $targetPath)) {
-    // Retornar a URL relativa ao projeto
-    $baseUrl = "/rfdrive/php/uploads/" . $bucket . "/";
+    // Retornar a URL relativa ao projeto (detecta caminho base dinamicamente)
+    $scriptDir = rtrim(dirname($_SERVER['SCRIPT_NAME']), '/');
+    $baseUrl = $scriptDir . "/uploads/" . $bucket . "/";
     
     sendResponse([
         "success" => true,

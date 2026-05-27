@@ -3,47 +3,94 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-    <meta name="theme-color" content="#fafafa" />
+    <meta name="theme-color" content="#080A10" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://fonts.gstatic.com" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" />
-    <link rel="icon" type="image/png" id="favicon" href="./favicon.png" />
+    <link rel="icon" type="image/png" id="favicon" href="favicon.png" />
+    <link rel="apple-touch-icon" id="appleTouchIcon" href="./assets/app-icon-BD98wX3w.png" />
+    <link rel="apple-touch-icon" sizes="152x152" href="./assets/app-icon-BD98wX3w.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="./assets/app-icon-BD98wX3w.png" />
+    <link rel="apple-touch-icon" sizes="167x167" href="./assets/app-icon-BD98wX3w.png" />
     <meta name="apple-mobile-web-app-title" id="appTitle" content="RF Drive" />
+    <link rel="manifest" id="manifestLink" href="manifest.json" />
     <title>RF Drive</title>
     <meta name="description" content="RF Drive - Seu transporte inteligente" />
     <meta name="author" content="RF Drive" />
     <script>
-      // Load platform logo from API
+      // Load platform config asynchronously so iOS and mobile browsers do not freeze or throw security errors
       (function() {
-        var xhr = new XMLHttpRequest();
-        xhr.open('POST', '/php/api.php', true);
-        xhr.setRequestHeader('Content-Type', 'application/json');
-        xhr.onload = function() {
-          if (xhr.status === 200) {
-            try {
-              var data = JSON.parse(xhr.responseText);
-              if (data && data.length > 0 && data[0].logo_url) {
-                var favicon = document.getElementById('favicon');
-                if (favicon) favicon.href = data[0].logo_url;
-                
-                var appleIcon = document.querySelector('link[rel="apple-touch-icon"]');
-                if (!appleIcon) {
-                  appleIcon = document.createElement('link');
-                  appleIcon.rel = 'apple-touch-icon';
-                  document.head.appendChild(appleIcon);
-                }
-                appleIcon.href = data[0].logo_url;
-                
-                var appTitle = document.getElementById('appTitle');
-                if (appTitle) appTitle.content = data[0].nome_plataforma || 'RF Drive';
-                document.title = data[0].nome_plataforma || 'RF Drive';
-              }
-            } catch(e) {}
+        try {
+          var pathParts = window.location.pathname.split('/');
+          var rfdriveIndex = -1;
+          for (var i = 0; i < pathParts.length; i++) {
+            if (pathParts[i].indexOf('rfdrive') === 0) {
+              rfdriveIndex = i;
+              break;
+            }
           }
-        };
-        xhr.send(JSON.stringify({action:'select',table:'config_plataforma',columns:'logo_url,nome_plataforma',limit:1}));
+          var baseUrl = '';
+          if (rfdriveIndex !== -1) {
+            baseUrl = '/' + pathParts.slice(0, rfdriveIndex + 1).join('/');
+          }
+
+          // Point manifest to dynamic PHP endpoint
+          var manifestLink = document.getElementById('manifestLink');
+          if (manifestLink) manifestLink.href = (baseUrl || '') + '/php/manifest.php';
+
+          var xhr = new XMLHttpRequest();
+          xhr.open('POST', (baseUrl || '') + '/php/api.php', true);
+          xhr.setRequestHeader('Content-Type', 'application/json');
+          xhr.onreadystatechange = function() {
+            if (xhr.readyState === 4 && xhr.status === 200) {
+              try {
+                var data = JSON.parse(xhr.responseText);
+                if (data && data.length > 0) {
+                  var logoUrl = data[0].logo_url;
+                  var platformName = data[0].nome_plataforma || 'RF Drive';
+
+                  if (logoUrl) {
+                    // Prevent Mixed Content warnings: Force HTTPS if the page is loaded securely
+                    if (window.location.protocol === 'https:' && logoUrl.indexOf('http://') === 0) {
+                      logoUrl = logoUrl.replace('http://', 'https://');
+                    }
+                    if (!/^https?:\/\//i.test(logoUrl) && logoUrl.charAt(0) !== '/') {
+                      logoUrl = (baseUrl || '') + '/' + logoUrl;
+                    }
+
+                    var favicon = document.getElementById('favicon');
+                    if (favicon) favicon.href = logoUrl;
+
+                    var appleIcons = document.querySelectorAll('link[rel="apple-touch-icon"]');
+                    for (var i = 0; i < appleIcons.length; i++) appleIcons[i].href = logoUrl;
+
+                    var ogImage = document.querySelector('meta[property="og:image"]');
+                    if (ogImage) ogImage.content = logoUrl;
+                    var twitterImage = document.querySelector('meta[name="twitter:image"]');
+                    if (twitterImage) twitterImage.content = logoUrl;
+                  }
+
+                  var appTitle = document.getElementById('appTitle');
+                  if (appTitle) appTitle.content = platformName;
+                  document.title = platformName;
+
+                  var ogTitle = document.querySelector('meta[property="og:title"]');
+                  if (ogTitle) ogTitle.content = platformName;
+                  var ogDesc = document.querySelector('meta[property="og:description"]');
+                  if (ogDesc) ogDesc.content = platformName + ' - ' + (data[0].slogan || 'Seu transporte inteligente');
+                  var twitterTitle = document.querySelector('meta[name="twitter:title"]');
+                  if (twitterTitle) twitterTitle.content = platformName;
+                }
+              } catch(e) {}
+            }
+          };
+          xhr.send(JSON.stringify({
+            action:'select', table:'config_plataforma',
+            columns:'logo_url,nome_plataforma,slogan', limit:1
+          }));
+        } catch(e) {}
       })();
     </script>
     <script>
@@ -75,17 +122,17 @@
     <meta property="og:title" content="RF Drive" />
     <meta property="og:description" content="RF Drive - Seu transporte inteligente" />
     <meta property="og:type" content="website" />
-    <meta property="og:image" content="/logo.png" />
+    <meta property="og:image" content="./assets/app-icon-BD98wX3w.png" />
 
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@RFDrive" />
-    <meta name="twitter:image" content="/logo.png" />
-    <script type="module" crossorigin src="./assets/index-qMtAY51j.js"></script>
-    <link rel="modulepreload" crossorigin href="./assets/rolldown-runtime-Cyuzqnbw.js">
-    <link rel="modulepreload" crossorigin href="./assets/vendor-motion-BYAx8iAT.js">
-    <link rel="modulepreload" crossorigin href="./assets/vendor-others-DQCeGjGP.js">
-    <link rel="modulepreload" crossorigin href="./assets/vendor-react-DFjRE-_N.js">
-    <link rel="stylesheet" crossorigin href="./assets/index-B1BKfcE1.css">
+    <meta name="twitter:image" content="./assets/app-icon-BD98wX3w.png" />
+    <script type="module" src="./assets/index-Xjm-ul36.js"></script>
+    <link rel="modulepreload" href="./assets/rolldown-runtime-Cyuzqnbw.js">
+    <link rel="modulepreload" href="./assets/vendor-motion-C5KJ9vH-.js">
+    <link rel="modulepreload" href="./assets/vendor-others-BnKkW8rs.js">
+    <link rel="modulepreload" href="./assets/vendor-react-CMoH0vcB.js">
+    <link rel="stylesheet" href="./assets/index-BZVBFppS.css">
   </head>
 
   <body>
