@@ -1,0 +1,1 @@
+var e={versionCode:5,versionName:`1.5`,apkUrl:`https://wsviagenspe.com.br/escritoriorf.apk`};export{e as t};
