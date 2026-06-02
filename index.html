@@ -14,11 +14,11 @@
     <link rel="apple-touch-icon" sizes="152x152" href="/assets/app-icon-BD98wX3w.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="/assets/app-icon-BD98wX3w.png" />
     <link rel="apple-touch-icon" sizes="167x167" href="/assets/app-icon-BD98wX3w.png" />
-    <meta name="apple-mobile-web-app-title" id="appTitle" content="RF Drive" />
+    <meta name="apple-mobile-web-app-title" id="appTitle" content="Mobilidade" />
     <link rel="manifest" id="manifestLink" href="manifest.json" />
-    <title>RF Drive</title>
-    <meta name="description" content="RF Drive - Seu transporte inteligente" />
-    <meta name="author" content="RF Drive" />
+    <title>Plataforma de Mobilidade</title>
+    <meta name="description" content="Sua plataforma de mobilidade urbana inteligente" />
+    <meta name="author" content="Plataforma de Mobilidade" />
     <script>
       // Load platform config asynchronously so iOS and mobile browsers do not freeze or throw security errors
       (function() {
@@ -49,7 +49,7 @@
                 var data = JSON.parse(xhr.responseText);
                 if (data && data.length > 0) {
                   var logoUrl = data[0].logo_url;
-                  var platformName = data[0].nome_plataforma || 'RF Drive';
+                  var platformName = data[0].nome_plataforma;
 
                   if (logoUrl) {
                     // Prevent Mixed Content warnings: Force HTTPS if the page is loaded securely
@@ -72,16 +72,18 @@
                     if (twitterImage) twitterImage.content = logoUrl;
                   }
 
-                  var appTitle = document.getElementById('appTitle');
-                  if (appTitle) appTitle.content = platformName;
-                  document.title = platformName;
+                  if (platformName) {
+                    var appTitle = document.getElementById('appTitle');
+                    if (appTitle) appTitle.content = platformName;
+                    document.title = platformName;
 
-                  var ogTitle = document.querySelector('meta[property="og:title"]');
-                  if (ogTitle) ogTitle.content = platformName;
-                  var ogDesc = document.querySelector('meta[property="og:description"]');
-                  if (ogDesc) ogDesc.content = platformName + ' - ' + (data[0].slogan || 'Seu transporte inteligente');
-                  var twitterTitle = document.querySelector('meta[name="twitter:title"]');
-                  if (twitterTitle) twitterTitle.content = platformName;
+                    var ogTitle = document.querySelector('meta[property="og:title"]');
+                    if (ogTitle) ogTitle.content = platformName;
+                    var ogDesc = document.querySelector('meta[property="og:description"]');
+                    if (ogDesc) ogDesc.content = platformName + (data[0].slogan ? ' - ' + data[0].slogan : '');
+                    var twitterTitle = document.querySelector('meta[name="twitter:title"]');
+                    if (twitterTitle) twitterTitle.content = platformName;
+                  }
                 }
               } catch(e) {}
             }
@@ -119,15 +121,14 @@
       }, 8000);
     </script>
 
-    <meta property="og:title" content="RF Drive" />
-    <meta property="og:description" content="RF Drive - Seu transporte inteligente" />
+    <meta property="og:title" content="Plataforma de Mobilidade" />
+    <meta property="og:description" content="Sua plataforma de mobilidade urbana inteligente" />
     <meta property="og:type" content="website" />
     <meta property="og:image" content="/assets/app-icon-BD98wX3w.png" />
 
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:site" content="@RFDrive" />
     <meta name="twitter:image" content="/assets/app-icon-BD98wX3w.png" />
-    <script type="module" src="/assets/index-RNMUrPIs.js"></script>
+    <script type="module" src="/assets/index-CKiE-4Sq.js"></script>
     <link rel="modulepreload" href="/assets/rolldown-runtime-Cyuzqnbw.js">
     <link rel="modulepreload" href="/assets/vendor-motion-C5KJ9vH-.js">
     <link rel="modulepreload" href="/assets/vendor-others-Br6wLwMq.js">
@@ -135,7 +136,7 @@
     <link rel="modulepreload" href="/assets/vendor-radix-DK5HaGu3.js">
     <link rel="modulepreload" href="/assets/vendor-react-B85YAHu_.js">
     <link rel="stylesheet" href="/assets/vendor-others-_3MkWABH.css">
-    <link rel="stylesheet" href="/assets/index-CELQZt3t.css">
+    <link rel="stylesheet" href="/assets/index-CfSCczmS.css">
   </head>
 
   <body>
