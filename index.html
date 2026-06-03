@@ -22,6 +22,39 @@
     <script>
       // Load platform config asynchronously so iOS and mobile browsers do not freeze or throw security errors
       (function() {
+        function applyThemeColor(hexColor) {
+          if (!hexColor) return;
+          var hex = hexColor.replace('#', '');
+          if (hex.length === 6) {
+            var r = parseInt(hex.substring(0,2), 16) / 255;
+            var g = parseInt(hex.substring(2,4), 16) / 255;
+            var b = parseInt(hex.substring(4,6), 16) / 255;
+            var max = Math.max(r, g, b), min = Math.min(r, g, b);
+            var h = 0, s = 0, l = (max + min) / 2;
+            if (max !== min) {
+              var d = max - min;
+              s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+              switch (max) {
+                case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
+                case g: h = ((b - r) / d + 2) / 6; break;
+                case b: h = ((r - g) / d + 4) / 6; break;
+              }
+            }
+            var hDeg = Math.round(h * 360);
+            var sPct = Math.round(s * 100) + '%';
+            var lPct = Math.round(l * 100) + '%';
+            var hslStr = hDeg + ' ' + sPct + ' ' + lPct;
+            
+            var root = document.documentElement;
+            root.style.setProperty('--primary', hslStr);
+            root.style.setProperty('--accent', hslStr);
+            root.style.setProperty('--ring', hslStr);
+            root.style.setProperty('--sidebar-primary', hslStr);
+            root.style.setProperty('--sidebar-ring', hslStr);
+            root.style.setProperty('--theme-primary-hex', hexColor);
+          }
+        }
+
         try {
           var pathParts = window.location.pathname.split('/');
           var rfdriveIndex = -1;
@@ -40,6 +73,28 @@
           var manifestLink = document.getElementById('manifestLink');
           if (manifestLink) manifestLink.href = (baseUrl || '') + '/php/manifest.php';
 
+          // Apply cached config instantly to prevent white/blue flashes
+          var cached = localStorage.getItem('platform_config');
+          if (cached) {
+            var config = JSON.parse(cached);
+            if (config) {
+              if (config.cor_primaria) applyThemeColor(config.cor_primaria);
+              if (config.nome_plataforma) {
+                document.title = config.slogan ? config.nome_plataforma + ' | ' + config.slogan : config.nome_plataforma;
+                var appTitle = document.getElementById('appTitle');
+                if (appTitle) appTitle.content = config.nome_plataforma;
+              }
+              if (config.logo_url) {
+                var cacheLogo = config.logo_url;
+                if (!/^https?:\/\//i.test(cacheLogo) && cacheLogo.charAt(0) !== '/') {
+                  cacheLogo = (baseUrl || '') + '/' + cacheLogo;
+                }
+                var fav = document.getElementById('favicon');
+                if (fav) fav.href = cacheLogo;
+              }
+            }
+          }
+
           var xhr = new XMLHttpRequest();
           xhr.open('POST', (baseUrl || '') + '/php/api.php', true);
           xhr.setRequestHeader('Content-Type', 'application/json');
@@ -50,6 +105,14 @@
                 if (data && data.length > 0) {
                   var logoUrl = data[0].logo_url;
                   var platformName = data[0].nome_plataforma;
+                  var corPrimaria = data[0].cor_primaria;
+
+                  // Save to cache
+                  localStorage.setItem('platform_config', JSON.stringify(data[0]));
+
+                  if (corPrimaria) {
+                    applyThemeColor(corPrimaria);
+                  }
 
                   if (logoUrl) {
                     // Prevent Mixed Content warnings: Force HTTPS if the page is loaded securely
@@ -75,7 +138,7 @@
                   if (platformName) {
                     var appTitle = document.getElementById('appTitle');
                     if (appTitle) appTitle.content = platformName;
-                    document.title = platformName;
+                    document.title = data[0].slogan ? platformName + ' | ' + data[0].slogan : platformName;
 
                     var ogTitle = document.querySelector('meta[property="og:title"]');
                     if (ogTitle) ogTitle.content = platformName;
@@ -90,7 +153,7 @@
           };
           xhr.send(JSON.stringify({
             action:'select', table:'config_plataforma',
-            columns:'logo_url,nome_plataforma,slogan', limit:1
+            columns:'logo_url,nome_plataforma,slogan,cor_primaria', limit:1
           }));
         } catch(e) {}
       })();

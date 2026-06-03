@@ -1,11 +1,11 @@
 {
-  "name": "RF Drive",
-  "short_name": "RF Drive",
-  "description": "RF Drive - Seu transporte inteligente",
+  "name": "Plataforma",
+  "short_name": "Plataforma",
+  "description": "Plataforma de Mobilidade Urbana",
   "start_url": ".",
   "display": "standalone",
   "background_color": "#fafafa",
-  "theme_color": "#086AB8",
+  "theme_color": "#1f2937",
   "orientation": "portrait-primary",
   "icons": [
     {
