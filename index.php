@@ -16,7 +16,19 @@ $result = $conn->query("SELECT nome_plataforma, slogan, logo_url, cor_primaria F
 if ($result && $row = $result->fetch_assoc()) {
   if (!empty($row['nome_plataforma'])) $name = $row['nome_plataforma'];
   if (!empty($row['slogan'])) $slogan = $row['slogan'];
-  if (!empty($row['logo_url'])) $logoUrl = $row['logo_url'];
+  if (!empty($row['logo_url'])) {
+    $logoUrl = $row['logo_url'];
+    if (!preg_match('/^https?:\/\//i', $logoUrl)) {
+      $rootPath = rtrim(dirname($_SERVER['SCRIPT_NAME']), '/');
+      if ($logoUrl[0] === '/') {
+        if ($rootPath !== '' && strpos($logoUrl, $rootPath) !== 0) {
+          $logoUrl = $rootPath . $logoUrl;
+        }
+      } else {
+        $logoUrl = $rootPath . '/' . $logoUrl;
+      }
+    }
+  }
   if (!empty($row['cor_primaria'])) $corPrimaria = $row['cor_primaria'];
 }
 $conn->close();
@@ -74,8 +86,12 @@ if ($html !== false) {
     );
     
     // Replace default apple-touch-icon and favicons as well for initial preloads
-    $html = str_replace('href="app-icon.png"', 'href="' . htmlspecialchars($logoUrl) . '"', $html);
-    $html = str_replace('href="favicon.png"', 'href="' . htmlspecialchars($logoUrl) . '"', $html);
+    $version = time();
+    $html = str_replace('href="app-icon.png"', 'href="' . htmlspecialchars($logoUrl) . '?v=' . $version . '"', $html);
+    $html = str_replace('href="favicon.png"', 'href="' . htmlspecialchars($logoUrl) . '?v=' . $version . '"', $html);
+    
+    // Add cache buster to PWA manifest link
+    $html = str_replace('href="php/manifest.php"', 'href="php/manifest.php?v=' . $version . '"', $html);
   }
 
   // 7. Inject primary color dynamically into HSL variables if defined (prevents any default color flash)

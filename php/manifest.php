@@ -13,8 +13,15 @@ if ($result && $row = $result->fetch_assoc()) {
   if (!empty($row['cor_primaria'])) $themeColor = $row['cor_primaria'];
   if (!empty($row['logo_url'])) {
     $logoUrl = $row['logo_url'];
-    if (!preg_match('/^https?:\/\//i', $logoUrl) && $logoUrl[0] !== '/') {
-      $logoUrl = rtrim(dirname($_SERVER['SCRIPT_NAME']), '/') . '/' . $logoUrl;
+    if (!preg_match('/^https?:\/\//i', $logoUrl)) {
+      $rootPath = rtrim(dirname(dirname($_SERVER['SCRIPT_NAME'])), '/');
+      if ($logoUrl[0] === '/') {
+        if ($rootPath !== '' && strpos($logoUrl, $rootPath) !== 0) {
+          $logoUrl = $rootPath . $logoUrl;
+        }
+      } else {
+        $logoUrl = $rootPath . '/' . $logoUrl;
+      }
     }
   }
 }
@@ -32,7 +39,7 @@ echo json_encode([
   'theme_color' => $themeColor,
   'orientation' => 'portrait-primary',
   'icons' => [
-    ['src' => $logoUrl, 'sizes' => '192x192', 'type' => 'image/png', 'purpose' => 'any maskable'],
-    ['src' => $logoUrl, 'sizes' => '512x512', 'type' => 'image/png', 'purpose' => 'any maskable'],
+    ['src' => $logoUrl . '?v=' . time(), 'sizes' => '192x192', 'type' => 'image/png', 'purpose' => 'any maskable'],
+    ['src' => $logoUrl . '?v=' . time(), 'sizes' => '512x512', 'type' => 'image/png', 'purpose' => 'any maskable'],
   ],
 ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
