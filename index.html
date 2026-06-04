@@ -99,12 +99,14 @@
               if (config.nome_plataforma) {
                 document.title = config.slogan ? config.nome_plataforma + ' | ' + config.slogan : config.nome_plataforma;
                 var appTitle = document.getElementById('appTitle');
-                if (appTitle) appTitle.content = config.nome_plataforma;
+                if (appTitle) appTitle.setAttribute('content', config.nome_plataforma);
               }
               if (config.logo_url) {
                 var cacheLogo = resolveLogoUrl(config.logo_url);
                 var fav = document.getElementById('favicon');
                 if (fav) fav.href = cacheLogo;
+                var appleIcons = document.querySelectorAll('link[rel="apple-touch-icon"]');
+                for (var i = 0; i < appleIcons.length; i++) appleIcons[i].href = cacheLogo;
               }
             }
           }
@@ -138,22 +140,22 @@
                     for (var i = 0; i < appleIcons.length; i++) appleIcons[i].href = resolvedLogo;
 
                     var ogImage = document.querySelector('meta[property="og:image"]');
-                    if (ogImage) ogImage.content = resolvedLogo;
+                    if (ogImage) ogImage.setAttribute('content', resolvedLogo);
                     var twitterImage = document.querySelector('meta[name="twitter:image"]');
-                    if (twitterImage) twitterImage.content = resolvedLogo;
+                    if (twitterImage) twitterImage.setAttribute('content', resolvedLogo);
                   }
 
                   if (platformName) {
                     var appTitle = document.getElementById('appTitle');
-                    if (appTitle) appTitle.content = platformName;
+                    if (appTitle) appTitle.setAttribute('content', platformName);
                     document.title = data[0].slogan ? platformName + ' | ' + data[0].slogan : platformName;
 
                     var ogTitle = document.querySelector('meta[property="og:title"]');
-                    if (ogTitle) ogTitle.content = platformName;
+                    if (ogTitle) ogTitle.setAttribute('content', platformName);
                     var ogDesc = document.querySelector('meta[property="og:description"]');
-                    if (ogDesc) ogDesc.content = platformName + (data[0].slogan ? ' - ' + data[0].slogan : '');
+                    if (ogDesc) ogDesc.setAttribute('content', platformName + (data[0].slogan ? ' - ' + data[0].slogan : ''));
                     var twitterTitle = document.querySelector('meta[name="twitter:title"]');
-                    if (twitterTitle) twitterTitle.content = platformName;
+                    if (twitterTitle) twitterTitle.setAttribute('content', platformName);
                   }
                 }
               } catch(e) {}
