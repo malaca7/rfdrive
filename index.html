@@ -199,7 +199,7 @@
 
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:image" content="/assets/app-icon-BD98wX3w.png" />
-    <script type="module" src="/assets/index-y53B6BbT.js"></script>
+    <script type="module" src="/assets/index-DlDXxJkX.js"></script>
     <link rel="modulepreload" href="/assets/rolldown-runtime-Cyuzqnbw.js">
     <link rel="modulepreload" href="/assets/vendor-motion-C5KJ9vH-.js">
     <link rel="modulepreload" href="/assets/vendor-others-Br6wLwMq.js">
@@ -207,7 +207,7 @@
     <link rel="modulepreload" href="/assets/vendor-radix-DK5HaGu3.js">
     <link rel="modulepreload" href="/assets/vendor-react-B85YAHu_.js">
     <link rel="stylesheet" href="/assets/vendor-others-_3MkWABH.css">
-    <link rel="stylesheet" href="/assets/index-DIppiHte.css">
+    <link rel="stylesheet" href="/assets/index-0BbfzxTF.css">
   </head>
 
   <body>
@@ -225,10 +225,14 @@
       }(window.location));
     </script>
     <div id="root">
-      <div style="display:flex;align-items:center;justify-content:center;min-height:100vh;background:#fafafa;">
-        <div style="width:32px;height:32px;border:3px solid #eee;border-top-color:#111;border-radius:50%;animation:spin 0.8s linear infinite;"></div>
+      <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;background:#08080a;font-family:sans-serif;color:#fff;gap:16px;">
+        <div style="width:40px;height:40px;border:3px solid rgba(255,255,255,0.05);border-top-color:currentColor;border-radius:50%;animation:spin 0.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;color:var(--primary,#6366f1);"></div>
+        <div style="font-size:11px;font-weight:700;letter-spacing:0.12em;opacity:0.6;animation:pulse 1.5s ease-in-out infinite;">CARREGANDO SISTEMA</div>
       </div>
-      <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+      <style>
+        @keyframes spin{to{transform:rotate(360deg)}}
+        @keyframes pulse{0%,100%{opacity:0.3}50%{opacity:0.8}}
+      </style>
     </div>
   </body>
 </html>
