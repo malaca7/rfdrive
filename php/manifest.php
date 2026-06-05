@@ -32,6 +32,28 @@ header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
 header("Cache-Control: post-check=0, pre-check=0", false);
 header("Pragma: no-cache");
 header('Content-Type: application/json; charset=UTF-8');
+
+// Build absolute URL for the icon
+$baseUrl = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST'] . rtrim(dirname(dirname($_SERVER['SCRIPT_NAME'])), '/');
+$absoluteIcon = $logoUrl;
+if (!preg_match('/^https?:\/\//i', $absoluteIcon)) {
+  $absoluteIcon = $baseUrl . '/' . ltrim($absoluteIcon, '/');
+}
+
+// Detect MIME type dynamically based on the logo file extension
+$iconType = 'image/png';
+$parsedPath = parse_url($absoluteIcon, PHP_URL_PATH);
+if ($parsedPath) {
+  $ext = strtolower(pathinfo($parsedPath, PATHINFO_EXTENSION));
+  if ($ext === 'jpg' || $ext === 'jpeg') {
+    $iconType = 'image/jpeg';
+  } elseif ($ext === 'svg') {
+    $iconType = 'image/svg+xml';
+  } elseif ($ext === 'webp') {
+    $iconType = 'image/webp';
+  }
+}
+
 echo json_encode([
   'name' => $name,
   'short_name' => $name,
@@ -42,7 +64,7 @@ echo json_encode([
   'theme_color' => $themeColor,
   'orientation' => 'portrait-primary',
   'icons' => [
-    ['src' => $logoUrl . '?v=' . time(), 'sizes' => '192x192', 'type' => 'image/png', 'purpose' => 'any maskable'],
-    ['src' => $logoUrl . '?v=' . time(), 'sizes' => '512x512', 'type' => 'image/png', 'purpose' => 'any maskable'],
+    ['src' => $absoluteIcon . '?v=' . time(), 'sizes' => '192x192', 'type' => $iconType, 'purpose' => 'any maskable'],
+    ['src' => $absoluteIcon . '?v=' . time(), 'sizes' => '512x512', 'type' => $iconType, 'purpose' => 'any maskable'],
   ],
 ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);

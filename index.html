@@ -132,6 +132,11 @@
 
                   if (logoUrl) {
                     var resolvedLogo = resolveLogoUrl(logoUrl);
+                    // Make it absolute for social media crawlers
+                    var absoluteLogo = resolvedLogo;
+                    if (!/^https?:\/\//i.test(absoluteLogo)) {
+                      absoluteLogo = window.location.origin + (absoluteLogo.charAt(0) === '/' ? '' : '/') + absoluteLogo;
+                    }
 
                     var favicon = document.getElementById('favicon');
                     if (favicon) favicon.href = resolvedLogo;
@@ -140,9 +145,9 @@
                     for (var i = 0; i < appleIcons.length; i++) appleIcons[i].href = resolvedLogo;
 
                     var ogImage = document.querySelector('meta[property="og:image"]');
-                    if (ogImage) ogImage.setAttribute('content', resolvedLogo);
+                    if (ogImage) ogImage.setAttribute('content', absoluteLogo);
                     var twitterImage = document.querySelector('meta[name="twitter:image"]');
-                    if (twitterImage) twitterImage.setAttribute('content', resolvedLogo);
+                    if (twitterImage) twitterImage.setAttribute('content', absoluteLogo);
                   }
 
                   if (platformName) {
@@ -200,16 +205,18 @@
     <meta property="og:image" content="/assets/app-icon-BD98wX3w.png" />
 
     <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Plataforma de Mobilidade" />
     <meta name="twitter:image" content="/assets/app-icon-BD98wX3w.png" />
-    <script type="module" src="/assets/index-OH9_co8B.js"></script>
+    <meta name="twitter:description" content="Sua plataforma de mobilidade urbana inteligente" />
+    <script type="module" src="/assets/index-l2Zr1nJE.js"></script>
     <link rel="modulepreload" href="/assets/rolldown-runtime-Cyuzqnbw.js">
     <link rel="modulepreload" href="/assets/vendor-motion-C5KJ9vH-.js">
     <link rel="modulepreload" href="/assets/vendor-others-Br6wLwMq.js">
     <link rel="modulepreload" href="/assets/vendor-query-Djdj5llY.js">
     <link rel="modulepreload" href="/assets/vendor-radix-DK5HaGu3.js">
-    <link rel="modulepreload" href="/assets/vendor-react-B85YAHu_.js">
+    <link rel="modulepreload" href="/assets/vendor-react-I5pdmswh.js">
     <link rel="stylesheet" href="/assets/vendor-others-_3MkWABH.css">
-    <link rel="stylesheet" href="/assets/index-B63zoJJg.css">
+    <link rel="stylesheet" href="/assets/index-CP9NZvzB.css">
   </head>
 
   <body>
